@@ -183,6 +183,10 @@ class Stock(models.Model):
     def __str__(self):
         return f'{self.id_product}: {self.stock_quantity} шт.'
 
+    @property
+    def available_quantity(self) -> int:
+        return self.stock_quantity - self.stock_reserved
+
 
 class Cart(models.Model):
     """Корзина (таблица carts)."""
@@ -365,6 +369,10 @@ class AuditLog(models.Model):
     audit_object_type = models.CharField(max_length=50)
     object_id = models.BigIntegerField(blank=True, null=True)
     audit_action = models.CharField(max_length=50)
+    audit_before = models.TextField(blank=True, null=True)
+    audit_after = models.TextField(blank=True, null=True)
+    audit_ip = models.GenericIPAddressField(blank=True, null=True)
+    audit_user_agent = models.CharField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

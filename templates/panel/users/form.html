@@ -1,0 +1,11 @@
+{% extends 'panel/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<header class="page-header"><h1>{{ title }}</h1></header>
+<section class="card">
+  <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Сохранить</button>
+    <a class="btn btn-ghost" href="{% url 'panel:user_list' %}">Отмена</a>
+  </form>
+</section>
+{% endblock %}

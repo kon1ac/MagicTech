@@ -1,0 +1,13 @@
+{% extends 'panel/base.html' %}
+{% block title %}Сборка заказа{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Списание при сборке</h1>
+  <p>Заказ <strong>{{ order.order_number }}</strong> — проверьте отобранные позиции перед списанием.</p>
+  <ul>{% for item in order.items.all %}<li>{{ item.id_product.product_sku }} × {{ item.order_item_quantity }}</li>{% endfor %}</ul>
+  <form method="post">{% csrf_token %}
+    <button class="btn btn-primary" type="submit">Подтвердить списание</button>
+    <a class="btn btn-ghost" href="{% url 'panel:order_detail' order.id_order %}">Назад</a>
+  </form>
+</section>
+{% endblock %}

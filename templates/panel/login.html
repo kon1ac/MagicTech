@@ -1,0 +1,22 @@
+{% extends 'panel/base.html' %}
+{% block title %}Вход{% endblock %}
+{% block bare_content %}
+<div class="login-screen">
+  <div class="login-card">
+    <div class="brand brand-lg">
+      <span class="brand-mark">MT</span>
+      <div>
+        <strong>MagicTech</strong>
+        <small>Панель управления</small>
+      </div>
+    </div>
+    <p class="muted">Интернет-магазин аксессуаров для ПК · RBAC</p>
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary btn-block">Войти</button>
+    </form>
+    <p class="hint">Демо: <code>admin@magtech.local</code> / <code>Admin123!</code></p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'panel/base.html' %}
+{% block title %}Аудит{% endblock %}
+{% block content %}
+<header class="page-header">
+  <h1>Журнал аудита</h1>
+  <a class="btn btn-primary" href="{% url 'panel:audit_export' %}">Экспорт CSV</a>
+</header>
+<table class="data-table">
+  <thead><tr><th>Дата</th><th>Пользователь</th><th>Объект</th><th>Действие</th><th>IP</th></tr></thead>
+  <tbody>
+  {% for a in page_obj %}
+  <tr>
+    <td>{{ a.created_at|date:"d.m.Y H:i:s" }}</td>
+    <td>{{ a.id_user.email|default:"—" }}</td>
+    <td>{{ a.audit_object_type }} #{{ a.object_id }}</td>
+    <td>{{ a.audit_action }}</td>
+    <td>{{ a.audit_ip|default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="5">Пусто</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

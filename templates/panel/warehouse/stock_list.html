@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% block title %}Склад{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Остатки склада</h1></header>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="SKU / название"></form></div>
+<table class="data-table">
+  <thead><tr><th>Товар</th><th>Остаток</th><th>Резерв</th><th>Доступно</th><th></th></tr></thead>
+  <tbody>
+  {% for s in page_obj %}
+  <tr>
+    <td>{{ s.id_product.product_sku }} — {{ s.id_product.product_name }}</td>
+    <td>{{ s.stock_quantity }}</td>
+    <td>{{ s.stock_reserved }}</td>
+    <td>{{ s.available_quantity }}</td>
+    <td><a href="{% url 'panel:stock_adjust' s.id_product.id_product %}">Корректировка</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="5">Нет остатков</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

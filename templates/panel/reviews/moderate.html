@@ -1,0 +1,9 @@
+{% extends 'panel/base.html' %}
+{% block title %}Модерация отзыва{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Модерация отзыва #{{ review.id_review }}</h1>
+  <p>{{ review.review_text }}</p>
+  <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form>
+</section>
+{% endblock %}

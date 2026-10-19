@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MagicTech{% endblock %} · Панель управления</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'panel/css/magictech.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main">К содержимому</a>
+  {% if panel_user %}
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark">MT</span>
+        <div>
+          <strong>MagicTech</strong>
+          <small>Admin Console</small>
+        </div>
+      </div>
+      <nav class="nav">
+        {% for item in panel_nav %}
+        <a href="{% url item.url_name %}" class="nav-link{% if request.resolver_match.url_name == item.url_name %} active{% endif %}">{{ item.title }}</a>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <span>{{ panel_user.email }}</span>
+          <small>{{ panel_role_label }}</small>
+        </div>
+        <form method="post" action="{% url 'panel:logout' %}">{% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Выйти</button>
+        </form>
+      </div>
+    </aside>
+    <div class="main-wrap">
+      <header class="topbar">
+        <button type="button" class="btn btn-ghost menu-toggle" id="menuToggle" aria-label="Меню">☰</button>
+        <form class="search-global" action="{% url 'panel:product_list' %}" method="get" id="globalSearch">
+          <input type="search" name="q" placeholder="Поиск по SKU / названию (Ctrl+K)" id="searchInput" value="{{ request.GET.q|default:'' }}">
+        </form>
+        <div class="topbar-actions">
+          <button type="button" class="btn btn-ghost" id="themeToggle" title="Тема">◐</button>
+          <a href="{% url 'panel:hotkeys' %}" class="btn btn-ghost" title="Горячие клавиши">?</a>
+        </div>
+      </header>
+      <main class="content" id="main">
+        {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+          <li class="msg msg-{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% else %}
+  <main id="main">{% block bare_content %}{% endblock %}</main>
+  {% endif %}
+  <script src="{% static 'panel/js/panel.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+{% extends 'panel/base.html' %}
+{% block title %}Платежи{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Платежи и биллинг</h1></header>
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Заказ</th><th>Провайдер</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr></thead>
+  <tbody>{% for p in page_obj %}<tr><td>{{ p.id_payment }}</td><td>{{ p.id_order.order_number }}</td><td>{{ p.payment_provider }}</td><td>{{ p.payment_amount }} {{ p.payment_currency }}</td><td>{{ p.payment_status }}</td><td>{{ p.created_at|date:"d.m.Y H:i" }}</td></tr>{% empty %}<tr><td colspan="6">Пусто</td></tr>{% endfor %}</tbody>
+</table>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

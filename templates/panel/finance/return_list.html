@@ -1,0 +1,10 @@
+{% extends 'panel/base.html' %}
+{% block title %}Возвраты{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Возвраты</h1></header>
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Заказ</th><th>Покупатель</th><th>Статус</th><th>Причина</th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr><td>{{ r.id_return }}</td><td>{{ r.id_order.order_number }}</td><td>{{ r.id_user.email }}</td><td>{{ r.return_status }}</td><td>{{ r.return_reason }}</td></tr>{% empty %}<tr><td colspan="5">Пусто</td></tr>{% endfor %}</tbody>
+</table>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

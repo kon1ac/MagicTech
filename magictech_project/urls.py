@@ -17,11 +17,16 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from django.views.generic import RedirectView
 
+admin.site.site_header = 'MagicTech — техническая админка Django'
+admin.site.site_title = 'MagicTech Admin'
+admin.site.index_title = 'Модели и миграции'
+
 urlpatterns = [
-    path('', RedirectView.as_view(url='/admin/', permanent=False), name='home'),
+    path('', RedirectView.as_view(url='/panel/', permanent=False), name='home'),
+    path('panel/', include('panel.urls')),
     path('admin/', admin.site.urls),
 ]
 

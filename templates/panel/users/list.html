@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Пользователи и роли</h1></header>
+<div class="toolbar">
+  <form method="get" class="search-global"><input type="search" name="q" value="{{ q }}" placeholder="Email"></form>
+  <a class="btn btn-primary" href="{% url 'panel:user_create' %}">+ Пользователь</a>
+</div>
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Email</th><th>Роль</th><th>Активен</th><th></th></tr></thead>
+  <tbody>
+  {% for u in page_obj %}
+  <tr>
+    <td>{{ u.id_user }}</td><td>{{ u.email }}</td><td>{{ u.user_role }}</td><td>{{ u.is_active|yesno:"да,нет" }}</td>
+    <td><a href="{% url 'panel:user_edit' u.id_user %}">Изменить</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="5" class="muted">Нет записей</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

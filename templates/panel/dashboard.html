@@ -1,0 +1,56 @@
+{% extends 'panel/base.html' %}
+{% block title %}Обзор{% endblock %}
+{% block content %}
+<header class="page-header">
+  <h1>Обзор</h1>
+  <p class="muted">Операционная сводка MagicTech</p>
+</header>
+<section class="stats-grid">
+  <article class="stat-card">
+    <span class="stat-label">Активные товары</span>
+    <strong class="stat-value">{{ stats.products }}</strong>
+  </article>
+  <article class="stat-card accent">
+    <span class="stat-label">Заказы в работе</span>
+    <strong class="stat-value">{{ stats.orders_open }}</strong>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Выручка (SUCCESS)</span>
+    <strong class="stat-value">{{ stats.revenue }} ₽</strong>
+  </article>
+  <article class="stat-card warn">
+    <span class="stat-label">Отзывы на модерации</span>
+    <strong class="stat-value">{{ stats.reviews_pending }}</strong>
+  </article>
+</section>
+<div class="grid-2">
+  <section class="card">
+    <h2>Последние заказы</h2>
+    <table class="data-table">
+      <thead><tr><th>Номер</th><th>Статус</th><th>Сумма</th><th></th></tr></thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td>{{ o.order_number }}</td>
+          <td><span class="badge">{{ o.order_status }}</span></td>
+          <td>{{ o.total }} ₽</td>
+          <td><a href="{% url 'panel:order_detail' o.id_order %}">Открыть</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">Нет заказов</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h2>Заказы по статусам</h2>
+    <ul class="status-list">
+      {% for row in status_breakdown %}
+      <li><span>{{ row.label }}</span><strong>{{ row.cnt }}</strong></li>
+      {% empty %}
+      <li class="muted">Нет данных</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -194,7 +194,13 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ('audit_object_type', 'audit_action', 'created_at')
     search_fields = ('audit_object_type', 'audit_action', 'id_user__email')
     raw_id_fields = ('id_user',)
-    readonly_fields = ('created_at',)
+    readonly_fields = (
+        'created_at',
+        'audit_before',
+        'audit_after',
+        'audit_ip',
+        'audit_user_agent',
+    )
 
 
 @admin.register(OrderItem)

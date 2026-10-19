@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+<<<<<<< HEAD
 {% block title %}Модерация{% endblock %}
 {% block content %}
 <header class="page-header"><div><h1>{% if review.review_type == 'question' %}Вопрос{% else %}Отзыв{% endif %} #{{ review.pk }}</h1><p class="muted">{{ review.id_product.product_name }} · {{ review.id_user.email }}{% if review.id_order %} · покупка подтверждена заказом {{ review.id_order.order_number }}{% endif %}</p></div><a class="btn" href="{% url 'panel:review_list' %}">← Отзывы</a></header>
@@ -11,4 +12,13 @@
   </section>
   {% include 'panel/partials/history.html' %}
 </div>
+=======
+{% block title %}Модерация отзыва{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Модерация отзыва #{{ review.id_review }}</h1>
+  <p>{{ review.review_text }}</p>
+  <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form>
+</section>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% endblock %}

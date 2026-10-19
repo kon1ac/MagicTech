@@ -1,4 +1,5 @@
 (function () {
+<<<<<<< HEAD
   'use strict';
   const root = document.documentElement;
   const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
@@ -12,10 +13,23 @@
       body: 'theme=' + next,
     });
   });
+=======
+  const root = document.documentElement;
+  const storedTheme = localStorage.getItem('magtech-theme');
+  if (storedTheme) root.setAttribute('data-theme', storedTheme);
+
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('magtech-theme', next);
+  });
+
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
   document.getElementById('menuToggle')?.addEventListener('click', () => {
     document.getElementById('sidebar')?.classList.toggle('open');
   });
 
+<<<<<<< HEAD
   // ---- многостолбцовая сортировка: клик — сортировать по колонке, Shift+клик — добавить колонку
   document.querySelectorAll('.sort-link').forEach((link) => {
     link.addEventListener('click', (e) => {
@@ -147,5 +161,26 @@
     if (k === 'w' && trigger('w')) { e.preventDefault(); return; }
     if (k === 'p' && trigger('p')) { e.preventDefault(); return; }
     if (k === 'g') { window.location.href = '/panel/'; }
+=======
+  const searchInput = document.getElementById('searchInput');
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT') {
+      e.preventDefault();
+      searchInput?.focus();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      searchInput?.focus();
+    }
+    if (e.key === '?' && !e.ctrlKey) {
+      window.location.href = '/panel/help/hotkeys/';
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+      window.location.href = '/panel/orders/';
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      window.location.href = '/panel/products/new/';
+    }
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
   });
 })();

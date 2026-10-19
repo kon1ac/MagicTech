@@ -47,6 +47,7 @@ ORDER_STATUS_LABELS = {
     'CANCELLED': 'Отменён',
     'RETURNED': 'Возврат',
 }
+<<<<<<< HEAD
 
 ORDER_ACTIVE_STATUSES = {'NEW', 'PAID', 'CONFIRMED', 'ASSEMBLY', 'PACKED'}
 # Статусы, при которых товар уже списан со склада (отмена → обратная операция)
@@ -100,3 +101,5 @@ API_SCOPES = {
     'mobile': 'Мобильное приложение покупателя',
     'internal': 'Внутренняя автоматизация: заказы и склад',
 }
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

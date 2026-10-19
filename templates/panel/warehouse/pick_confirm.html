@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+<<<<<<< HEAD
 {% block title %}Сборка {{ order.order_number }}{% endblock %}
 {% block content %}
 <header class="page-header"><div><h1>Сборка заказа {{ order.order_number }}</h1><p class="muted">Отметьте каждую отобранную позицию</p></div><a class="btn" href="{% url 'panel:pick_tasks' %}">← Задания</a></header>
@@ -11,6 +12,17 @@
     <div class="critical-box"><label><input type="checkbox" name="confirm" value="1" required> Подтверждаю списание остатков (операция атомарна: при нехватке любого товара ничего не спишется)</label></div>
     <button class="btn btn-primary" data-hotkey="w">Списать и завершить сборку <kbd>W</kbd></button>
     <a class="btn" href="{% url 'panel:order_invoice' order.pk %}" target="_blank" data-hotkey="p">Печать накладной <kbd>P</kbd></a>
+=======
+{% block title %}Сборка заказа{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Списание при сборке</h1>
+  <p>Заказ <strong>{{ order.order_number }}</strong> — проверьте отобранные позиции перед списанием.</p>
+  <ul>{% for item in order.items.all %}<li>{{ item.id_product.product_sku }} × {{ item.order_item_quantity }}</li>{% endfor %}</ul>
+  <form method="post">{% csrf_token %}
+    <button class="btn btn-primary" type="submit">Подтвердить списание</button>
+    <a class="btn btn-ghost" href="{% url 'panel:order_detail' order.id_order %}">Назад</a>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
   </form>
 </section>
 {% endblock %}

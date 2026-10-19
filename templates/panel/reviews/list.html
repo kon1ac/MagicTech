@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Отзывы{% endblock %}
 {% block content %}
@@ -11,5 +12,14 @@
     <td><span class="badge badge-{{ r.review_status }}">{{ status_labels|get_item:r.review_status }}</span></td><td><a href="{% url 'panel:review_moderate' r.pk %}">Модерировать</a></td></tr>
   {% empty %}<tr><td colspan="8" class="muted">Пусто</td></tr>{% endfor %}</tbody>
 </table></div>
+=======
+{% block title %}Отзывы{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Отзывы и модерация</h1></header>
+<table class="data-table">
+  <thead><tr><th>Товар</th><th>Автор</th><th>Оценка</th><th>Статус</th><th></th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr><td>{{ r.id_product.product_name }}</td><td>{{ r.id_user.email }}</td><td>{{ r.review_rating }}</td><td>{{ r.review_status }}</td><td><a href="{% url 'panel:review_moderate' r.id_review %}">Модерация</a></td></tr>{% empty %}<tr><td colspan="5">Пусто</td></tr>{% endfor %}</tbody>
+</table>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

@@ -1,16 +1,26 @@
+<<<<<<< HEAD
 """Складские операции: приход, резерв, списание, возвраты. Всё — в транзакции и с аудитом."""
+=======
+"""Складские операции с проверкой остатков."""
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+<<<<<<< HEAD
 from django.utils import timezone
 
 from shop.models import Order, Product, Reservation, Stock, StockMovement
+=======
+
+from shop.models import Product, Stock
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 from shop.services.audit import write_audit
 from users.models import AuthCredentials
 
 
+<<<<<<< HEAD
 def lock_stock(product: Product) -> Stock:
     """Блокирует строку остатка товара (SELECT … FOR UPDATE), создавая её при отсутствии."""
     Stock.objects.get_or_create(
@@ -100,6 +110,8 @@ def receive_stock(
     return movement
 
 
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 @transaction.atomic
 def adjust_stock(
     product: Product,
@@ -110,16 +122,29 @@ def adjust_stock(
     movement_type: str = 'adjustment',
     request=None,
 ) -> Stock:
+<<<<<<< HEAD
     """Критическая корректировка остатка (только с подтверждением и причиной)."""
     if not reason or not reason.strip():
         raise ValidationError('Укажите причину корректировки.')
     stock = lock_stock(product)
     before = {'stock_quantity': stock.stock_quantity, 'stock_reserved': stock.stock_reserved}
+=======
+    stock, _ = Stock.objects.select_for_update().get_or_create(
+        id_product=product,
+        defaults={'stock_quantity': 0, 'stock_reserved': 0},
+    )
+    before = {
+        'stock_quantity': stock.stock_quantity,
+        'stock_reserved': stock.stock_reserved,
+        'reason': reason,
+    }
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     new_qty = stock.stock_quantity + delta
     if new_qty < 0:
         raise ValidationError('Остаток не может стать отрицательным.')
     if new_qty < stock.stock_reserved:
         raise ValidationError('Нельзя уменьшить остаток ниже зарезервированного количества.')
+<<<<<<< HEAD
     stock.stock_quantity = new_qty
     _record(stock, movement_type, delta, actor=actor, reason=reason)
     write_audit(
@@ -127,10 +152,49 @@ def adjust_stock(
         before=before,
         after={'stock_quantity': stock.stock_quantity, 'stock_reserved': stock.stock_reserved, 'delta': delta},
         reason=reason, request=request,
+=======
+
+    stock.stock_quantity = new_qty
+    stock.stock_movement_type = movement_type
+    history = list(stock.stock_movement_history or [])
+    history.append(
+        {
+            'delta': delta,
+            'type': movement_type,
+            'reason': reason,
+            'by': actor.email,
+            'qty_after': new_qty,
+        }
+    )
+    stock.stock_movement_history = history[-50:]
+    stock.save(
+        update_fields=[
+            'stock_quantity',
+            'stock_movement_type',
+            'stock_movement_history',
+            'updated_at',
+        ]
+    )
+
+    write_audit(
+        user=actor,
+        object_type='stock',
+        object_id=stock.id_stock,
+        action='adjustment',
+        before=before,
+        after={
+            'stock_quantity': stock.stock_quantity,
+            'stock_reserved': stock.stock_reserved,
+            'delta': delta,
+            'reason': reason,
+        },
+        request=request,
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     )
     return stock
 
 
+<<<<<<< HEAD
 def reserve(
     product: Product,
     quantity: int,
@@ -251,3 +315,41 @@ def return_to_stock(product: Product, quantity: int, *, defect: bool, actor, ord
     else:
         stock.stock_quantity += quantity
         _record(stock, 'return', quantity, actor=actor, order=order, reason=reason)
+=======
+@transaction.atomic
+def write_off_for_order_item(
+    product: Product,
+    quantity: int,
+    *,
+    actor: AuthCredentials,
+    order_id: int,
+    request=None,
+) -> Stock:
+    stock = Stock.objects.select_for_update().filter(id_product=product).first()
+    if not stock:
+        raise ValidationError('Остаток для товара не найден.')
+    available = stock.stock_quantity - stock.stock_reserved
+    if quantity > available:
+        raise ValidationError('Недостаточно свободного остатка для списания.')
+
+    before = {'stock_quantity': stock.stock_quantity, 'stock_reserved': stock.stock_reserved}
+    stock.stock_quantity -= quantity
+    stock.stock_reserved = max(0, stock.stock_reserved - quantity)
+    stock.stock_movement_type = 'write_off'
+    stock.save(update_fields=['stock_quantity', 'stock_reserved', 'stock_movement_type', 'updated_at'])
+
+    write_audit(
+        user=actor,
+        object_type='stock',
+        object_id=stock.id_stock,
+        action='write_off',
+        before=before,
+        after={
+            'stock_quantity': stock.stock_quantity,
+            'quantity': quantity,
+            'order_id': order_id,
+        },
+        request=request,
+    )
+    return stock
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

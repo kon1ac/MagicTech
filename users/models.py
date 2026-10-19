@@ -22,15 +22,19 @@ class AuthCredentials(models.Model):
     def __str__(self):
         return f'{self.email} ({self.user_role})'
 
+<<<<<<< HEAD
     # совместимость с DRF: аутентифицированный пользователь API
     is_authenticated = True
     is_anonymous = False
 
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     def set_password(self, raw_password: str) -> None:
         """Хеширует пароль и сохраняет его в password_hash."""
         self.password_hash = make_password(raw_password)
 
     def check_password(self, raw_password: str) -> bool:
+<<<<<<< HEAD
         """Проверяет пароль; устаревший хеш прозрачно перехешируется в Argon2."""
 
         def upgrade(raw):
@@ -38,6 +42,10 @@ class AuthCredentials(models.Model):
             self.save(update_fields=['password_hash', 'updated_at'])
 
         return auth_check_password(raw_password, self.password_hash, setter=upgrade)
+=======
+        """Проверяет соответствие пароля сохранённому хешу."""
+        return auth_check_password(raw_password, self.password_hash)
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 
 class UserProfiles(models.Model):
@@ -71,6 +79,7 @@ class UserProfiles(models.Model):
     def __str__(self):
         name = f'{self.profile_first_name or ""} {self.profile_last_name or ""}'.strip()
         return name or str(self.id_user)
+<<<<<<< HEAD
 
 
 class UserSettings(models.Model):
@@ -179,3 +188,5 @@ class ApiToken(models.Model):
             expires_at=expires_at,
         )
         return token, raw_key
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

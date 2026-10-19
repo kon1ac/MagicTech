@@ -1,0 +1,22 @@
+{% extends 'panel/base.html' %}
+{% block title %}Инфраструктура{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Инфраструктура и регламенты</h1></header>
+<div class="grid-2">
+  <section class="card">
+    <h2>Характеристики БД</h2>
+    <ul>
+      <li><strong>СУБД:</strong> {{ info.engine }}</li>
+      <li><strong>База:</strong> {{ info.database }}</li>
+      <li><strong>Медиа / пользовательские файлы:</strong> {{ info.data_path }}</li>
+    </ul>
+    <h3>Таблицы с персональными данными</h3>
+    <ul>{% for t in info.user_data_tables %}<li><code>{{ t }}</code></li>{% endfor %}</ul>
+  </section>
+  <section class="card">
+    <h2>Регламент резервного копирования</h2>
+    <ul>{% for line in info.backup_policy %}<li>{{ line }}</li>{% endfor %}</ul>
+    <p class="muted">Django admin (/admin/) сохранён для технического доступа к моделям. Продовый доступ к БД — только через защищённые каналы с аудитом.</p>
+  </section>
+</div>
+{% endblock %}

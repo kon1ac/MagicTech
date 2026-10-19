@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Пользователи{% endblock %}
 {% block content %}
@@ -27,5 +28,25 @@
   {% empty %}<tr><td colspan="7" class="muted">Нет пользователей</td></tr>{% endfor %}
   </tbody>
 </table></div>
+=======
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<header class="page-header"><h1>Пользователи и роли</h1></header>
+<div class="toolbar">
+  <form method="get" class="search-global"><input type="search" name="q" value="{{ q }}" placeholder="Email"></form>
+  <a class="btn btn-primary" href="{% url 'panel:user_create' %}">+ Пользователь</a>
+</div>
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Email</th><th>Роль</th><th>Активен</th><th></th></tr></thead>
+  <tbody>
+  {% for u in page_obj %}
+  <tr>
+    <td>{{ u.id_user }}</td><td>{{ u.email }}</td><td>{{ u.user_role }}</td><td>{{ u.is_active|yesno:"да,нет" }}</td>
+    <td><a href="{% url 'panel:user_edit' u.id_user %}">Изменить</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="5" class="muted">Нет записей</td></tr>{% endfor %}
+  </tbody>
+</table>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

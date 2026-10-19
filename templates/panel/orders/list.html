@@ -2,6 +2,7 @@
 {% load panel_extras %}
 {% block title %}Заказы{% endblock %}
 {% block content %}
+<<<<<<< HEAD
 <header class="page-header"><div><h1>{% tr 'Заказы' %}</h1><p class="muted">Статусы ведёт администратор по регламенту; переход через этапы запрещён</p></div>
   {% can 'orders' 'export' as can_export %}{% if can_export %}<a class="btn" href="{% url 'panel:order_export' %}?{{ current_query }}">Экспорт CSV для бухгалтерии</a>{% endif %}</header>
 <div class="quick-filters">{% for title, query in quick_filters %}<a class="chip {% if current_query == query %}active{% endif %}" href="?{{ query }}">{{ title }}</a>{% endfor %}</div>
@@ -37,5 +38,35 @@
   {% empty %}<tr><td colspan="8" class="muted">Нет заказов</td></tr>{% endfor %}
   </tbody>
 </table></div>
+=======
+<header class="page-header"><h1>Заказы</h1></header>
+<div class="toolbar">
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Номер / email">
+    <select name="status">
+      <option value="">Все статусы</option>
+      {% for code, label in status_labels.items %}
+      <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Фильтр</button>
+  </form>
+</div>
+<table class="data-table">
+  <thead><tr><th>Номер</th><th>Покупатель</th><th>Статус</th><th>Сумма</th><th>Дата</th><th></th></tr></thead>
+  <tbody>
+  {% for o in page_obj %}
+  <tr>
+    <td>{{ o.order_number }}</td>
+    <td>{{ o.id_user.email }}</td>
+    <td><span class="badge">{{ status_labels|get_item:o.order_status }}</span></td>
+    <td>{{ o.total }} ₽</td>
+    <td>{{ o.created_at|date:"d.m.Y H:i" }}</td>
+    <td><a href="{% url 'panel:order_detail' o.id_order %}">Карточка</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="6">Нет заказов</td></tr>{% endfor %}
+  </tbody>
+</table>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

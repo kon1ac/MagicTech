@@ -1,4 +1,5 @@
 {% extends 'panel/base.html' %}
+<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Аудит{% endblock %}
 {% block content %}
@@ -19,5 +20,27 @@
     <td class="hint" style="max-width:420px">{% if row.audit_before %}<div>до: <code>{{ row.audit_before|truncatechars:160 }}</code></div>{% endif %}{% if row.audit_after %}<div>после: <code>{{ row.audit_after|truncatechars:160 }}</code></div>{% endif %}</td></tr>
   {% empty %}<tr><td colspan="7" class="muted">Записей нет</td></tr>{% endfor %}</tbody>
 </table></div>
+=======
+{% block title %}Аудит{% endblock %}
+{% block content %}
+<header class="page-header">
+  <h1>Журнал аудита</h1>
+  <a class="btn btn-primary" href="{% url 'panel:audit_export' %}">Экспорт CSV</a>
+</header>
+<table class="data-table">
+  <thead><tr><th>Дата</th><th>Пользователь</th><th>Объект</th><th>Действие</th><th>IP</th></tr></thead>
+  <tbody>
+  {% for a in page_obj %}
+  <tr>
+    <td>{{ a.created_at|date:"d.m.Y H:i:s" }}</td>
+    <td>{{ a.id_user.email|default:"—" }}</td>
+    <td>{{ a.audit_object_type }} #{{ a.object_id }}</td>
+    <td>{{ a.audit_action }}</td>
+    <td>{{ a.audit_ip|default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="5">Пусто</td></tr>{% endfor %}
+  </tbody>
+</table>
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

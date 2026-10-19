@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+<<<<<<< HEAD
 import os
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+<<<<<<< HEAD
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',
     'django-insecure-qz+1171j_ngvh!!i@()tqu7=j1de7)!0mzb^nxxdm&ctwj^&43',
@@ -30,6 +34,14 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,testserver').split(',')
+=======
+SECRET_KEY = 'django-insecure-qz+1171j_ngvh!!i@()tqu7=j1de7)!0mzb^nxxdm&ctwj^&43'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = []
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 
 # Application definition
@@ -41,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+<<<<<<< HEAD
     'django.contrib.postgres',
     'rest_framework',
     'drf_spectacular',
@@ -49,6 +62,11 @@ INSTALLED_APPS = [
     'panel',
     'store',
     'api',
+=======
+    'users',
+    'shop',
+    'panel',
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 ]
 
 MIDDLEWARE = [
@@ -74,7 +92,10 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'panel.context_processors.panel_user',
+<<<<<<< HEAD
                 'store.context_processors.store_context',
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
             ],
         },
     },
@@ -86,6 +107,7 @@ WSGI_APPLICATION = 'magictech_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+<<<<<<< HEAD
 if os.environ.get('MAGTECH_SQLITE') == '1':
     # Только для быстрых локальных проверок без СУБД; целевая СУБД — PostgreSQL.
     DATABASES = {
@@ -141,6 +163,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
+=======
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'MagicTech',
+        'USER': 'postgres',
+        'PASSWORD': '1',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 
 # Password validation
@@ -193,6 +227,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Панель управления MagicTech
 MAGTECH_PANEL_LOGIN_URL = '/panel/login/'
+<<<<<<< HEAD
 
 # Бизнес-параметры
 MAGTECH_CART_RESERVATION_MINUTES = 20      # резерв товара в корзине (15–30 мин по ТЗ)
@@ -234,3 +269,5 @@ LOGGING = {
     'handlers': {'console': {'class': 'logging.StreamHandler'}},
     'loggers': {'magictech': {'handlers': ['console'], 'level': 'INFO'}},
 }
+=======
+>>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

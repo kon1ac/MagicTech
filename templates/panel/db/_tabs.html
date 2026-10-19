@@ -1,0 +1,9 @@
+<div class="quick-filters">
+  <a class="chip {% if request.resolver_match.url_name == 'db_overview' %}active{% endif %}" href="{% url 'panel:db_overview' %}">Характеристики БД</a>
+  <a class="chip {% if request.resolver_match.url_name == 'db_schema' %}active{% endif %}" href="{% url 'panel:db_schema' %}">Схема, миграции, индексы, права</a>
+  <a class="chip {% if request.resolver_match.url_name == 'db_backups' %}active{% endif %}" href="{% url 'panel:db_backups' %}">Бэкапы и restore</a>
+  <a class="chip {% if request.resolver_match.url_name == 'db_jobs' %}active{% endif %}" href="{% url 'panel:db_jobs' %}">Регламентные задания</a>
+  <a class="chip {% if request.resolver_match.url_name == 'db_service_accounts' %}active{% endif %}" href="{% url 'panel:db_service_accounts' %}">Сервисные учётки</a>
+  <a class="chip {% if request.resolver_match.url_name == 'archive' %}active{% endif %}" href="{% url 'panel:archive' %}">Архив</a>
+</div>
+<p class="hint">🔒 Контур продовой БД: доступ только по защищённому каналу (HTTPS вне режима разработки), каждое обращение записывается в аудит.</p>

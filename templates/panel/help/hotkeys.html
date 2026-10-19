@@ -1,0 +1,23 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Горячие клавиши{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Горячие клавиши' %}</h1><p class="muted">Отключаются в <a href="{% url 'panel:settings' %}">настройках</a>. Не срабатывают при вводе текста (кроме сочетаний с Ctrl).</p></div><a class="btn" href="{% url 'panel:brandbook' %}">{% tr 'Брендбук' %}</a></header>
+<div class="grid-2">
+  <section class="card"><h2>Глобальные</h2><ul class="status-list">
+    <li><span><kbd>Ctrl</kbd>+<kbd>K</kbd></span><span>Командная строка / поиск товаров, заказов, пользователей</span></li>
+    <li><span><kbd>/</kbd></span><span>Фокус в поле поиска текущего списка</span></li>
+    <li><span><kbd>?</kbd></span><span>Эта справка</span></li>
+    <li><span><kbd>G</kbd></span><span>На обзор</span></li></ul></section>
+  <section class="card"><h2>Каталог</h2><ul class="status-list">
+    <li><span><kbd>Ctrl</kbd>+<kbd>N</kbd></span><span>Новый товар</span></li>
+    <li><span><kbd>Ctrl</kbd>+<kbd>E</kbd></span><span>Редактировать товар (отмеченный в списке / фокус в карточке)</span></li></ul></section>
+  <section class="card"><h2>Заказы</h2><ul class="status-list">
+    <li><span><kbd>Ctrl</kbd>+<kbd>O</kbd></span><span>Список заказов</span></li>
+    <li><span><kbd>S</kbd></span><span>Сменить статус (в карточке заказа)</span></li></ul></section>
+  <section class="card"><h2>Склад</h2><ul class="status-list">
+    <li><span><kbd>I</kbd></span><span>Приход товара</span></li>
+    <li><span><kbd>W</kbd></span><span>Списание / сборка заказа</span></li>
+    <li><span><kbd>P</kbd></span><span>Печать накладной</span></li></ul></section>
+</div>
+{% endblock %}

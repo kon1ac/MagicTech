@@ -1,0 +1,31 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Настройки' %}</h1><p class="muted">Хранятся на сервере и привязаны к учётной записи — одинаковы на любом устройстве.</p></div></header>
+<div class="grid-2">
+  <section class="card">
+    <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">{% tr 'Сохранить' %}</button></form>
+  </section>
+  <div class="stack">
+    <section class="card">
+      <h2>{% tr 'Сохранённые фильтры' %}</h2>
+      <ul class="status-list">
+        {% for f in saved_filters %}
+        <li><span><span class="badge">{{ f.filter_section }}</span> {{ f.filter_name }} <code class="hint">?{{ f.filter_query|truncatechars:50 }}</code></span>
+          <form method="post" action="{% url 'panel:saved_filter_delete' f.pk %}">{% csrf_token %}<button class="btn btn-sm">✕</button></form></li>
+        {% empty %}<li class="muted">Сохраняйте фильтры прямо в списках (заказы, товары, склад…)</li>{% endfor %}
+      </ul>
+    </section>
+    <section class="card">
+      <h2>Фильтры по умолчанию</h2>
+      <ul class="status-list">
+        {% for section, query in default_filters.items %}
+        <li><span><span class="badge">{{ section }}</span> <code class="hint">?{{ query|truncatechars:60 }}</code></span>
+          <form method="post" action="{% url 'panel:default_filter_clear' section %}">{% csrf_token %}<button class="btn btn-sm">Сбросить</button></form></li>
+        {% empty %}<li class="muted">Не заданы. Отметьте «по умолчанию» при сохранении фильтра.</li>{% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

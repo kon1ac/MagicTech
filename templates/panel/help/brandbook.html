@@ -1,0 +1,36 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Брендбук{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Брендбук MagicTech</h1><p class="muted">Палитра, шрифты, сетка, радиусы, иконки, логотип и компоненты. Источник — <code>static/panel/css/magictech.css</code>, описание — <code>docs/BRANDBOOK.md</code>.</p></div></header>
+<div class="grid-2">
+  <section class="card"><h2>Логотип и фавикон</h2>
+    <div class="toolbar"><img src="{% static 'panel/img/logo.svg' %}" width="96" height="96" alt="Логотип"><img src="{% static 'panel/img/favicon.svg' %}" width="32" height="32" alt="Фавикон"><div><strong style="font-size:1.4rem">MagicTech</strong><br><span class="muted">Аксессуары для ПК</span></div></div>
+    <p class="hint">Знак «MT» на градиенте Cyan → Indigo; минимальный размер 16 px; охранное поле — ¼ высоты знака.</p></section>
+  <section class="card"><h2>Палитра (5 тонов)</h2>
+    <div class="grid-3">
+      <div><div class="swatch" style="background:#4F46E5"></div><strong>Indigo</strong><br><code>#4F46E5</code><br><span class="hint">основной, действия</span></div>
+      <div><div class="swatch" style="background:#06B6D4"></div><strong>Cyan</strong><br><code>#06B6D4</code><br><span class="hint">акцент, фокус</span></div>
+      <div><div class="swatch" style="background:#0F172A"></div><strong>Ink</strong><br><code>#0F172A</code><br><span class="hint">текст, тёмный фон</span></div>
+      <div><div class="swatch" style="background:#F59E0B"></div><strong>Amber</strong><br><code>#F59E0B</code><br><span class="hint">предупреждения</span></div>
+      <div><div class="swatch" style="background:#EF4444"></div><strong>Red</strong><br><code>#EF4444</code><br><span class="hint">ошибки, критические операции</span></div>
+    </div></section>
+  <section class="card"><h2>Типографика</h2>
+    <p style="font-size:1.6rem;font-weight:700;margin:0">Manrope 700 — заголовки</p>
+    <p style="margin:.25rem 0">Manrope 400/600 — основной текст 15 px, интерлиньяж 1.5</p>
+    <p class="mono">JetBrains Mono — артикулы, суммы, коды: KB-LOG-001 · 4 990,00 ₽</p></section>
+  <section class="card"><h2>Сетка, отступы, радиусы</h2>
+    <dl class="props"><dt>Базовый шаг</dt><dd>8 px (отступы 8 / 16 / 24 / 32)</dd><dt>Радиусы</dt><dd>8 px — кнопки и поля · 12 px — карточки · 16 px — модальные окна</dd><dt>Брейкпоинты</dt><dd>мобайл ≤ 640 · планшет 641–1100 · десктоп &gt; 1100</dd><dt>Иконки</dt><dd>Unicode-символы и SVG 24×24, обводка 2 px, скругление концов</dd></dl></section>
+  <section class="card"><h2>Кнопки и бейджи</h2>
+    <div class="toolbar"><button class="btn btn-primary">Основная</button><button class="btn">Вторичная</button><button class="btn btn-ghost">Ghost</button><button class="btn btn-danger">Критическая</button><button class="btn btn-sm">Малая</button></div>
+    <div class="toolbar"><span class="badge badge-NEW">Новый</span><span class="badge badge-PAID">Оплачен</span><span class="badge badge-COMPLETED">Завершён</span><span class="badge badge-CANCELLED">Отменён</span></div></section>
+  <section class="card"><h2>Форма</h2>
+    <form class="form-stack" onsubmit="return false"><p><label>Артикул</label><input value="KB-LOG-001"></p><p><label>Категория</label><select><option>Клавиатуры</option></select></p><p><label><input type="checkbox" checked> Продаётся</label></p></form></section>
+  <section class="card"><h2>Таблица</h2>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>SKU</th><th>Товар</th><th class="num">Цена</th></tr></thead><tbody><tr><td><code>MS-RAZ-002</code></td><td>Мышь Razer</td><td class="num">5 490,00 ₽</td></tr><tr><td><code>HS-HYP-001</code></td><td>Гарнитура HyperX</td><td class="num">7 990,00 ₽</td></tr></tbody></table></div></section>
+  <section class="card"><h2>Карточка товара (витрина)</h2>
+    <div style="max-width:220px;border:1px solid var(--border);border-radius:12px;padding:12px">
+      <div style="height:120px;border-radius:8px;background:linear-gradient(135deg,#06B6D4,#4F46E5)"></div>
+      <p style="margin:.5rem 0 .25rem;font-weight:600">Клавиатура Logitech G Pro</p><p class="mono" style="margin:0">12 990 ₽</p><button class="btn btn-primary btn-sm" style="margin-top:.5rem">В корзину</button></div></section>
+</div>
+{% endblock %}

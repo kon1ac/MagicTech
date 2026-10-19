@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% load static %}
+{% block title %}Вход{% endblock %}
+{% block bare_content %}
+<div class="login-screen">
+  <div class="login-card">
+    <div class="brand brand-lg">
+      <img src="{% static 'panel/img/logo.svg' %}" alt="" width="44" height="44">
+      <div><strong>MagicTech</strong><small>Панель управления</small></div>
+    </div>
+    <p class="muted">Интернет-магазин аксессуаров для ПК</p>
+    {% if messages %}<ul class="messages">{% for m in messages %}<li class="msg msg-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary btn-block">Войти</button>
+    </form>
+    <p class="hint">Демо: <code>admin@magtech.local</code> / <code>Admin123!</code> · <a href="/">витрина</a></p>
+  </div>
+</div>
+{% endblock %}

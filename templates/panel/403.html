@@ -1,0 +1,8 @@
+{% extends 'panel/base.html' %}
+{% block title %}Нет доступа{% endblock %}
+{% block bare_content %}<div class="login-screen"><div class="login-card"><h1>403 — нет доступа</h1><p>{{ message|default:'Недостаточно прав.' }}</p><a class="btn" href="/panel/">На главную панели</a></div></div>{% endblock %}
+{% block content %}
+<section class="card"><h1>403 — нет доступа</h1><p>{{ message|default:'Недостаточно прав для этого действия.' }}</p>
+<p class="hint">Проверка прав выполняется на сервере по матрице «роль × объект × действие». Попытка записана в журнал аудита.</p>
+<a class="btn" href="{% url 'panel:dashboard' %}">На обзор</a></section>
+{% endblock %}

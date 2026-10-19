@@ -1,0 +1,16 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Задания на сборку{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Задания на сборку</h1><p class="muted">Заказы в статусе «В сборке». Отметьте отобранные товары — остатки спишутся, заказ перейдёт в «Собран».</p></div></header>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'number' 'Заказ' %}</th><th>Позиции</th><th>Адрес</th><th>{% sort_header 'created' 'Создан' %}</th><th></th></tr></thead>
+  <tbody>{% for o in page_obj %}<tr><td><a href="{% url 'panel:order_detail' o.pk %}">{{ o.order_number }}</a></td>
+    <td>{% for i in o.items.all %}{{ i.id_product.product_sku }} × {{ i.order_item_quantity }}<br>{% endfor %}</td><td class="hint">{{ o.delivery_address|default:'' }}</td><td>{% udate o.created_at %}</td>
+    <td><a class="btn btn-primary btn-sm" href="{% url 'panel:order_pick' o.pk %}">Собрать</a></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">Заданий нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+<section class="card" style="margin-top:1rem"><h2>Собраны, ожидают отгрузки — печать документов</h2>
+  <ul class="status-list">{% for o in packed %}<li><a href="{% url 'panel:order_detail' o.pk %}">{{ o.order_number }}</a><span><a href="{% url 'panel:order_invoice' o.pk %}" target="_blank">Накладная</a> · <a href="{% url 'panel:order_label' o.pk %}" target="_blank">Ярлык</a></span></li>{% empty %}<li class="muted">Нет</li>{% endfor %}</ul></section>
+{% endblock %}

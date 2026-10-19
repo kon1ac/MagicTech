@@ -1,0 +1,13 @@
+{% extends 'panel/base.html' %}
+{% block title %}Корректировка остатка{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Корректировка остатка</h1><p class="muted">{{ product.product_sku }} — {{ product.product_name }}</p></div><a class="btn" href="{% url 'panel:stock_list' %}">← Склад</a></header>
+<div class="grid-2">
+  <section class="card">
+    {% if stock %}<p>Текущий остаток: <strong>{{ stock.stock_quantity }}</strong> · резерв: {{ stock.stock_reserved }} · доступно: {{ stock.available_quantity }}</p>{% endif %}
+    <div class="critical-box">Критическая операция: выполняется в транзакции, нельзя уйти в минус или ниже резерва, обязательно указать причину. Запись попадёт в аудит.</div>
+    <form method="post" class="form-stack" data-confirm="Подтвердить корректировку остатка?">{% csrf_token %}{{ form.as_p }}<button class="btn btn-danger">Выполнить корректировку</button></form>
+  </section>
+  {% include 'panel/partials/history.html' %}
+</div>
+{% endblock %}

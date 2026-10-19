@@ -1,0 +1,22 @@
+{% extends 'store/base.html' %}
+{% load panel_extras %}
+{% block title %}Заказ {{ order.order_number }}{% endblock %}
+{% block content %}
+<div class="account">{% include 'store/account/_nav.html' %}
+  <div>
+    <section class="card"><h1 style="margin-top:0">Заказ {{ order.order_number }} <span class="badge badge-{{ order.order_status }}">{{ status_labels|get_item:order.order_status }}</span></h1>
+      {% if order.order_status != 'CANCELLED' and order.order_status != 'RETURNED' %}<ol class="steps">{% for code, label, done in steps %}<li class="{% if done %}done{% endif %}">{{ label }}</li>{% endfor %}</ol>{% endif %}
+      <p class="hint">от {{ order.created_at|date:'d.m.Y H:i' }} · {{ payment_labels|get_item:order.order_payment_method }} · оплата: {{ payment_status_labels|get_item:order.order_payment_status|default:order.order_payment_status }}</p>
+      {% if pending_payment %}<p><a class="btn btn-primary" href="{% url 'store:pay' pending_payment.payment_uid %}">Оплатить {{ order.total|floatformat:'2g' }} ₽</a> <span class="hint">до {{ order.payment_due_at|date:'H:i' }}, затем заказ будет отменён</span></p>{% endif %}
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Товар</th><th class="num">Цена</th><th class="num">Кол-во</th><th class="num">Скидка</th><th class="num">Сумма</th></tr></thead>
+        <tbody>{% for i in order.items.all %}<tr><td><a href="{% url 'store:product' i.id_product.product_sku %}">{{ i.id_product.product_name }}</a></td><td class="num">{{ i.order_item_price|floatformat:'2g' }}</td><td class="num">{{ i.order_item_quantity }}</td><td class="num">{% if i.order_item_discount %}−{{ i.order_item_discount|floatformat:'2g' }}{% endif %}</td><td class="num">{{ i.order_item_total|floatformat:'2g' }}</td></tr>{% endfor %}</tbody>
+        <tfoot><tr><td colspan="4"><strong>Итого</strong>{% if order.discount_total %} (скидка {{ order.discount_total|floatformat:'2g' }} ₽){% endif %}</td><td class="num"><strong>{{ order.total|floatformat:'2g' }} ₽</strong></td></tr></tfoot></table></div>
+      <p>Доставка: {{ order.delivery_address|default:'—' }} · {{ order.contact_phone|default:'' }}{% if order.tracking_number %} · трек {{ order.tracking_number }}{% endif %}</p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        {% if order.order_status == 'NEW' or order.order_status == 'PAID' %}<form method="post" action="{% url 'store:account_order_cancel' order.order_number %}" onsubmit="return confirm('Отменить заказ?')">{% csrf_token %}<button class="btn">Отменить заказ</button></form>{% endif %}
+        {% if can_return %}<a class="btn" href="{% url 'store:account_return_create' order.order_number %}">Оформить возврат</a>{% endif %}
+      </div></section>
+    {% if returns %}<section class="card"><h2 style="margin-top:0">Возвраты по заказу</h2>{% for r in returns %}<p>#{{ r.pk }} · <span class="badge badge-{{ r.return_status }}">{{ return_labels|get_item:r.return_status }}</span> · {{ r.refund_amount|floatformat:'2g' }} ₽</p>{% endfor %}</section>{% endif %}
+  </div>
+</div>
+{% endblock %}

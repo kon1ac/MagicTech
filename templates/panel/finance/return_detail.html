@@ -1,0 +1,33 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Возврат #{{ ret.pk }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Возврат #{{ ret.pk }} <span class="badge badge-{{ ret.return_status }}">{{ status_labels|get_item:ret.return_status }}</span> {% if ret.is_locked %}🔒{% endif %}</h1>
+  <p class="muted">Заказ <a href="{% url 'panel:order_detail' ret.id_order_id %}">{{ ret.id_order.order_number }}</a> · {{ ret.id_user.email }} · версия {{ ret.version }}</p></div><a class="btn" href="{% url 'panel:return_list' %}">← Возвраты</a></header>
+<div class="grid-2">
+  <div class="stack">
+    <section class="card"><h2>Заявка</h2>
+      <dl class="props"><dt>Причина</dt><dd>{{ ret.return_reason|default:'—' }}</dd><dt>Описание</dt><dd>{{ ret.return_description|default:'—' }}</dd>
+        <dt>Фото</dt><dd>{% if ret.return_photo %}<a href="{{ ret.return_photo.url }}" target="_blank"><img src="{{ ret.return_photo.url }}" alt="" height="80"></a>{% else %}—{% endif %}</dd>
+        <dt>К возврату</dt><dd><strong>{% money ret.refund_amount %}</strong>{% if ret.refund_commission %} (комиссия шлюза не возвращается: {% money ret.refund_commission %}){% endif %}</dd>
+        <dt>Решение</dt><dd>{{ ret.return_decision|default:'—' }}{% if ret.decided_by %}<br><span class="hint">{{ ret.decided_by.email }}, {% udate ret.decided_at %}</span>{% endif %}</dd>
+        <dt>Платежи</dt><dd>{% for p in payments %}<a href="{% url 'panel:payment_detail' p.pk %}">#{{ p.pk }}</a> {{ p.payment_status }}<br>{% empty %}—{% endfor %}</dd></dl>
+      <h3>Позиции</h3>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Сумма</th><th>Брак</th></tr></thead>
+        <tbody>{% for i in items %}<tr><td>{{ i.id_order_item.id_product.product_sku }} {{ i.id_order_item.id_product.product_name }}</td><td class="num">{{ i.return_item_quantity }}</td><td class="num">{% money i.return_item_refund_amount %}</td><td>{{ i.is_defect|yesno:'да — списание в брак,нет — на склад' }}</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+    {% if can_update and status_form.fields.new_status.choices %}
+    <section class="card"><h2>Следующий шаг</h2>
+      <form method="post" class="form-stack" data-confirm="Изменить статус возврата?">{% csrf_token %}<input type="hidden" name="form" value="status">{{ status_form.as_p }}
+        <p class="hint">«Принят на склад» — годный товар возвращается на остаток, брак списывается; «Деньги возвращены» — возврат через платёж заказа (атомарно).</p>
+        <button class="btn btn-primary">Применить</button></form></section>
+    {% endif %}
+    {% if can_update %}
+    <section class="card"><h2>{% if ret.is_locked %}Аудиторская правка{% else %}Изменить заявку{% endif %}</h2>
+      {% if ret.is_locked %}<div class="critical-box">Заявка утверждена — изменения только с причиной; создаётся новая версия, всё фиксируется в аудите.</div>{% endif %}
+      <form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="form" value="edit">{{ edit_form.as_p }}<button class="btn">Сохранить новую версию</button></form></section>
+    {% endif %}
+  </div>
+  {% include 'panel/partials/history.html' %}
+</div>
+{% endblock %}

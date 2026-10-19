@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Склад{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Склад' %}</h1><p class="muted">Остатки и резервы в реальном времени (без кеша)</p></div>
+  <div class="toolbar"><a class="btn" href="{% url 'panel:movement_list' %}">Журнал движений</a>
+  {% can 'stock' 'receipt' as can_receipt %}{% if can_receipt %}<a class="btn btn-primary" data-hotkey="i" href="{% url 'panel:stock_receipt' %}">Приход <kbd>I</kbd></a>{% endif %}</div></header>
+<div class="quick-filters">
+  <a class="chip {% if not level %}active{% endif %}" href="?">Все</a><a class="chip {% if level == 'low' %}active{% endif %}" href="?level=low">≤ 5 шт.</a>
+  <a class="chip {% if level == 'out' %}active{% endif %}" href="?level=out">Нет на складе</a><a class="chip {% if level == 'reserved' %}active{% endif %}" href="?level=reserved">Есть резерв</a></div>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="SKU / название" data-hotkey="/"><input type="hidden" name="level" value="{{ level }}"><input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+{% can 'stock' 'adjust_critical' as can_adjust %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'sku' 'SKU' %}</th><th>{% sort_header 'name' 'Товар' %}</th><th class="num">{% sort_header 'qty' 'Остаток' %}</th><th class="num">{% sort_header 'reserved' 'Резерв' %}</th><th class="num">Доступно</th><th>{% sort_header 'updated' 'Обновлено' %}</th><th></th></tr></thead>
+  <tbody>{% for s in page_obj %}<tr><td><code>{{ s.id_product.product_sku }}</code></td><td>{{ s.id_product.product_name }}</td><td class="num">{{ s.stock_quantity }}</td><td class="num">{{ s.stock_reserved }}</td><td class="num">{{ s.available_quantity }}</td><td>{% udate s.updated_at %}</td>
+    <td>{% if can_receipt %}<a href="{% url 'panel:stock_receipt' %}?product={{ s.id_product_id }}">Приход</a>{% endif %}{% if can_adjust %} · <a href="{% url 'panel:stock_adjust' s.id_product_id %}">Корректировка</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">Нет данных</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

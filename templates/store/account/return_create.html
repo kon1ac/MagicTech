@@ -1,0 +1,14 @@
+{% extends 'store/base.html' %}
+{% block title %}Возврат{% endblock %}
+{% block content %}
+<div class="account">{% include 'store/account/_nav.html' %}
+  <section class="card"><h1 style="margin-top:0">Возврат по заказу {{ order.order_number }}</h1>
+    <form method="post" enctype="multipart/form-data" class="form">{% csrf_token %}
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Товар</th><th class="num">Можно вернуть</th><th>Вернуть, шт.</th></tr></thead>
+        <tbody>{% for row in items %}<tr><td>{{ row.item.id_product.product_name }}</td><td class="num">{{ row.available }}</td><td>{% if row.available %}<input type="number" name="qty_{{ row.item.pk }}" min="0" max="{{ row.available }}" value="0" style="width:80px">{% else %}—{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+      <p><label>Причина</label><select name="reason" required>{% for r in reasons %}<option value="{{ r.pk }}">{{ r.reason_name }}</option>{% endfor %}</select></p>
+      <p><label>Описание</label><textarea name="description" rows="3" maxlength="2000"></textarea></p>
+      <p><label>Фото (необязательно)</label><input type="file" name="photo" accept="image/*"></p>
+      <button class="btn btn-primary">Отправить заявку</button></form></section>
+</div>
+{% endblock %}

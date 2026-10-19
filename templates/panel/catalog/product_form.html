@@ -1,0 +1,48 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{{ title }}</h1>{% if product %}<p class="muted">Рейтинг {{ product.rating_avg }} ({{ product.rating_count }} отзывов) · продано {{ product.sales_count }} шт.</p>{% endif %}</div>
+  <div class="toolbar">{% if product %}<a class="btn" href="{% url 'store:product' product.product_sku %}" target="_blank" rel="noopener">На витрине ↗</a>
+  {% can 'stock' 'receipt' as can_receipt %}{% if can_receipt %}<a class="btn" data-hotkey="i" href="{% url 'panel:stock_receipt' %}?product={{ product.pk }}">Приход <kbd>I</kbd></a>{% endif %}
+  {% can 'stock' 'adjust_critical' as can_adjust %}{% if can_adjust %}<a class="btn" href="{% url 'panel:stock_adjust' product.pk %}">Корректировка остатка</a>{% endif %}
+  {% can 'products' 'delete' as can_delete %}{% if can_delete %}<a class="btn" href="{% url 'panel:product_delete' product.pk %}">Удалить</a>{% endif %}{% endif %}
+  <a class="btn" href="{% url 'panel:product_list' %}">← К списку</a></div></header>
+<div class="grid-2">
+  <section class="card">
+    <form method="post" class="form-stack" novalidate>{% csrf_token %}
+      {% if form.non_field_errors %}<div class="msg msg-error">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
+      <div class="form-grid">
+        {% for field in form %}{% if field.name != 'product_description' and field.name != 'product_characteristics' and field.name|slice:':3' != 'seo' %}
+        <div class="field">{{ field.label_tag }}{{ field }}{% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}{{ field.errors }}</div>
+        {% endif %}{% endfor %}
+      </div>
+      <div class="field">{{ form.product_description.label_tag }}{{ form.product_description }}{{ form.product_description.errors }}</div>
+      <div class="field">{{ form.product_characteristics.label_tag }}{{ form.product_characteristics }}<span class="helptext">{{ form.product_characteristics.help_text }}. Справочник: {% for c in characteristics %}<code>{{ c.char_code }}</code> ({{ c.char_name }}){% if not forloop.last %}, {% endif %}{% endfor %}</span>{{ form.product_characteristics.errors }}</div>
+      <h3>SEO</h3>
+      <div class="field">{{ form.seo_title.label_tag }}{{ form.seo_title }}</div>
+      <div class="field">{{ form.seo_description.label_tag }}{{ form.seo_description }}</div>
+      <div class="field">{{ form.seo_keywords.label_tag }}{{ form.seo_keywords }}</div>
+      <button class="btn btn-primary">{% tr 'Сохранить' %}</button>
+    </form>
+  </section>
+  <div class="stack">
+    {% if product %}
+    <section class="card"><h2>Изображения</h2>
+      <div class="thumbs">{% for img in images %}<figure><img src="{{ img.url }}" alt="{{ img.media_alt|default:'' }}">{% if img.is_main %}<span class="badge">главное</span>{% endif %}
+        <form method="post" action="{% url 'panel:product_image_delete' product.pk img.pk %}">{% csrf_token %}<button class="btn btn-sm">Удалить</button></form></figure>
+        {% empty %}<p class="muted">Нет изображений</p>{% endfor %}</div>
+      <form method="post" action="{% url 'panel:product_image_add' product.pk %}" enctype="multipart/form-data" class="form-stack" style="margin-top:1rem">{% csrf_token %}{{ image_form.as_p }}<button class="btn btn-sm">Добавить фото</button></form>
+    </section>
+    <section class="card"><h2>Склад</h2>
+      {% if stock %}<dl class="props"><dt>Остаток</dt><dd>{{ stock.stock_quantity }}</dd><dt>Резерв</dt><dd>{{ stock.stock_reserved }}</dd><dt>Доступно</dt><dd>{{ stock.available_quantity }}</dd></dl>{% else %}<p class="muted">Нет остатков</p>{% endif %}
+      <h3>Движения</h3><ul class="timeline">{% for m in movements %}<li>{% udate m.created_at %} · {{ m.get_movement_type_display }} {{ m.movement_quantity }} → {{ m.quantity_after }}{% if m.id_order %} · <a href="{% url 'panel:order_detail' m.id_order_id %}">{{ m.id_order.order_number }}</a>{% endif %}</li>{% empty %}<li class="muted">Нет движений</li>{% endfor %}</ul>
+    </section>
+    <section class="card"><h2>История цен</h2>
+      <ul class="timeline">{% for p in prices %}<li><strong>{% money p.product_price %}</strong> · с {% udate p.valid_from %}{% if p.valid_to %} по {% udate p.valid_to %}{% else %} <span class="badge badge-SUCCESS">текущая</span>{% endif %}<br><span class="muted">{{ p.price_reason|default:'' }} {{ p.id_user.email|default:'' }}</span></li>{% empty %}<li class="muted">Цена не задана</li>{% endfor %}</ul>
+    </section>
+    {% include 'panel/partials/history.html' %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

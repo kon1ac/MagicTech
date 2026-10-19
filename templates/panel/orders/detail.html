@@ -1,0 +1,67 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Заказ {{ order.order_number }}{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><h1>Заказ {{ order.order_number }}</h1>
+    <p><span class="badge badge-{{ order.order_status }}">{{ status_labels|get_item:order.order_status }}</span>
+      <span class="badge badge-{{ order.order_payment_status }}">оплата: {{ order.order_payment_status|default:'—' }}</span>
+      <span class="muted">· {{ payment_labels|get_item:order.order_payment_method }} · канал {{ order.order_channel }}{% if order.external_order_id %} ({{ order.external_order_id }}){% endif %}</span></p></div>
+  <div class="toolbar">
+    {% if can_print %}<a class="btn" data-hotkey="p" href="{% url 'panel:order_invoice' order.pk %}" target="_blank">Накладная PDF <kbd>P</kbd></a><a class="btn" href="{% url 'panel:order_label' order.pk %}" target="_blank">Ярлык PDF</a>{% endif %}
+    {% if can_pick %}<a class="btn btn-primary" data-hotkey="w" href="{% url 'panel:order_pick' order.pk %}">Сборка и списание <kbd>W</kbd></a>{% endif %}
+    {% if can_return %}<a class="btn" href="{% url 'panel:return_create' order.pk %}">Оформить возврат</a>{% endif %}
+    <a class="btn" href="{% url 'panel:order_list' %}">← К списку</a>
+  </div>
+</header>
+<div class="grid-2">
+  <div class="stack">
+    <section class="card">
+      <h2>Состав заказа</h2>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена на момент заказа</th><th class="num">Скидка</th><th class="num">Итого</th></tr></thead>
+        <tbody>{% for item in order.items.all %}<tr><td><a href="{% url 'panel:product_edit' item.id_product_id %}">{{ item.id_product.product_sku }}</a> {{ item.id_product.product_name }}</td><td class="num">{{ item.order_item_quantity }}</td><td class="num">{% money item.order_item_price %}</td><td class="num">{% if item.order_item_discount %}−{% money item.order_item_discount %}{% endif %}</td><td class="num">{% money item.order_item_total %}</td></tr>{% endfor %}</tbody>
+        <tfoot><tr><td colspan="3">Сумма товаров {% money order.total_items %}{% for p in promotions %}<br><span class="hint">Акция «{{ p.id_promotion.promotion_name }}»: −{% money p.order_promotion_discount %}</span>{% endfor %}</td><td class="num">{% if order.discount_total %}−{% money order.discount_total %}{% endif %}</td><td class="num"><strong>{% money order.total %}</strong></td></tr></tfoot>
+      </table></div>
+    </section>
+    {% if can_change %}
+    <section class="card">
+      <h2>Сменить статус <kbd>S</kbd></h2>
+      <form method="post" class="form-stack" data-confirm="Изменить статус заказа?">{% csrf_token %}
+        {% if form.non_field_errors %}<div class="msg msg-error">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
+        <p>{{ form.new_status.label_tag }}<select name="new_status" id="id_new_status" data-hotkey="s">{% for v, l in form.fields.new_status.choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></p>
+        <p>{{ form.reason.label_tag }}{{ form.reason }}</p>
+        <div class="critical-box"><label>{{ form.confirm_cancel }} {{ form.confirm_cancel.label }}</label><p class="hint">Отмена снимает резерв; если заказ уже собран — товары возвращаются на склад обратной операцией.</p></div>
+        <button class="btn btn-primary">Применить</button>
+      </form>
+    </section>
+    {% elif order.order_status == 'NEW' and order.order_payment_method == 'card_online' %}
+    <section class="card"><p class="muted">Онлайн-заказ ожидает оплаты через ЮKassa (до {% udate order.payment_due_at %}). Подтвердить его можно после поступления оплаты.</p></section>
+    {% endif %}
+    {% if can_mark_cod %}
+    <section class="card"><h2>Оплата при получении</h2>
+      <form method="post" action="{% url 'panel:order_cod_paid' order.pk %}" class="form-stack">{% csrf_token %}
+        <label><input type="checkbox" name="confirm" value="1" required> Деньги получены ({% money order.total %})</label>
+        <button class="btn">Отметить оплату</button></form></section>
+    {% endif %}
+    <section class="card"><h2>Резервы и движения склада</h2>
+      <ul class="timeline">{% for r in reservations %}<li>Резерв {{ r.id_product.product_sku }} × {{ r.reservation_quantity }} — {{ r.reservation_status }}{% if r.expires_at %} до {% udate r.expires_at %}{% endif %}</li>{% endfor %}
+      {% for m in movements %}<li>{% udate m.created_at %} · {{ m.get_movement_type_display }} {{ m.id_product.product_sku }} {{ m.movement_quantity }}</li>{% endfor %}</ul></section>
+  </div>
+  <div class="stack">
+    <section class="card"><h2>{% tr 'Связанные объекты' %}</h2>
+      <dl class="props">
+        <dt>Покупатель</dt><dd>{% can 'users' 'view' as can_users %}{% if can_users %}<a href="{% url 'panel:user_edit' order.id_user_id %}">{{ order.id_user.email }}</a>{% else %}{{ order.id_user.email }}{% endif %}<br><a class="hint" href="{% url 'panel:order_list' %}?q={{ order.id_user.email|urlencode }}">все заказы покупателя</a></dd>
+        <dt>Телефон</dt><dd>{{ order.contact_phone|default:'—' }}</dd>
+        <dt>Адрес</dt><dd>{{ order.delivery_address|default:'—' }}</dd>
+        <dt>Комментарий</dt><dd>{{ order.order_comment|default:'—' }}</dd>
+        <dt>Создан</dt><dd>{% udate order.created_at %}</dd>
+        <dt>Оплачен</dt><dd>{% udate order.paid_at %}</dd>
+        <dt>Отгружен</dt><dd>{% udate order.shipped_at %} {{ order.tracking_number|default:'' }}</dd>
+        <dt>Платежи</dt><dd>{% for p in payments %}{% can 'payments' 'view' as can_pay %}{% if can_pay %}<a href="{% url 'panel:payment_detail' p.pk %}">#{{ p.pk }}</a>{% else %}#{{ p.pk }}{% endif %} {{ p.payment_provider }} {% money p.payment_amount %} <span class="badge badge-{{ p.payment_status }}">{{ p.payment_status }}</span><br>{% empty %}—{% endfor %}</dd>
+        <dt>Возвраты</dt><dd>{% for r in returns %}<a href="{% url 'panel:return_detail' r.pk %}">#{{ r.pk }}</a> <span class="badge badge-{{ r.return_status }}">{{ r.return_status }}</span><br>{% empty %}—{% endfor %}</dd>
+      </dl></section>
+    {% include 'panel/partials/history.html' %}
+  </div>
+</div>
+{% endblock %}

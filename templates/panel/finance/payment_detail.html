@@ -1,0 +1,31 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Платёж #{{ payment.pk }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Платёж #{{ payment.pk }} <span class="badge badge-{{ payment.payment_status }}">{{ status_labels|get_item:payment.payment_status }}</span></h1>
+  <p class="muted"><code>{{ payment.payment_uid }}</code> · внешний ID {{ payment.external_id|default:'—' }}</p></div><a class="btn" href="{% url 'panel:payment_list' %}">← Платежи</a></header>
+<div class="grid-2">
+  <div class="stack">
+    <section class="card"><h2>Реквизиты</h2>
+      <dl class="props"><dt>Заказ</dt><dd><a href="{% url 'panel:order_detail' payment.id_order_id %}">{{ payment.id_order.order_number }}</a> · {{ payment.id_order.id_user.email }}</dd>
+        <dt>Провайдер / метод</dt><dd>{{ payment.payment_provider }} / {{ payment.payment_method|default:'—' }}</dd>
+        <dt>Сумма</dt><dd>{% money payment.payment_amount %}</dd><dt>Возвращено</dt><dd>{% money payment.payment_refund_amount %}</dd>
+        <dt>Комиссия шлюза</dt><dd>{% money payment.payment_commission %}</dd><dt>Оплачен</dt><dd>{% udate payment.paid_at %}</dd>
+        <dt>Карта</dt><dd>{{ payment.payment_requisites.card.card_type|default:'' }} {% if payment.payment_requisites.card.last4 %}•••• {{ payment.payment_requisites.card.last4 }}{% endif %}</dd>
+        <dt>Возвраты товара</dt><dd>{% for r in returns %}<a href="{% url 'panel:return_detail' r.pk %}">#{{ r.pk }}</a> {{ r.return_status }}<br>{% empty %}—{% endfor %}</dd></dl></section>
+    {% if can_update and payment.payment_status == 'PENDING' %}
+    <section class="card"><h2>Ручное подтверждение (fallback)</h2><p class="hint">Если веб-хук ЮKassa не дошёл, а поступление видно в реестре/выписке.</p>
+      <form method="post" action="{% url 'panel:payment_confirm' payment.pk %}" class="form-stack" data-confirm="Подтвердить поступление денег?">{% csrf_token %}{{ confirm_form.as_p }}<button class="btn btn-primary">Подтвердить</button></form></section>
+    {% endif %}
+    {% if can_refund and payment.payment_status == 'SUCCESS' or can_refund and payment.payment_status == 'PARTIALLY_REFUNDED' %}
+    <section class="card"><h2>Возврат (полный / частичный)</h2><p class="hint">Комиссия ЮKassa при возврате не возвращается — потеря рассчитывается пропорционально и пишется в лог.</p>
+      <form method="post" action="{% url 'panel:payment_refund' payment.pk %}" class="form-stack" data-confirm="Провести возврат денег?">{% csrf_token %}{{ refund_form.as_p }}<button class="btn btn-danger">Вернуть</button></form></section>
+    {% endif %}
+  </div>
+  <div class="stack">
+    <section class="card"><h2>Лог запросов и ответов шлюза</h2>
+      <ul class="timeline">{% for log in logs %}<li><strong>{{ log.log_direction }}</strong> · {% udate log.created_at %}{% if log.http_status %} · HTTP {{ log.http_status }}{% endif %}<pre>{{ log.log_payload|json_pretty }}</pre></li>{% empty %}<li class="muted">Пусто</li>{% endfor %}</ul></section>
+    {% include 'panel/partials/history.html' %}
+  </div>
+</div>
+{% endblock %}

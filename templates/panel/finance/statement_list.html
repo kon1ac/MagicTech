@@ -1,0 +1,14 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Выписки и сверка{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Импорт выписок банка / эквайринга</h1><p class="muted">Автоматический матчинг по номеру заказа (в т.ч. в назначении платежа), сумме и дате; несоответствия — в журнал</p></div></header>
+<div class="grid-2">
+  <section class="card"><form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Загрузить и сверить</button></form>
+    <p class="hint">Шаблон: <a href="{% url 'panel:import_template' 'statement' %}">template_statement.csv</a>. Платёж в статусе PENDING при совпадении подтверждается автоматически.</p></section>
+  <section class="card"><h2>Загрузки</h2>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Файл</th><th>Источник</th><th class="num">Строк</th><th class="num">Сверено</th><th class="num">Несоотв.</th><th>Дата</th></tr></thead>
+      <tbody>{% for i in page_obj %}<tr><td><a href="{% url 'panel:statement_detail' i.pk %}">{{ i.pk }}</a></td><td>{{ i.file_name }}</td><td>{{ i.statement_source }}</td><td class="num">{{ i.rows_total }}</td><td class="num">{{ i.rows_matched }}</td><td class="num">{{ i.rows_mismatched }}</td><td>{% udate i.created_at %}</td></tr>{% empty %}<tr><td colspan="7" class="muted">Нет загрузок</td></tr>{% endfor %}</tbody></table></div>
+    {% include 'panel/partials/pagination.html' %}</section>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Импорт / экспорт{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Импорт / экспорт' %}</h1><p class="muted">Импорт: загрузка → предпросмотр и сопоставление колонок → валидация всех строк → транзакционная запись (всё или ничего)</p></div></header>
+<div class="grid-2">
+  <section class="card"><h2>Импорт</h2>
+    <form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Далее: сопоставление колонок</button></form>
+    <p class="hint">Шаблоны: <a href="{% url 'panel:import_template' 'products' %}">товары</a> · <a href="{% url 'panel:import_template' 'stock' %}">остатки</a> · <a href="{% url 'panel:import_template' 'prices' %}">цены</a>.
+      Характеристики: JSON или <code>ключ=значение;ключ=значение</code>. Остатки: режим <code>set</code> (установить) или <code>add</code> (прибавить/списать); уход в минус или ниже резерва — запрет всей загрузки. Цены версионируются.</p></section>
+  <section class="card"><h2>Экспорт</h2>
+    <ul class="status-list">
+      <li><span>Каталог для маркетплейсов (CSV)</span><a class="btn btn-sm" href="{% url 'panel:export_catalog' 'csv' %}">catalog.csv</a></li>
+      <li><span>Каталог YML/XML (Яндекс.Маркет и др.)</span><a class="btn btn-sm" href="{% url 'panel:export_catalog' 'xml' %}">catalog.xml</a></li>
+      <li><span>Заказы для бухгалтерии (CSV)</span><a class="btn btn-sm" href="{% url 'panel:order_export' %}">orders.csv</a></li>
+      <li><span>Отчёты (CSV/PNG)</span><a class="btn btn-sm" href="{% url 'panel:reports' %}">Отчёты</a></li>
+      <li><span>Накладные и ярлыки (PDF)</span><a class="btn btn-sm" href="{% url 'panel:pick_tasks' %}">Сборка</a></li>
+      <li><span>Журнал аудита (CSV)</span><a class="btn btn-sm" href="{% url 'panel:audit_list' %}">Аудит</a></li>
+    </ul></section>
+</div>
+<section class="card" style="margin-top:1rem"><h2>Журнал импортов</h2>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Тип</th><th>Файл</th><th>Статус</th><th class="num">Строк</th><th class="num">Успешно</th><th class="num">С ошибками</th><th class="num">Время, мс</th><th>Кто</th><th>Дата</th></tr></thead>
+    <tbody>{% for j in page_obj %}<tr><td><a href="{% url 'panel:io_job' j.pk %}">{{ j.pk }}</a></td><td>{{ j.import_kind }}</td><td>{{ j.file_name }}</td><td><span class="badge badge-{{ j.import_status }}">{{ j.import_status }}</span></td><td class="num">{{ j.rows_total }}</td><td class="num">{{ j.rows_ok }}</td><td class="num">{{ j.rows_failed }}</td><td class="num">{{ j.duration_ms }}</td><td>{{ j.id_user.email|default:'' }}</td><td>{% udate j.created_at %}</td></tr>{% empty %}<tr><td colspan="10" class="muted">Импортов не было</td></tr>{% endfor %}</tbody></table></div>
+  {% include 'panel/partials/pagination.html' %}</section>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Импорт #{{ job.pk }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Импорт #{{ job.pk }} <span class="badge badge-{{ job.import_status }}">{{ job.import_status }}</span></h1>
+  <p class="muted">{{ job.import_kind }} · {{ job.file_name }} · строк {{ job.rows_total }} · успешно {{ job.rows_ok }} · с ошибками {{ job.rows_failed }} · {{ job.duration_ms }} мс</p></div>
+  <div class="toolbar">{% if job.import_errors %}<a class="btn" href="?format=csv">Отчёт об ошибках CSV</a>{% endif %}<a class="btn" href="{% url 'panel:io_index' %}">← Импорт</a></div></header>
+{% if job.import_status == 'failed' %}<div class="msg msg-error">Загрузка отклонена целиком — изменения в базу не внесены. Исправьте строки и загрузите файл снова.</div>{% endif %}
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Строка файла</th><th>Ошибка</th></tr></thead>
+  <tbody>{% for e in job.import_errors %}<tr><td>{{ e.row }}</td><td>{{ e.error }}</td></tr>{% empty %}<tr><td colspan="2" class="muted">Ошибок нет</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

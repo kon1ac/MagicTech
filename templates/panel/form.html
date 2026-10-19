@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{{ title }}</h1></div>{% if back %}<a class="btn" href="{% url back %}">← Назад</a>{% endif %}</header>
+<div class="{% if history %}grid-2{% endif %}">
+  <section class="card">
+    <form method="post" class="form-stack" enctype="multipart/form-data" novalidate>{% csrf_token %}
+      {% if form.non_field_errors %}<div class="msg msg-error">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
+      {{ form.as_p }}
+      <button class="btn btn-primary">{% tr 'Сохранить' %}</button>
+    </form>
+  </section>
+  {% if history or related %}
+  <div class="stack">
+    {% if related %}<section class="card"><h2>{% tr 'Связанные объекты' %}</h2><ul>{% for title, url in related %}<li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}</ul></section>{% endif %}
+    {% if history %}{% include 'panel/partials/history.html' %}{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

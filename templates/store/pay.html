@@ -1,0 +1,18 @@
+{% extends 'store/base.html' %}
+{% block title %}Оплата заказа{% endblock %}
+{% block content %}
+<div class="auth card" style="max-width:520px">
+  <p class="hint">Тестовая платёжная страница · имитация ЮKassa</p>
+  <h1 style="margin-top:0">Оплата {{ payment.payment_amount|floatformat:'2g' }} ₽</h1>
+  <p>Заказ <strong>{{ order.order_number }}</strong> · платёж <code>{{ payment.external_id }}</code></p>
+  {% if payment.payment_status == 'PENDING' %}
+  <form method="post" class="form">{% csrf_token %}
+    <p><label>Номер карты</label><input value="2200 0000 0000 4242" readonly></p>
+    <div style="display:flex;gap:.5rem"><p style="flex:1"><label>Срок</label><input value="12/29" readonly></p><p style="flex:1"><label>CVC</label><input value="123" readonly></p></div>
+    <button class="btn btn-primary btn-block" name="result" value="success">Оплатить</button>
+    <button class="btn btn-block" name="result" value="fail" style="margin-top:.5rem">Симулировать отказ банка</button>
+  </form>
+  <p class="hint">Кнопка формирует подписанное (HMAC-SHA256) уведомление ЮKassa, которое обрабатывается тем же кодом, что и боевой веб-хук <code>/api/v1/payments/yookassa/webhook/</code>.</p>
+  {% else %}<p>Статус платежа: <span class="badge badge-{{ payment.payment_status }}">{{ payment.payment_status }}</span></p><a class="btn" href="{% url 'store:account_order' order.order_number %}">К заказу</a>{% endif %}
+</div>
+{% endblock %}

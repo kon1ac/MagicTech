@@ -1,0 +1,20 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Платежи{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Платежи' %}</h1><p class="muted">Транзакции ЮKassa, оплаты при получении и маркетплейсов; у каждой — уникальный ID и лог запросов/ответов</p></div>
+  {% can 'payments' 'import' as can_import %}{% if can_import %}<a class="btn" href="{% url 'panel:statement_list' %}">Загрузить выписку / сверка</a>{% endif %}</header>
+<div class="quick-filters">{% for code, label in status_labels.items %}<a class="chip {% if status == code %}active{% endif %}" href="?status={{ code }}">{{ label }}</a>{% endfor %}<a class="chip" href="?">Все</a></div>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Номер заказа / ID платежа" data-hotkey="/">
+  <select name="provider"><option value="">Все провайдеры</option><option value="yookassa" {% if provider == 'yookassa' %}selected{% endif %}>ЮKassa</option><option value="cash" {% if provider == 'cash' %}selected{% endif %}>Наличные/при получении</option></select>
+  <input type="hidden" name="status" value="{{ status }}"><input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>ID</th><th>{% sort_header 'order' 'Заказ' %}</th><th>Провайдер</th><th class="num">{% sort_header 'amount' 'Сумма' %}</th><th class="num">Возвращено</th><th class="num">Комиссия</th><th>{% sort_header 'status' 'Статус' %}</th><th>{% sort_header 'paid' 'Оплачен' %}</th><th>{% sort_header 'created' 'Создан' %}</th></tr></thead>
+  <tbody>{% for p in page_obj %}<tr><td><a href="{% url 'panel:payment_detail' p.pk %}">#{{ p.pk }}</a><br><code class="hint">{{ p.payment_uid|truncatechars:13 }}</code></td>
+    <td><a href="{% url 'panel:order_detail' p.id_order_id %}">{{ p.id_order.order_number }}</a></td><td>{{ p.payment_provider }}</td><td class="num">{% money p.payment_amount %}</td><td class="num">{% money p.payment_refund_amount %}</td><td class="num">{% money p.payment_commission %}</td>
+    <td><span class="badge badge-{{ p.payment_status }}">{{ status_labels|get_item:p.payment_status }}</span></td><td>{% udate p.paid_at %}</td><td>{% udate p.created_at %}</td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">Платежей нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

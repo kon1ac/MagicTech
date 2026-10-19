@@ -1,0 +1,23 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Аудит{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Аудит' %} и логи</h1><p class="muted">Кто / когда / что изменил, до / после, IP / User-Agent</p></div><a class="btn" href="{% url 'panel:audit_export' %}?{{ current_query }}">Экспорт CSV</a></header>
+<div class="toolbar"><form method="get">
+  <select name="type"><option value="">Все объекты</option>{% for t in types %}<option {% if params.type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <input name="action" value="{{ params.action|default:'' }}" placeholder="действие">
+  <input name="object_id" value="{{ params.object_id|default:'' }}" placeholder="ID объекта" size="8">
+  <input name="user" value="{{ params.user|default:'' }}" placeholder="email" data-hotkey="/">
+  <input name="ip" value="{{ params.ip|default:'' }}" placeholder="IP" size="12">
+  <label class="hint">с <input type="date" name="from" value="{{ params.from|default:'' }}"></label><label class="hint">по <input type="date" name="to" value="{{ params.to|default:'' }}"></label>
+  <button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'created' 'Дата' %}</th><th>{% sort_header 'user' 'Пользователь' %}</th><th>{% sort_header 'type' 'Объект' %}</th><th>{% sort_header 'action' 'Действие' %}</th><th>Причина</th><th>IP / UA</th><th>До → После</th></tr></thead>
+  <tbody>{% for row in page_obj %}<tr><td>{% udate row.created_at %}</td><td>{{ row.id_user.email|default:'система' }}</td><td>{{ row.audit_object_type }} {% if row.object_id %}#{{ row.object_id }}{% endif %}</td><td>{{ row.audit_action }}</td><td class="hint">{{ row.audit_reason|default:'' }}</td>
+    <td class="hint">{{ row.audit_ip|default:'' }}<br>{{ row.audit_user_agent|default:''|truncatechars:40 }}</td>
+    <td class="hint" style="max-width:420px">{% if row.audit_before %}<div>до: <code>{{ row.audit_before|truncatechars:160 }}</code></div>{% endif %}{% if row.audit_after %}<div>после: <code>{{ row.audit_after|truncatechars:160 }}</code></div>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">Записей нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

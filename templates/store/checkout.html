@@ -1,0 +1,18 @@
+{% extends 'store/base.html' %}
+{% block title %}Оформление заказа{% endblock %}
+{% block content %}
+<h1>Оформление заказа</h1>
+<div class="summary">
+  <section class="card"><form method="post" class="form" novalidate>{% csrf_token %}
+    {% if form.non_field_errors %}<div class="msg msg-error">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
+    {% for field in form %}{% if field.name == 'offer_accepted' %}<p><label style="font-weight:400">{{ field }} Я согласен с условиями <a href="{% url 'store:offer' %}" target="_blank">публичной оферты</a></label>{{ field.errors }}</p>
+    {% else %}<p>{{ field.label_tag }}{{ field }}{{ field.errors }}</p>{% endif %}{% endfor %}
+    <button class="btn btn-primary">Подтвердить заказ</button>
+    <p class="hint">Заказ, резервирование товаров и платёжная транзакция создаются одной атомарной операцией. При онлайн-оплате заказ нужно оплатить в течение 30 минут.</p>
+  </form></section>
+  <aside class="card"><h2 style="margin-top:0">Ваш заказ</h2>
+    <dl>{% for line in totals.lines %}<dt>{{ line.product.product_name }} × {{ line.quantity }}</dt><dd>{{ line.total|floatformat:'2g' }}</dd>{% endfor %}
+      <dt>Скидка</dt><dd>−{{ totals.discount|floatformat:'2g' }}</dd><dt><strong>Итого</strong></dt><dd><strong>{{ totals.total|floatformat:'2g' }} ₽</strong></dd></dl>
+    {% if totals.promo_error %}<p class="msg msg-error">{{ totals.promo_error }}</p>{% endif %}</aside>
+</div>
+{% endblock %}

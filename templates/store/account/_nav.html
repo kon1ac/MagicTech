@@ -1,0 +1,8 @@
+<nav class="card">
+  <a href="{% url 'store:account' %}" class="{% if request.resolver_match.url_name == 'account' %}active{% endif %}">Профиль</a>
+  <a href="{% url 'store:account_orders' %}" class="{% if 'order' in request.resolver_match.url_name %}active{% endif %}">Мои заказы</a>
+  <a href="{% url 'store:account_returns' %}" class="{% if 'return' in request.resolver_match.url_name %}active{% endif %}">Возвраты</a>
+  <a href="{% url 'store:account_reviews' %}" class="{% if request.resolver_match.url_name == 'account_reviews' %}active{% endif %}">Отзывы</a>
+  <a href="{% url 'store:account_wishlist' %}" class="{% if request.resolver_match.url_name == 'account_wishlist' %}active{% endif %}">Избранное</a>
+  <form method="post" action="{% url 'store:logout' %}" style="margin-top:.5rem">{% csrf_token %}<button class="btn btn-sm btn-block">Выйти</button></form>
+</nav>

@@ -1,0 +1,7 @@
+{% extends 'store/base.html' %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<div class="auth card"><h1 style="margin-top:0">Вход</h1>
+  <form method="post" class="form">{% csrf_token %}<input type="hidden" name="next" value="{{ next }}">{{ form.as_p }}<button class="btn btn-primary btn-block">Войти</button></form>
+  <p class="hint">Нет аккаунта? <a href="{% url 'store:register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Зарегистрируйтесь</a>. Демо-покупатель: <code>buyer@example.com</code> / <code>Buyer123!</code></p></div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Акции{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Акции' %}</h1><p class="muted">Процент / фикс, период, условия (сумма, количество), категории / бренды / товары, промокоды</p></div>
+  {% can 'promotions' 'create' as can_create %}{% if can_create %}<a class="btn btn-primary" href="{% url 'panel:promotion_create' %}">+ Акция</a>{% endif %}</header>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Название / промокод" data-hotkey="/"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'name' 'Название' %}</th><th>Тип</th><th class="num">{% sort_header 'value' 'Скидка' %}</th><th>Промокод</th><th>Условия</th><th>{% sort_header 'start' 'Начало' %}</th><th>{% sort_header 'end' 'Окончание' %}</th><th class="num">{% sort_header 'used' 'Использ.' %}</th><th>{% sort_header 'active' 'Активна' %}</th><th></th></tr></thead>
+  <tbody>{% for p in page_obj %}<tr><td>{{ p.promotion_name }}</td><td>{% if p.promotion_type == 'percent' %}%{% else %}₽{% endif %}</td><td class="num">{{ p.promotion_value }}</td>
+    <td>{% if p.promotion_promo_code %}<code>{{ p.promotion_promo_code }}</code>{% else %}<span class="muted">авто</span>{% endif %}</td>
+    <td class="hint">{% if p.promotion_min_sum %}от {{ p.promotion_min_sum }} ₽ {% endif %}{% if p.promotion_min_qty %}от {{ p.promotion_min_qty }} шт. {% endif %}{% if p.is_stackable %}суммируется{% endif %}</td>
+    <td>{% udate p.start_at %}</td><td>{% udate p.end_at %}</td><td class="num">{{ p.usage_count }}{% if p.usage_limit %}/{{ p.usage_limit }}{% endif %}</td><td>{{ p.is_active|yesno:'да,нет' }}</td>
+    <td>{% can 'promotions' 'update' as can_upd %}{% if can_upd %}<a href="{% url 'panel:promotion_edit' p.pk %}">Изменить</a> · <a href="{% url 'panel:promotion_delete' p.pk %}">Удалить</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="10" class="muted">Акций нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

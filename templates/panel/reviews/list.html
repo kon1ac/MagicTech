@@ -1,0 +1,15 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Отзывы{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Отзывы' %} и вопросы</h1><p class="muted">Премодерация; рейтинг товара пересчитывается атомарно</p></div></header>
+<div class="quick-filters"><a class="chip {% if status == 'pending' %}active{% endif %}" href="?status=pending">На модерации</a><a class="chip {% if type == 'question' %}active{% endif %}" href="?type=question&unanswered=1">Вопросы без ответа</a><a class="chip {% if status == 'approved' %}active{% endif %}" href="?status=approved">Опубликованные</a><a class="chip {% if status == 'rejected' %}active{% endif %}" href="?status=rejected">Отклонённые</a><a class="chip" href="?">Все</a></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'created' 'Дата' %}</th><th>Тип</th><th>{% sort_header 'product' 'Товар' %}</th><th>Автор</th><th class="num">{% sort_header 'rating' 'Оценка' %}</th><th>Текст</th><th>{% sort_header 'status' 'Статус' %}</th><th></th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr><td>{% udate r.created_at %}</td><td>{{ r.review_type }}</td><td>{{ r.id_product.product_name }}</td><td>{{ r.id_user.email }}</td><td class="num">{{ r.review_rating|default:'—' }}</td><td>{{ r.review_text|truncatechars:90 }}{% if r.seller_answer %}<br><span class="hint">↳ {{ r.seller_answer|truncatechars:60 }}</span>{% endif %}</td>
+    <td><span class="badge badge-{{ r.review_status }}">{{ status_labels|get_item:r.review_status }}</span></td><td><a href="{% url 'panel:review_moderate' r.pk %}">Модерировать</a></td></tr>
+  {% empty %}<tr><td colspan="8" class="muted">Пусто</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

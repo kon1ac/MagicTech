@@ -1,0 +1,14 @@
+{% load panel_extras %}
+<section class="card">
+  <h2>{% tr 'Журнал изменений' %}</h2>
+  <ul class="timeline">
+    {% for h in history %}
+    <li>
+      <strong>{{ h.audit_action }}</strong> · {% udate h.created_at %} · {{ h.id_user.email|default:'система' }}{% if h.audit_ip %} · {{ h.audit_ip }}{% endif %}
+      {% if h.audit_reason %}<div>Причина: {{ h.audit_reason }}</div>{% endif %}
+      {% if h.audit_before or h.audit_after %}<pre>{% if h.audit_before %}до: {{ h.audit_before }}
+{% endif %}{% if h.audit_after %}после: {{ h.audit_after }}{% endif %}</pre>{% endif %}
+    </li>
+    {% empty %}<li class="muted">Изменений нет</li>{% endfor %}
+  </ul>
+</section>

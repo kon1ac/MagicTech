@@ -1,0 +1,18 @@
+{% load panel_extras %}
+<div class="saved-filters">
+  <strong>{% tr 'Сохранённые фильтры' %}:</strong>
+  {% for f in saved_filters %}<a class="chip" href="?{{ f.filter_query }}">{{ f.filter_name }}</a>{% empty %}<span class="muted">нет</span>{% endfor %}
+  {% if current_query %}<a class="chip" href="{{ request.path }}">✕ {% tr 'Сбросить' %}</a>{% endif %}
+  <details class="inline">
+    <summary>{% tr 'Сохранить фильтр' %}</summary>
+    <form method="post" action="{% url 'panel:saved_filter_create' %}" class="toolbar" style="margin:.5rem 0 0">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="{{ section }}">
+      <input type="hidden" name="query" value="{{ current_query }}">
+      <input name="name" placeholder="Название фильтра" required maxlength="100">
+      <label><input type="checkbox" name="as_default"> по умолчанию</label>
+      <button class="btn btn-sm">OK</button>
+    </form>
+  </details>
+  <span class="hint">· Shift+клик по заголовку — сортировка по нескольким колонкам</span>
+</div>

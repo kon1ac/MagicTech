@@ -1,0 +1,16 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Возвраты{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Возвраты' %}</h1><p class="muted">NEW → IN_REVIEW → APPROVED / REJECTED → RETURNED_TO_WAREHOUSE → REFUNDED / REPLACED</p></div></header>
+<div class="quick-filters">{% for code, label in status_labels.items %}<a class="chip {% if status == code %}active{% endif %}" href="?status={{ code }}">{{ label }}</a>{% endfor %}<a class="chip" href="?">Все</a></div>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Номер заказа / email" data-hotkey="/"><input type="hidden" name="status" value="{{ status }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>#</th><th>{% sort_header 'order' 'Заказ' %}</th><th>Покупатель</th><th>Причина</th><th class="num">{% sort_header 'amount' 'К возврату' %}</th><th>{% sort_header 'status' 'Статус' %}</th><th>Версия</th><th>{% sort_header 'created' 'Создана' %}</th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr><td><a href="{% url 'panel:return_detail' r.pk %}">#{{ r.pk }}</a></td><td><a href="{% url 'panel:order_detail' r.id_order_id %}">{{ r.id_order.order_number }}</a></td><td>{{ r.id_user.email }}</td><td>{{ r.return_reason|default:'—' }}</td><td class="num">{% money r.refund_amount %}</td>
+    <td><span class="badge badge-{{ r.return_status }}">{{ status_labels|get_item:r.return_status }}</span>{% if r.is_locked %} 🔒{% endif %}</td><td>v{{ r.version }}</td><td>{% udate r.created_at %}</td></tr>
+  {% empty %}<tr><td colspan="8" class="muted">Возвратов нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

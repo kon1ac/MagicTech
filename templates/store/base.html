@@ -1,0 +1,31 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Аксессуары для ПК{% endblock %} — MagicTech</title>
+  <meta name="description" content="{% block meta_description %}MagicTech — интернет-магазин аксессуаров для ПК: клавиатуры, мыши, гарнитуры, веб-камеры, кабели и игровые кресла.{% endblock %}">
+  {% block meta_extra %}{% endblock %}
+  <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'store/store.css' %}">
+</head>
+<body>
+<header class="header"><div class="wrap">
+  <a class="logo" href="{% url 'store:catalog' %}"><img src="{% static 'panel/img/logo.svg' %}" width="34" height="34" alt="">MagicTech</a>
+  <form class="search" action="{% url 'store:catalog' %}" method="get" role="search">
+    <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Поиск: название, артикул, бренд…" aria-label="Поиск">
+    <button class="btn btn-primary">Найти</button></form>
+  <nav class="header-links">
+    {% if store_user %}<a href="{% url 'store:account_wishlist' %}" title="Избранное">♡</a><a href="{% url 'store:account' %}">Кабинет</a>{% else %}<a href="{% url 'store:login' %}">Войти</a>{% endif %}
+    <a class="cart-link" href="{% url 'store:cart' %}">Корзина{% if cart_count %}<span class="cart-count">{{ cart_count }}</span>{% endif %}</a>
+  </nav>
+</div></header>
+<main class="wrap">
+  {% if messages %}<ul class="messages">{% for m in messages %}<li class="msg msg-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer"><div class="wrap">© MagicTech · аксессуары для ПК · <a href="{% url 'store:offer' %}">Публичная оферта</a> · Оплата картой через ЮKassa · <a href="/api/docs/">API</a></div></footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

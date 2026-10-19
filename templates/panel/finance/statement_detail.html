@@ -1,0 +1,12 @@
+{% extends 'panel/base.html' %}
+{% block title %}Выписка #{{ imp.pk }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Выписка #{{ imp.pk }} · {{ imp.file_name }}</h1><p class="muted">Строк {{ imp.rows_total }} · сверено {{ imp.rows_matched }} · несоответствий {{ imp.rows_mismatched }}</p></div>
+  <div class="toolbar"><a class="chip {% if not only %}active{% endif %}" href="?">Все строки</a><a class="chip {% if only %}active{% endif %}" href="?only=problems">Журнал несоответствий</a><a class="btn" href="{% url 'panel:statement_list' %}">← Выписки</a></div></header>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>Строка</th><th>Заказ</th><th class="num">Сумма</th><th>Дата</th><th>Результат</th><th>Примечание</th><th>Платёж</th></tr></thead>
+  <tbody>{% for l in lines %}<tr><td>{{ l.row_number }}</td><td>{% if l.id_order %}<a href="{% url 'panel:order_detail' l.id_order_id %}">{{ l.order_number }}</a>{% else %}{{ l.order_number|default:'—' }}{% endif %}</td>
+    <td class="num">{{ l.line_amount|default:'—' }}</td><td>{{ l.operation_date|default:'—' }}</td><td><span class="badge badge-{{ l.match_status }}">{{ l.match_status }}</span></td><td class="hint">{{ l.match_note|default:'' }}</td>
+    <td>{% if l.id_payment %}<a href="{% url 'panel:payment_detail' l.id_payment_id %}">#{{ l.id_payment_id }}</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="7" class="muted">Нет строк</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

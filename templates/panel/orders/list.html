@@ -1,0 +1,41 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Заказы{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Заказы' %}</h1><p class="muted">Статусы ведёт администратор по регламенту; переход через этапы запрещён</p></div>
+  {% can 'orders' 'export' as can_export %}{% if can_export %}<a class="btn" href="{% url 'panel:order_export' %}?{{ current_query }}">Экспорт CSV для бухгалтерии</a>{% endif %}</header>
+<div class="quick-filters">{% for title, query in quick_filters %}<a class="chip {% if current_query == query %}active{% endif %}" href="?{{ query }}">{{ title }}</a>{% endfor %}</div>
+<div class="toolbar"><form method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Номер / email / телефон" data-hotkey="/">
+  <details class="dropdown"><summary class="btn">Статусы{% if statuses %} ({{ statuses|length }}){% endif %}</summary>
+    <div class="dropdown-menu">{% for code, label in status_labels.items %}<label><input type="checkbox" name="status" value="{{ code }}" {% if code in statuses %}checked{% endif %}> {{ label }}</label>{% endfor %}</div></details>
+  <select name="payment"><option value="">Любая оплата</option>{% for code, label in payment_labels.items %}<option value="{{ code }}" {% if request.GET.payment == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  <select name="channel"><option value="">Все каналы</option>{% for ch in channels %}<option {% if request.GET.channel == ch %}selected{% endif %}>{{ ch }}</option>{% endfor %}</select>
+  <label class="hint">с <input type="date" name="from" value="{{ request.GET.from }}"></label><label class="hint">по <input type="date" name="to" value="{{ request.GET.to }}"></label>
+  <input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+{% can 'orders' 'bulk' as can_bulk %}{% if can_bulk %}
+<form method="post" action="{% url 'panel:order_bulk' %}" class="bulk-bar" data-confirm="Изменить статус выбранных заказов? Каждый заказ проверяется по регламенту.">{% csrf_token %}
+  {% tr 'Массовое действие' %} (<span data-bulk-count>0</span>): сменить статус на
+  <input type="hidden" name="ids" data-bulk-ids>
+  <select name="new_status">{% for code, label in bulk_statuses %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
+  <input name="reason" placeholder="Причина (для отмены обязательна)">
+  <label><input type="checkbox" name="confirm" value="1" required> {% tr 'Подтверждаю операцию' %}</label>
+  <button class="btn btn-sm">{% tr 'Применить' %}</button>
+</form>{% endif %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr>{% if can_bulk %}<th><input type="checkbox" data-check-all="orders" aria-label="Выбрать все"></th>{% endif %}<th>{% sort_header 'number' 'Номер' %}</th><th>{% sort_header 'customer' 'Покупатель' %}</th><th>{% sort_header 'status' 'Статус' %}</th><th>{% sort_header 'payment' 'Оплата' %}</th><th>{% sort_header 'channel' 'Канал' %}</th><th class="num">{% sort_header 'total' 'Сумма' %}</th><th>{% sort_header 'created' 'Дата' %}</th></tr></thead>
+  <tbody>
+  {% for o in page_obj %}
+  <tr>{% if can_bulk %}<td><input type="checkbox" class="row-check" value="{{ o.id_order }}"></td>{% endif %}
+    <td><a href="{% url 'panel:order_detail' o.id_order %}">{{ o.order_number }}</a></td>
+    <td>{{ o.id_user.email }}</td>
+    <td><span class="badge badge-{{ o.order_status }}">{{ status_labels|get_item:o.order_status }}</span></td>
+    <td><span class="badge badge-{{ o.order_payment_status }}">{{ o.order_payment_status|default:'—' }}</span> <span class="hint">{{ payment_labels|get_item:o.order_payment_method }}</span></td>
+    <td>{{ o.order_channel }}</td><td class="num">{% money o.total %}</td><td>{% udate o.created_at %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="muted">Нет заказов</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

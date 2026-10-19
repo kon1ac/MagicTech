@@ -1,0 +1,23 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Схема данных{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Схема данных, миграции, индексы, права</h1></div></header>
+{% include 'panel/db/_tabs.html' %}
+<div class="grid-2">
+  <section class="card"><h2>Миграции</h2><p class="hint">Применяются командой <code>python manage.py migrate</code>; SQL-листинг — <code>python manage.py sqlmigrate shop 0003</code>.</p>
+    <ul class="status-list">{% for m in migrations %}<li><span><code>{{ m.app }}.{{ m.name }}</code></span>{% if m.applied %}<span class="badge badge-SUCCESS">применена</span>{% else %}<span class="badge badge-FAILED">не применена</span>{% endif %}</li>{% endfor %}</ul></section>
+  <section class="card"><h2>Права доступа на уровне СУБД</h2>
+    <h3>Роли</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Роль</th><th>Login</th><th>Superuser</th><th>CreateDB</th><th>Лимит</th><th>Действует до</th></tr></thead>
+      <tbody>{% for r in grants.roles %}<tr><td><code>{{ r.role }}</code></td><td>{{ r.login|yesno:'да,нет' }}</td><td>{{ r.superuser|yesno:'да,нет' }}</td><td>{{ r.createdb|yesno:'да,нет' }}</td><td>{{ r.conn_limit }}</td><td>{{ r.valid_until|default:'—' }}</td></tr>{% empty %}<tr><td colspan="6" class="muted">Недоступно</td></tr>{% endfor %}</tbody></table></div>
+    <h3>Гранты на таблицы схемы public</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Кому</th><th>Привилегии</th><th class="num">Таблиц</th></tr></thead>
+      <tbody>{% for g in grants.grants %}<tr><td><code>{{ g.grantee }}</code></td><td class="hint">{{ g.privileges }}</td><td class="num">{{ g.tables }}</td></tr>{% endfor %}</tbody></table></div>
+    <p class="hint">Разграничение сервисных учётных записей: <code>scripts/db_roles.sql</code> (magictech_app — DML, magictech_readonly — SELECT, magictech_backup — pg_read_all_data).</p></section>
+</div>
+<section class="card" style="margin-top:1rem"><h2>Индексы</h2>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Таблица</th><th>Индекс</th><th class="num">Размер</th><th class="num">Сканирований</th><th>Определение</th></tr></thead>
+    <tbody>{% for i in indexes %}<tr><td><code>{{ i.table }}</code></td><td>{{ i.index }}</td><td class="num">{{ i.size }}</td><td class="num">{{ i.scans }}</td><td class="hint"><code>{{ i.definition|truncatechars:140 }}</code></td></tr>{% empty %}<tr><td colspan="5" class="muted">Доступно для PostgreSQL</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="card" style="margin-top:1rem"><h2>Производительность запросов (pg_stat_statements)</h2>
+  {% if slow %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Запрос</th><th class="num">Вызовов</th><th class="num">Среднее, мс</th><th class="num">Всего, мс</th></tr></thead><tbody>{% for q in slow %}<tr><td class="hint"><code>{{ q.query }}</code></td><td class="num">{{ q.calls }}</td><td class="num">{{ q.mean_ms }}</td><td class="num">{{ q.total_ms }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">Расширение pg_stat_statements не подключено: <code>shared_preload_libraries = 'pg_stat_statements'</code> + <code>CREATE EXTENSION pg_stat_statements;</code></p>{% endif %}</section>
+{% endblock %}

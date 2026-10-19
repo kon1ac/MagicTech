@@ -1,0 +1,16 @@
+{% extends 'panel/base.html' %}
+{% block title %}Сборка {{ order.order_number }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Сборка заказа {{ order.order_number }}</h1><p class="muted">Отметьте каждую отобранную позицию</p></div><a class="btn" href="{% url 'panel:pick_tasks' %}">← Задания</a></header>
+<section class="card">
+  <form method="post" class="form-stack" data-confirm="Списать отобранные товары с остатков?">{% csrf_token %}
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Отобран</th><th>SKU</th><th>Товар</th><th class="num">Кол-во</th><th class="num">На складе / резерв</th></tr></thead>
+      <tbody>{% for row in rows %}<tr><td><input type="checkbox" name="picked" value="{{ row.item.pk }}" aria-label="Отобран"></td><td><code>{{ row.item.id_product.product_sku }}</code></td><td>{{ row.item.id_product.product_name }}</td><td class="num"><strong>{{ row.item.order_item_quantity }}</strong></td><td class="num">{{ row.stock.stock_quantity|default:0 }} / {{ row.stock.stock_reserved|default:0 }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="critical-box"><label><input type="checkbox" name="confirm" value="1" required> Подтверждаю списание остатков (операция атомарна: при нехватке любого товара ничего не спишется)</label></div>
+    <button class="btn btn-primary" data-hotkey="w">Списать и завершить сборку <kbd>W</kbd></button>
+    <a class="btn" href="{% url 'panel:order_invoice' order.pk %}" target="_blank" data-hotkey="p">Печать накладной <kbd>P</kbd></a>
+  </form>
+</section>
+{% endblock %}

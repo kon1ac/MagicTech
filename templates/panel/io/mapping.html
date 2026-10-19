@@ -1,0 +1,18 @@
+{% extends 'panel/base.html' %}
+{% block title %}Сопоставление колонок{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Импорт: {{ upload.kind }} · {{ upload.name }}</h1><p class="muted">Строк данных: {{ rows_total }}. Проверьте сопоставление и запустите импорт — сначала проверяются все строки.</p></div><a class="btn" href="{% url 'panel:io_index' %}">Отмена</a></header>
+<div class="grid-2">
+  <section class="card"><h2>Сопоставление колонок</h2>
+    <form method="post" class="form-stack">{% csrf_token %}
+      {% for key, label, selected in fields %}
+      <p><label>{{ label }}</label><select name="map_{{ key }}"><option value="">— не импортировать —</option>{% for idx, header in headers %}<option value="{{ idx }}" {% if selected == idx %}selected{% endif %}>{{ header }}</option>{% endfor %}</select></p>
+      {% endfor %}
+      {% if upload.kind == 'stock' %}<p><label>Режим по умолчанию</label><select name="default_mode"><option value="set">set — установить остаток</option><option value="add">add — прибавить (минус — списание)</option></select></p>{% endif %}
+      <button class="btn btn-primary">Проверить и импортировать</button>
+    </form></section>
+  <section class="card"><h2>Предпросмотр (первые 10 строк)</h2>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th>{% for idx, h in headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in preview %}<tr><td>{{ forloop.counter|add:1 }}</td>{% for cell in row %}<td>{{ cell|truncatechars:40 }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></section>
+</div>
+{% endblock %}

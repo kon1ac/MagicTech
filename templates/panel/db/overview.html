@@ -1,0 +1,27 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}База данных{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'База данных' %}</h1><p class="muted">Характеристики СУБД и путь доступа к данным пользователей ИС</p></div></header>
+{% include 'panel/db/_tabs.html' %}
+<div class="grid-2">
+  <section class="card"><h2>Характеристики</h2>
+    <dl class="props">
+      <dt>СУБД</dt><dd>{{ info.version }}</dd><dt>База</dt><dd><code>{{ info.name }}</code> @ {{ info.host }}:{{ info.port }} (пользователь {{ info.user }})</dd>
+      {% if info.size %}<dt>Размер</dt><dd>{{ info.size }}</dd><dt>Подключения</dt><dd>{{ info.connections }} / {{ info.max_connections }}</dd>
+      <dt>Cache hit ratio</dt><dd>{{ info.cache_hit_ratio }} %</dd><dt>shared_buffers / work_mem</dt><dd>{{ info.shared_buffers }} / {{ info.work_mem }}</dd>
+      <dt>Кодировка / TZ</dt><dd>{{ info.encoding }} / {{ info.timezone }}</dd><dt>WAL / архив</dt><dd>{{ info.wal_level }} / archive_mode={{ info.archive_mode }}</dd>
+      <dt>Каталог данных СУБД</dt><dd><code>{{ info.data_directory|default:'нет прав на чтение' }}</code></dd><dt>Запущена</dt><dd>{% udate info.started_at %}</dd>{% endif %}
+      <dt>Файлы пользователей (MEDIA_ROOT)</dt><dd><code>{{ info.media_root }}</code></dd><dt>Каталог бэкапов</dt><dd><code>{{ info.backup_dir }}</code></dd>
+    </dl></section>
+  <section class="card"><h2>Путь доступа к данным пользователей ИС</h2>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Таблица</th><th>Данные</th><th>Где / назначение</th></tr></thead>
+      <tbody>{% for t, d, w in user_data %}<tr><td><code>{{ t }}</code></td><td>{{ d }}</td><td class="hint">{{ w }}</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
+<section class="card" style="margin-top:1rem"><h2>Таблицы</h2>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Таблица</th><th class="num">Строк (оценка)</th><th class="num">Размер</th><th class="num">Индексы</th><th class="num">seq / idx scan</th><th class="num">Мёртвых строк</th><th>Autovacuum / analyze</th></tr></thead>
+    <tbody>{% for t in info.tables %}<tr><td><code>{{ t.table }}</code></td><td class="num">{{ t.rows_estimate|default:'' }}</td><td class="num">{{ t.total_size|default:'' }}</td><td class="num">{{ t.index_size|default:'' }}</td><td class="num">{{ t.seq_scan|default:'' }} / {{ t.idx_scan|default:'' }}</td><td class="num">{{ t.n_dead_tup|default:'' }}</td><td class="hint">{% udate t.last_autovacuum %} / {% udate t.last_analyze %}</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="card" style="margin-top:1rem"><h2>Журнал доступа к контуру БД</h2>
+  <ul class="timeline">{% for a in access_log %}<li>{% udate a.created_at %} · {{ a.id_user.email }} · {{ a.audit_ip }} · <code>{{ a.audit_after|truncatechars:90 }}</code></li>{% endfor %}</ul>
+  <a href="{% url 'panel:audit_list' %}?type=db_access">Весь журнал →</a></section>
+{% endblock %}

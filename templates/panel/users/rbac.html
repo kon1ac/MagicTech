@@ -1,0 +1,9 @@
+{% extends 'panel/base.html' %}
+{% block title %}Матрица прав{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Матрица «Роль × Объект × Действие»</h1><p class="muted">Источник истины — <code>users/permissions.py</code>; проверяется на сервере в каждом обработчике панели и API.</p></div></header>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>Объект</th><th>Действие</th>{% for code, label in roles %}<th>{{ label }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr><td><code>{{ r.resource }}</code></td><td>{{ r.label }}</td>{% for allowed in r.roles %}<td>{% if allowed %}✔{% else %}<span class="muted">—</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

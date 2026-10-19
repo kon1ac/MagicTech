@@ -1,0 +1,5 @@
+# MagicTech — регламентные задания (Linux). Установка: crontab scripts/crontab.example (поправьте пути)
+* * * * *   cd /opt/MagicTech && venv/bin/python manage.py run_scheduled_jobs >> logs/jobs.log 2>&1
+# альтернативно — системными скриптами:
+# 0 2 * * *    /opt/MagicTech/scripts/backup_full.sh
+# 0 */4 * * *  /opt/MagicTech/scripts/backup_incremental.sh

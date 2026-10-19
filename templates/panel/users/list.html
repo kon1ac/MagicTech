@@ -1,0 +1,31 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Пользователи' %}</h1><p class="muted">Создание, изменение, удаление, назначение и смена ролей</p></div>
+  <div class="toolbar"><a class="btn" href="{% url 'panel:rbac' %}">Матрица прав</a><a class="btn btn-primary" href="{% url 'panel:user_create' %}">+ Пользователь</a></div></header>
+<div class="toolbar"><form method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Email, фамилия, телефон" data-hotkey="/">
+  <select name="role"><option value="">Все роли</option>{% for code, label in roles %}<option value="{{ code }}" {% if role == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  <select name="active"><option value="">Любой статус</option><option value="1" {% if active == '1' %}selected{% endif %}>Активные</option><option value="0" {% if active == '0' %}selected{% endif %}>Заблокированные</option></select>
+  <input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<form method="post" action="{% url 'panel:user_bulk' %}" class="bulk-bar" data-confirm="Применить массовую операцию к выбранным пользователям?">{% csrf_token %}
+  {% tr 'Массовое действие' %} (<span data-bulk-count>0</span>):
+  <select name="action"><option value="activate">Активировать</option><option value="deactivate">Заблокировать</option></select>
+  <label><input type="checkbox" name="confirm" value="1" required> {% tr 'Подтверждаю операцию' %}</label>
+  <button class="btn btn-sm">{% tr 'Применить' %}</button>
+</form>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th><input type="checkbox" data-check-all="users"></th><th>{% sort_header 'email' 'Email' %}</th><th>Имя</th><th>{% sort_header 'role' 'Роль' %}</th><th>{% sort_header 'active' 'Активен' %}</th><th>{% sort_header 'created' 'Создан' %}</th><th></th></tr></thead>
+  <tbody>
+  {% for u in page_obj %}
+  <tr><td><input type="checkbox" class="row-check" value="{{ u.id_user }}"></td>
+    <td>{{ u.email }}</td><td>{{ u.profile.profile_first_name|default:'' }} {{ u.profile.profile_last_name|default:'' }}</td>
+    <td><span class="badge">{{ role_labels|get_item:u.user_role }}</span></td><td>{{ u.is_active|yesno:'да,нет' }}</td><td>{% udate u.created_at %}</td>
+    <td><a href="{% url 'panel:user_edit' u.id_user %}">Изменить</a> · <a href="{% url 'panel:user_delete' u.id_user %}">Удалить</a></td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">Нет пользователей</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

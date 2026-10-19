@@ -1,0 +1,27 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Бэкапы и restore{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Резервное копирование и восстановление</h1></div></header>
+{% include 'panel/db/_tabs.html' %}
+<div class="grid-2">
+  <section class="card"><h2>Регламент</h2><dl class="props">{% for k, v in policy %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>
+    <p class="hint">Расписание выполняют регламентные задания (<code>manage.py run_scheduled_jobs</code> из cron / Планировщика задач каждую минуту). Скрипты для ОС — <code>scripts/backup_*.sh|ps1</code>.</p></section>
+  <section class="card"><h2>Создать копию сейчас</h2>
+    <form method="post" action="{% url 'panel:db_backup_create' %}" class="form-stack">{% csrf_token %}
+      <p><select name="kind"><option value="full">Полная (вся БД, pg_dump -Fc)</option><option value="incremental">Инкрементальная (транзакционные таблицы)</option><option value="schema">Схема + справочники/конфигурации</option></select></p>
+      <button class="btn btn-primary">Создать</button></form></section>
+</div>
+<section class="card" style="margin-top:1rem"><h2>Копии</h2>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Тип</th><th>Файл</th><th class="num">Размер</th><th>Статус</th><th>Проверка restore</th><th>Создана</th><th>Действия</th></tr></thead>
+    <tbody>{% for b in page_obj %}<tr><td>{{ b.pk }}</td><td>{{ b.backup_kind }}</td><td class="hint"><code>{{ b.file_path }}</code><br>sha256 {{ b.checksum|default:'—'|truncatechars:20 }}</td><td class="num">{{ b.file_size|filesizeformat }}</td>
+      <td><span class="badge badge-{{ b.backup_status }}">{{ b.backup_status }}</span></td><td>{% if b.verify_status %}<span class="badge badge-{{ b.verify_status }}">{{ b.verify_status }}</span> {% udate b.verified_at %}{% else %}—{% endif %}{% if b.restored_at %}<br>restore: {% udate b.restored_at %}{% endif %}</td><td>{% udate b.created_at %}</td>
+      <td>{% if b.backup_status == 'success' %}
+        <form method="post" action="{% url 'panel:db_backup_verify' b.pk %}">{% csrf_token %}<button class="btn btn-sm">Проверить restore</button></form>
+        {% can 'db' 'restore' as can_restore %}{% if can_restore and b.backup_kind == 'full' %}
+        <details class="inline"><summary>Восстановить…</summary>
+          <form method="post" action="{% url 'panel:db_backup_restore' b.pk %}" class="form-stack critical-box" data-confirm="ВНИМАНИЕ: текущая база будет заменена данными из копии. Продолжить?">{% csrf_token %}{{ restore_form.as_p }}<button class="btn btn-danger btn-sm">Восстановить БД</button></form></details>{% endif %}
+      {% endif %}{% if b.backup_output %}<details class="inline"><summary>лог</summary><pre class="code">{{ b.backup_output }}</pre></details>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="muted">Копий пока нет</td></tr>{% endfor %}</tbody></table></div>
+  {% include 'panel/partials/pagination.html' %}</section>
+{% endblock %}

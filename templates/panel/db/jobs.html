@@ -1,0 +1,13 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Регламентные задания СУБД{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Регламентные задания СУБД</h1><p class="muted">Планировщик: <code>python manage.py run_scheduled_jobs</code> раз в минуту (cron / Планировщик задач Windows)</p></div></header>
+{% include 'panel/db/_tabs.html' %}
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Задание</th><th>Расписание (cron)</th><th>Вкл.</th><th>Последний запуск</th><th>Результат</th><th></th></tr></thead>
+  <tbody>{% for j in jobs %}<tr><td><strong>{{ j.job_name }}</strong><br><code class="hint">{{ j.job_code }} → {{ j.job_command }}</code></td>
+    <td><form method="post" action="{% url 'panel:db_job_action' j.pk %}" class="toolbar" style="margin:0">{% csrf_token %}<input type="hidden" name="action" value="schedule"><input name="schedule" value="{{ j.job_schedule }}" size="14" class="mono"><button class="btn btn-sm">✓</button></form></td>
+    <td>{{ j.is_enabled|yesno:'да,нет' }}</td><td>{% udate j.last_run_at %}</td><td>{% if j.last_status %}<span class="badge badge-{{ j.last_status }}">{{ j.last_status }}</span>{% endif %}<div class="hint">{{ j.last_output|default:''|truncatechars:140 }}</div></td>
+    <td><form method="post" action="{% url 'panel:db_job_action' j.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="run"><button class="btn btn-sm btn-primary">Запустить</button></form>
+      <form method="post" action="{% url 'panel:db_job_action' j.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn btn-sm">{% if j.is_enabled %}Выключить{% else %}Включить{% endif %}</button></form></td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

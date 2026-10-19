@@ -1,0 +1,16 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Движения склада{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Журнал движений склада</h1></div><a class="btn" href="{% url 'panel:stock_list' %}">← Склад</a></header>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="SKU / № документа" data-hotkey="/">
+  <select name="type"><option value="">Все типы</option>{% for code, label in types %}<option value="{{ code }}" {% if type == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'created' 'Дата' %}</th><th>{% sort_header 'type' 'Тип' %}</th><th>{% sort_header 'sku' 'Товар' %}</th><th class="num">Изменение</th><th class="num">Остаток после</th><th class="num">Резерв после</th><th>Документ / заказ</th><th>Кто</th><th>Причина</th></tr></thead>
+  <tbody>{% for m in page_obj %}<tr><td>{% udate m.created_at %}</td><td>{{ m.get_movement_type_display }}</td><td><code>{{ m.id_product.product_sku }}</code></td><td class="num">{{ m.movement_quantity }}</td><td class="num">{{ m.quantity_after }}</td><td class="num">{{ m.reserved_after }}</td>
+    <td>{{ m.document_number|default:'' }}{% if m.id_order %}<a href="{% url 'panel:order_detail' m.id_order_id %}">{{ m.id_order.order_number }}</a>{% endif %}</td><td>{{ m.id_user.email|default:'система' }}</td><td class="hint">{{ m.movement_reason|default:'' }}</td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">Нет движений</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

@@ -1,0 +1,7 @@
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Страницы">
+  {% if page_obj.has_previous %}<a class="btn btn-sm" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page_obj.previous_page_number }}">←</a>{% endif %}
+  <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }} · всего {{ page_obj.paginator.count }}</span>
+  {% if page_obj.has_next %}<a class="btn btn-sm" href="?{% if query_without_page %}{{ query_without_page }}&{% endif %}page={{ page_obj.next_page_number }}">→</a>{% endif %}
+</nav>
+{% elif page_obj %}<p class="hint">Всего: {{ page_obj.paginator.count }}</p>{% endif %}

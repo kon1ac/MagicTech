@@ -1,0 +1,7 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Архив {{ item.order_number }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Архивный заказ {{ item.order_number }}</h1><p class="muted">{{ item.customer_email }} · {% money item.order_total %} · архивирован {% udate item.archived_at %}</p></div><a class="btn" href="{% url 'panel:archive' %}">← Архив</a></header>
+<section class="card"><pre class="code">{{ item.archive_payload|json_pretty }}</pre></section>
+{% endblock %}

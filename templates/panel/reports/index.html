@@ -1,0 +1,76 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Отчёты{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Отчёты' %} и аналитика</h1><p class="muted">Метрики считаются по данным системы; определения — под каждым отчётом</p></div></header>
+<div class="toolbar"><form method="get">
+  <label class="hint">Период с <input type="date" name="from" value="{{ date_from|date:'Y-m-d' }}"></label>
+  <label class="hint">по <input type="date" name="to" value="{{ date_to|date:'Y-m-d' }}"></label>
+  <select name="group"><option value="day" {% if group == 'day' %}selected{% endif %}>по дням</option><option value="week" {% if group == 'week' %}selected{% endif %}>по неделям</option><option value="month" {% if group == 'month' %}selected{% endif %}>по месяцам</option></select>
+  <select name="top_by">
+    <option value="revenue" {% if top_by == 'revenue' %}selected{% endif %}>ТОП по выручке</option><option value="qty" {% if top_by == 'qty' %}selected{% endif %}>по количеству</option>
+    <option value="margin" {% if top_by == 'margin' %}selected{% endif %}>по марже</option><option value="returns" {% if top_by == 'returns' %}selected{% endif %}>по возвратам</option></select>
+  <button class="btn btn-primary">Построить</button></form></div>
+
+<section class="stats-grid">
+  <article class="stat-card accent"><span class="stat-label">Выручка за период</span><strong class="stat-value">{% money sales.total_revenue %}</strong></article>
+  <article class="stat-card"><span class="stat-label">Заказов</span><strong class="stat-value">{{ sales.total_orders }}</strong></article>
+  <article class="stat-card"><span class="stat-label">Средний чек</span><strong class="stat-value">{% money sales.avg_check %}</strong></article>
+  <article class="stat-card warn"><span class="stat-label">Нетто поступлений</span><strong class="stat-value">{% money finance.net %}</strong></article>
+</section>
+
+<div class="grid-2">
+  <section class="card" id="r-sales"><h2>1. Продажи по периодам</h2>
+    <div class="chart-box"><canvas id="chartSales"></canvas></div>
+    <p class="hint">Заказы в статусах «Оплачен…Завершён» по дате создания. Выручка = Σ итогов заказов; средний чек = выручка / число заказов.</p>
+    <div class="toolbar"><a class="btn btn-sm" href="{% url 'panel:report_export' 'sales' %}?{{ request.GET.urlencode }}">CSV</a><button class="btn btn-sm" data-png="chartSales">PNG</button></div></section>
+  <section class="card" id="r-top"><h2>2. ТОП товаров</h2>
+    <div class="chart-box"><canvas id="chartTop"></canvas></div>
+    <p class="hint">Маржа = выручка − себестоимость × кол-во; возвраты — штуки в заявках, кроме отклонённых.</p>
+    <div class="toolbar"><a class="btn btn-sm" href="{% url 'panel:report_export' 'top' %}?{{ request.GET.urlencode }}">CSV</a><button class="btn btn-sm" data-png="chartTop">PNG</button></div></section>
+  <section class="card" id="r-fin"><h2>3. Финансовый отчёт</h2>
+    <div class="chart-box"><canvas id="chartFinance"></canvas></div>
+    <dl class="props"><dt>Начислено (заказы без отменённых)</dt><dd>{% money finance.accrued %}</dd><dt>Оплачено</dt><dd>{% money finance.paid %}</dd><dt>Возвраты</dt><dd>{% money finance.refunds %}</dd><dt>Комиссии шлюза</dt><dd>{% money finance.commission %}</dd><dt>Нетто</dt><dd><strong>{% money finance.net %}</strong></dd>
+      {% for p in finance.by_provider %}<dt>{{ p.payment_provider }}</dt><dd>{% money p.amount %} ({{ p.cnt }})</dd>{% endfor %}</dl>
+    <div class="toolbar"><a class="btn btn-sm" href="{% url 'panel:report_export' 'finance' %}?{{ request.GET.urlencode }}">CSV</a><button class="btn btn-sm" data-png="chartFinance">PNG</button></div></section>
+  <section class="card" id="r-status"><h2>4. Статусы заказов</h2>
+    <div class="chart-box"><canvas id="chartStatuses"></canvas></div>
+    <dl class="props"><dt>В работе</dt><dd>{{ statuses.in_work }}</dd><dt>Собрано</dt><dd>{{ statuses.packed }}</dd><dt>Завершено</dt><dd>{{ statuses.completed }}</dd><dt>Задержано (&gt;3 дн. без движения)</dt><dd>{{ statuses.delayed }}</dd><dt>Просрочена оплата</dt><dd>{{ statuses.overdue }}</dd></dl>
+    <div class="toolbar"><a class="btn btn-sm" href="{% url 'panel:report_export' 'statuses' %}">CSV</a><button class="btn btn-sm" data-png="chartStatuses">PNG</button></div></section>
+</div>
+<section class="card" id="r-stock" style="margin-top:1rem"><h2>5. Остатки склада и обороты</h2>
+  <div class="chart-box"><canvas id="chartStock"></canvas></div>
+  <p class="hint">Продано — списания за 30 дней; оборачиваемость (дней) = остаток / среднесуточные продажи; неликвид — остаток &gt; 0 и нет продаж 90 дней. Неликвидов: {{ stock.illiquid }}; всего на складе {{ stock.total_qty }} шт., в резерве {{ stock.total_reserved }}.</p>
+  <div class="toolbar"><a class="btn btn-sm" href="{% url 'panel:report_export' 'stock' %}">CSV</a><button class="btn btn-sm" data-png="chartStock">PNG</button></div>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>SKU</th><th>Товар</th><th class="num">Остаток</th><th class="num">Резерв</th><th class="num">Продано 30 дн.</th><th class="num">Оборач., дн.</th><th>Неликвид</th></tr></thead>
+    <tbody>{% for r in stock.rows|slice:':30' %}<tr><td><code>{{ r.sku }}</code></td><td>{{ r.name }}</td><td class="num">{{ r.quantity }}</td><td class="num">{{ r.reserved }}</td><td class="num">{{ r.sold }}</td><td class="num">{{ r.turnover_days|default:'—' }}</td><td>{% if r.illiquid %}<span class="badge badge-FAILED">да</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{{ charts|json_script:'chartData' }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('chartData').textContent);
+  const css = getComputedStyle(document.documentElement);
+  const c = (v) => css.getPropertyValue(v).trim();
+  const palette = [c('--primary'), c('--accent'), c('--warn'), c('--danger'), c('--ok'), '#8b5cf6', '#64748b', '#0ea5e9'];
+  Chart.defaults.color = c('--muted'); Chart.defaults.borderColor = c('--border'); Chart.defaults.font.family = 'Manrope, sans-serif';
+  const opts = { responsive: true, maintainAspectRatio: false, animation: false };
+  new Chart(chartSales, { type: 'line', data: { labels: data.sales.labels, datasets: [
+    { label: 'Выручка, ₽', data: data.sales.revenue, borderColor: palette[0], backgroundColor: palette[0] + '33', fill: true, tension: .25, yAxisID: 'y' },
+    { label: 'Заказов', data: data.sales.orders, borderColor: palette[1], type: 'bar', backgroundColor: palette[1] + '88', yAxisID: 'y1' }] },
+    options: { ...opts, scales: { y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } } } });
+  new Chart(chartTop, { type: 'bar', data: { labels: data.top.labels, datasets: [{ label: 'Значение', data: data.top.values, backgroundColor: palette[0] }] }, options: { ...opts, indexAxis: 'y', plugins: { legend: { display: false } } } });
+  new Chart(chartFinance, { type: 'bar', data: { labels: data.finance.labels, datasets: [{ data: data.finance.values, backgroundColor: [palette[4], palette[3], palette[2], palette[0]] }] }, options: { ...opts, plugins: { legend: { display: false } } } });
+  new Chart(chartStatuses, { type: 'doughnut', data: { labels: data.statuses.labels, datasets: [{ data: data.statuses.values, backgroundColor: palette }] }, options: { ...opts, plugins: { legend: { position: 'right' } } } });
+  new Chart(chartStock, { type: 'bar', data: { labels: data.stock.labels, datasets: [{ label: 'Остаток', data: data.stock.qty, backgroundColor: palette[0] }, { label: 'Резерв', data: data.stock.reserved, backgroundColor: palette[2] }] }, options: opts });
+  document.querySelectorAll('[data-png]').forEach((btn) => btn.addEventListener('click', () => {
+    const canvas = document.getElementById(btn.dataset.png);
+    const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
+    const ctx = out.getContext('2d'); ctx.fillStyle = c('--surface'); ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(canvas, 0, 0);
+    const a = document.createElement('a'); a.href = out.toDataURL('image/png'); a.download = btn.dataset.png + '.png'; a.click();
+  }));
+})();
+</script>
+{% endblock %}

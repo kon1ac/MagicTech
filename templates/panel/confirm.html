@@ -1,0 +1,14 @@
+{% extends 'panel/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="card" style="max-width:640px">
+  <h1>{{ title }}</h1>
+  <p><strong>{{ object }}</strong></p>
+  <div class="critical-box">{{ text }}</div>
+  <form method="post" class="form-stack">{% csrf_token %}
+    <p><label><input type="checkbox" name="confirm" value="1" required> Подтверждаю операцию</label></p>
+    <button class="btn btn-danger">Подтвердить</button>
+    <a class="btn" href="{% url back %}">Отмена</a>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'panel/base.html' %}
+{% block title %}Возврат по заказу {{ order.order_number }}{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Заявка на возврат · {{ order.order_number }}</h1><p class="muted">Заводится администратором за покупателя {{ order.id_user.email }}</p></div><a class="btn" href="{% url 'panel:order_detail' order.pk %}">← Заказ</a></header>
+<section class="card"><form method="post" class="form-stack">{% csrf_token %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Товар</th><th class="num">Куплено</th><th class="num">Можно вернуть</th><th>Вернуть</th></tr></thead>
+    <tbody>{% for row in items %}<tr><td>{{ row.item.id_product.product_name }}</td><td class="num">{{ row.item.order_item_quantity }}</td><td class="num">{{ row.available }}</td><td><input type="number" name="qty_{{ row.item.pk }}" min="0" max="{{ row.available }}" value="0"></td></tr>{% endfor %}</tbody></table></div>
+  <p><label>Причина</label><select name="reason" required>{% for r in reasons %}<option value="{{ r.pk }}">{{ r.reason_name }}</option>{% endfor %}</select></p>
+  <p><label>Описание</label><textarea name="description" rows="3"></textarea></p>
+  <button class="btn btn-primary">Создать заявку</button></form></section>
+{% endblock %}

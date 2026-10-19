@@ -1,0 +1,77 @@
+{% load static panel_extras %}<!DOCTYPE html>
+<html lang="{{ panel_settings.language|default:'ru' }}" data-theme="{{ panel_settings.theme|default:'light' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}MagicTech{% endblock %} · Панель управления</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'panel/css/magictech.css' %}">
+</head>
+<body data-hotkeys="{% if panel_settings and not panel_settings.hotkeys_enabled %}off{% else %}on{% endif %}">
+  <a class="skip-link" href="#main">К содержимому</a>
+  {% if panel_user %}
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="{% url 'panel:dashboard' %}">
+        <img src="{% static 'panel/img/logo.svg' %}" alt="" width="40" height="40">
+        <div><strong>MagicTech</strong><small>Admin Console</small></div>
+      </a>
+      <nav class="nav">
+        {% for group in panel_nav %}
+        <div class="nav-group">{{ group.title }}</div>
+        {% for item in group.links %}
+        <a href="{% url item.url_name %}" class="nav-link{% if request.resolver_match.url_name == item.url_name %} active{% endif %}">{{ item.title }}</a>
+        {% endfor %}
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip"><span>{{ panel_user.email }}</span><small>{{ panel_role_label }}</small></div>
+        <div class="sidebar-actions">
+          <a class="btn btn-ghost btn-sm on-dark" href="{% url 'panel:settings' %}">{% tr 'Настройки' %}</a>
+          <a class="btn btn-ghost btn-sm on-dark" href="{% url 'store:catalog' %}" target="_blank" rel="noopener">{% tr 'Витрина' %}</a>
+          <form method="post" action="{% url 'panel:logout' %}">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm on-dark">{% tr 'Выйти' %}</button></form>
+        </div>
+      </div>
+    </aside>
+    <div class="main-wrap">
+      <header class="topbar">
+        <button type="button" class="btn btn-ghost menu-toggle" id="menuToggle" aria-label="Меню">☰</button>
+        <button type="button" class="search-global" id="searchInput" data-open-palette>
+          <span>{% tr 'Поиск по SKU / названию (Ctrl+K)' %}</span><kbd>Ctrl K</kbd>
+        </button>
+        <div class="topbar-actions">
+          <button type="button" class="btn btn-ghost" id="themeToggle" title="Тема" data-url="{% url 'panel:settings_theme' %}">◐</button>
+          <a href="{% url 'panel:hotkeys' %}" class="btn btn-ghost" title="{% tr 'Горячие клавиши' %} (?)">?</a>
+        </div>
+      </header>
+      <main class="content" id="main">
+        {% if messages %}
+        <ul class="messages">{% for message in messages %}<li class="msg msg-{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <div class="palette" id="palette" hidden>
+    <div class="palette-box" role="dialog" aria-label="Командная строка">
+      <input type="search" id="paletteInput" placeholder="Товар, заказ, email или команда…" autocomplete="off" data-url="{% url 'panel:command_search' %}">
+      <ul id="paletteResults"></ul>
+      <p class="hint">Enter — открыть · Esc — закрыть · ? — все горячие клавиши</p>
+    </div>
+  </div>
+  <script id="paletteCommands" type="application/json">[
+    {% for group in panel_nav %}{% for item in group.links %}{"type": "Раздел", "title": "{{ item.title|escapejs }}", "url": "{% url item.url_name %}"},{% endfor %}{% endfor %}
+    {"type": "Действие", "title": "Новый товар", "url": "/panel/products/new/"},
+    {"type": "Действие", "title": "Приход товара", "url": "/panel/stock/receipt/"},
+    {"type": "Действие", "title": "Настройки", "url": "/panel/settings/"}
+  ]</script>
+  {% else %}
+  <main id="main">{% block bare_content %}{% endblock %}</main>
+  {% endif %}
+  {% csrf_token %}
+  <script src="{% static 'panel/js/panel.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

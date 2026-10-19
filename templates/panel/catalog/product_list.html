@@ -1,0 +1,37 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Товары{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Товары' %}</h1><p class="muted">Карточки, цены, характеристики, изображения, SEO</p></div>
+  <div class="toolbar"><a class="btn" href="{% url 'panel:io_index' %}">Импорт / экспорт</a>
+  {% can 'products' 'create' as can_create %}{% if can_create %}<a class="btn btn-primary" href="{% url 'panel:product_create' %}">+ Товар <kbd>Ctrl N</kbd></a>{% endif %}</div></header>
+<div class="quick-filters">
+  <a class="chip {% if not filters.stock and not filters.active %}active{% endif %}" href="?">Все</a>
+  <a class="chip {% if filters.stock == 'out' %}active{% endif %}" href="?stock=out">Нет в наличии</a>
+  <a class="chip {% if filters.stock == 'low' %}active{% endif %}" href="?stock=low">Заканчиваются</a>
+  <a class="chip {% if filters.active == '0' %}active{% endif %}" href="?active=0">Сняты с продажи</a>
+</div>
+<div class="toolbar"><form method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="SKU / название / EAN" data-hotkey="/">
+  <select name="category"><option value="">Все категории</option>{% for c in categories %}<option value="{{ c.pk }}" {% if filters.category == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.category_name }}</option>{% endfor %}</select>
+  <select name="brand"><option value="">Все бренды</option>{% for b in brands %}<option value="{{ b.pk }}" {% if filters.brand == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.brand_name }}</option>{% endfor %}</select>
+  <select name="active"><option value="">Любые</option><option value="1" {% if filters.active == '1' %}selected{% endif %}>Продаются</option><option value="0" {% if filters.active == '0' %}selected{% endif %}>Сняты</option></select>
+  <input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<form method="post" action="{% url 'panel:product_bulk' %}" class="bulk-bar" data-confirm="Применить массовую операцию к выбранным товарам?">{% csrf_token %}
+  {% tr 'Массовое действие' %} (<span data-bulk-count>0</span>):
+  <select name="action"><option value="activate">Вернуть в продажу</option><option value="archive">Снять с продажи (архив)</option><option value="delete">Удалить</option></select>
+  <label><input type="checkbox" name="confirm" value="1" required> {% tr 'Подтверждаю операцию' %}</label>
+  <button class="btn btn-sm">{% tr 'Применить' %}</button>
+</form>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th><input type="checkbox" data-check-all="products" aria-label="Выбрать все"></th><th>{% sort_header 'sku' 'SKU' %}</th><th>{% sort_header 'name' 'Название' %}</th><th>{% sort_header 'brand' 'Бренд' %}</th><th>{% sort_header 'category' 'Категория' %}</th><th class="num">{% sort_header 'price' 'Цена' %}</th><th class="num">{% sort_header 'stock' 'Доступно' %}</th><th class="num">{% sort_header 'rating' 'Рейтинг' %}</th><th>{% sort_header 'active' 'Продаётся' %}</th></tr></thead>
+  <tbody>{% for p in page_obj %}<tr>
+    <td><input type="checkbox" class="row-check" value="{{ p.pk }}" data-edit-url="{% url 'panel:product_edit' p.pk %}"></td>
+    <td><code>{{ p.product_sku }}</code></td><td><a href="{% url 'panel:product_edit' p.pk %}">{{ p.product_name }}</a></td>
+    <td>{{ p.id_brand|default:'—' }}</td><td>{{ p.id_category|default:'—' }}</td><td class="num">{% money p.price_now %}</td>
+    <td class="num">{{ p.available }}</td><td class="num">{{ p.rating_avg }} ({{ p.rating_count }})</td><td>{{ p.is_active|yesno:'да,нет' }}</td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">Товаров нет</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

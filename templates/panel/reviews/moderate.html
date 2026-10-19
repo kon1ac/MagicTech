@@ -1,0 +1,14 @@
+{% extends 'panel/base.html' %}
+{% block title %}Модерация{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% if review.review_type == 'question' %}Вопрос{% else %}Отзыв{% endif %} #{{ review.pk }}</h1><p class="muted">{{ review.id_product.product_name }} · {{ review.id_user.email }}{% if review.id_order %} · покупка подтверждена заказом {{ review.id_order.order_number }}{% endif %}</p></div><a class="btn" href="{% url 'panel:review_list' %}">← Отзывы</a></header>
+<div class="grid-2">
+  <section class="card">
+    {% if review.review_rating %}<p>Оценка: <strong>{{ review.review_rating }} / 5</strong></p>{% endif %}
+    <blockquote>{{ review.review_text|linebreaksbr }}</blockquote>
+    {% if review.review_photo %}<p><img src="{{ review.review_photo.url }}" alt="" style="max-width:240px;border-radius:8px"></p>{% endif %}
+    <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form>
+  </section>
+  {% include 'panel/partials/history.html' %}
+</div>
+{% endblock %}

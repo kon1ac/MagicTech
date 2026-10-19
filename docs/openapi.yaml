@@ -1,0 +1,1540 @@
+openapi: 3.0.3
+info:
+  title: MagicTech API
+  version: 1.0.0
+  description: 'REST API интернет-магазина MagicTech: маркетплейсы, мобильное приложение,
+    платёжный шлюз ЮKassa (callback), внутренняя автоматизация заказов и склада. Авторизация:
+    заголовок `Authorization: Token <ключ>`.'
+paths:
+  /api/v1/internal/orders/:
+    get:
+      operationId: v1_internal_orders_list
+      summary: Заказы
+      parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - Внутреннее API
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/internal/orders/{number}/status/:
+    post:
+      operationId: v1_internal_orders_status_create
+      summary: Смена статуса заказа по регламенту
+      parameters:
+      - in: path
+        name: number
+        schema:
+          type: string
+        required: true
+      tags:
+      - Внутреннее API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusChange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StatusChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StatusChange'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/internal/stock/{sku}/adjust/:
+    post:
+      operationId: v1_internal_stock_adjust_create
+      summary: Критическая корректировка остатка (с причиной)
+      parameters:
+      - in: path
+        name: sku
+        schema:
+          type: string
+        required: true
+      tags:
+      - Внутреннее API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/internal/stock/{sku}/receipt/:
+    post:
+      operationId: v1_internal_stock_receipt_create
+      summary: Приход товара
+      parameters:
+      - in: path
+        name: sku
+        schema:
+          type: string
+        required: true
+      tags:
+      - Внутреннее API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StockOperation'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/marketplace/orders/:
+    get:
+      operationId: v1_marketplace_orders_list
+      summary: Заказы с маркетплейсов
+      parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ASSEMBLY
+          - CANCELLED
+          - COMPLETED
+          - CONFIRMED
+          - NEW
+          - PACKED
+          - PAID
+          - RETURNED
+      tags:
+      - Маркетплейсы
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+    post:
+      operationId: v1_marketplace_orders_create
+      description: 'Атомарно: покупатель + заказ + резерв + платёж (оплачен на площадке).
+        Повтор с тем же external_order_id → 409.'
+      summary: Загрузка заказа с маркетплейса
+      tags:
+      - Маркетплейсы
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarketplaceOrder'
+            examples:
+              ЗаказOzon:
+                value:
+                  external_order_id: OZ-100500
+                  marketplace: ozon
+                  customer_email: buyer@ozon.example
+                  delivery_address: Москва, ПВЗ Ozon
+                  contact_phone: '+79990000000'
+                  items:
+                  - sku: KB-LOG-001
+                    quantity: 1
+                summary: Заказ Ozon
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MarketplaceOrder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MarketplaceOrder'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              examples:
+                ЗаказOzon:
+                  value:
+                    external_order_id: OZ-100500
+                    marketplace: ozon
+                    customer_email: buyer@ozon.example
+                    delivery_address: Москва, ПВЗ Ozon
+                    contact_phone: '+79990000000'
+                    items:
+                    - sku: KB-LOG-001
+                      quantity: 1
+                  summary: Заказ Ozon
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/marketplace/orders/{number}/ship/:
+    post:
+      operationId: v1_marketplace_orders_ship_create
+      summary: Подтверждение отгрузки
+      parameters:
+      - in: path
+        name: number
+        schema:
+          type: string
+        required: true
+      tags:
+      - Маркетплейсы
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shipment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Shipment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Shipment'
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/marketplace/prices/:
+    get:
+      operationId: v1_marketplace_prices_list
+      summary: Текущие цены
+      tags:
+      - Маркетплейсы
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Price'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/marketplace/products/:
+    get:
+      operationId: v1_marketplace_products_list
+      summary: Выгрузка товаров (цены и остатки)
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: updated_since
+        schema:
+          type: string
+        description: 'ISO-дата: только изменённые после'
+      tags:
+      - Маркетплейсы
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/marketplace/stock/:
+    get:
+      operationId: v1_marketplace_stock_list
+      summary: Остатки (в реальном времени, без кеша)
+      tags:
+      - Маркетплейсы
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stock'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/mobile/auth/token/:
+    post:
+      operationId: v1_mobile_auth_token_create
+      summary: Получить токен покупателя (30 дней)
+      tags:
+      - Мобильное приложение
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+  /api/v1/mobile/cart/:
+    get:
+      operationId: v1_mobile_cart_retrieve
+      summary: Текущая корзина с расчётом
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+    delete:
+      operationId: v1_mobile_cart_destroy
+      summary: Очистить корзину (резервы снимаются)
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/mobile/cart/items/:
+    post:
+      operationId: v1_mobile_cart_items_create
+      description: Серверная проверка остатка и резерв на 20 минут.
+      summary: Установить количество товара (0 — удалить)
+      tags:
+      - Мобильное приложение
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemIn'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CartItemIn'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CartItemIn'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/mobile/catalog/categories/:
+    get:
+      operationId: v1_mobile_catalog_categories_list
+      summary: Категории
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/mobile/catalog/products/:
+    get:
+      operationId: v1_mobile_catalog_products_list
+      summary: Каталог с фильтрами (серверными)
+      parameters:
+      - in: query
+        name: brand
+        schema:
+          type: array
+          items:
+            type: integer
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: slug
+      - in: query
+        name: in_stock
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+          format: double
+      - in: query
+        name: price_min
+        schema:
+          type: number
+          format: double
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - new
+          - popular
+          - price_asc
+          - price_desc
+          - rating
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+          description: ''
+  /api/v1/mobile/catalog/products/{sku}/:
+    get:
+      operationId: v1_mobile_catalog_products_retrieve
+      summary: Карточка товара
+      parameters:
+      - in: path
+        name: sku
+        schema:
+          type: string
+        required: true
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/mobile/catalog/products/{sku}/reviews/:
+    get:
+      operationId: v1_mobile_catalog_products_reviews_list
+      summary: Опубликованные отзывы и вопросы
+      parameters:
+      - in: path
+        name: sku
+        schema:
+          type: string
+        required: true
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+          description: ''
+    post:
+      operationId: v1_mobile_catalog_products_reviews_create
+      summary: Оставить отзыв (только купившим) или вопрос
+      parameters:
+      - in: path
+        name: sku
+        schema:
+          type: string
+        required: true
+      tags:
+      - Мобильное приложение
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewIn'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewIn'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewIn'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/mobile/orders/:
+    get:
+      operationId: v1_mobile_orders_list
+      summary: История заказов
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+    post:
+      operationId: v1_mobile_orders_create
+      summary: Оформить заказ из корзины (атомарно)
+      tags:
+      - Мобильное приложение
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+        required: true
+      security:
+      - TokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/mobile/orders/{number}/:
+    get:
+      operationId: v1_mobile_orders_retrieve
+      summary: Заказ покупателя (только свой)
+      parameters:
+      - in: path
+        name: number
+        schema:
+          type: string
+        required: true
+      tags:
+      - Мобильное приложение
+      security:
+      - TokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+  /api/v1/payments/yookassa/webhook/:
+    post:
+      operationId: v1_payments_yookassa_webhook_create
+      description: Тело — уведомление ЮKassa; заголовок X-Signature = HMAC-SHA256(тело,
+        секрет). Обработка идемпотентна; заказ + платёж + резерв меняются атомарно.
+      summary: Callback ЮKassa (имитация)
+      tags:
+      - Платёжный шлюз
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+            examples:
+              Payment.succeeded:
+                value:
+                  type: notification
+                  event: payment.succeeded
+                  object:
+                    id: yk-…
+                    status: succeeded
+                    amount:
+                      value: '4990.00'
+                      currency: RUB
+                summary: payment.succeeded
+      security:
+      - {}
+      responses:
+        '200':
+          description: '{"status": "ok"}'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Ошибка валидации
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Нет или недействителен токен
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Недостаточно прав / нет scope
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Объект не найден
+components:
+  schemas:
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        promo_code:
+          type: string
+          nullable: true
+        promo_error:
+          type: string
+          nullable: true
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        reserved_until:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - discount
+      - items
+      - promo_code
+      - promo_error
+      - reserved_until
+      - subtotal
+      - total
+    CartItemIn:
+      type: object
+      properties:
+        sku:
+          type: string
+          maxLength: 100
+        quantity:
+          type: integer
+          maximum: 999
+          minimum: 0
+      required:
+      - quantity
+      - sku
+    Category:
+      type: object
+      properties:
+        id_category:
+          type: integer
+          readOnly: true
+        category_name:
+          type: string
+          maxLength: 255
+        category_slug:
+          nullable: true
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+        category_level:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        id_parent:
+          type: integer
+          nullable: true
+      required:
+      - category_level
+      - category_name
+      - id_category
+    Checkout:
+      type: object
+      properties:
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        delivery_address:
+          type: string
+          maxLength: 500
+        contact_phone:
+          type: string
+          maxLength: 30
+        comment:
+          type: string
+          maxLength: 1000
+        offer_accepted:
+          type: boolean
+        promo_code:
+          type: string
+          maxLength: 50
+      required:
+      - contact_phone
+      - delivery_address
+      - offer_accepted
+      - payment_method
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          additionalProperties: {}
+      required:
+      - error
+    MarketplaceOrder:
+      type: object
+      properties:
+        external_order_id:
+          type: string
+          maxLength: 100
+        marketplace:
+          type: string
+          maxLength: 30
+        customer_email:
+          type: string
+          format: email
+        delivery_address:
+          type: string
+          maxLength: 500
+        contact_phone:
+          type: string
+          maxLength: 30
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketplaceOrderItem'
+      required:
+      - contact_phone
+      - customer_email
+      - delivery_address
+      - external_order_id
+      - items
+      - marketplace
+    MarketplaceOrderItem:
+      type: object
+      properties:
+        sku:
+          type: string
+          maxLength: 100
+        quantity:
+          type: integer
+          maximum: 999
+          minimum: 1
+      required:
+      - quantity
+      - sku
+    Order:
+      type: object
+      properties:
+        order_number:
+          type: string
+          maxLength: 50
+        order_status:
+          type: string
+          maxLength: 20
+        order_payment_method:
+          type: string
+          nullable: true
+          maxLength: 30
+        order_payment_status:
+          type: string
+          nullable: true
+          maxLength: 20
+        order_channel:
+          type: string
+          maxLength: 20
+        external_order_id:
+          type: string
+          nullable: true
+          maxLength: 100
+        customer:
+          type: string
+          format: email
+          readOnly: true
+        total_items:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        discount_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        delivery_address:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        shipped_at:
+          type: string
+          format: date-time
+          nullable: true
+        tracking_number:
+          type: string
+          nullable: true
+          maxLength: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - created_at
+      - customer
+      - items
+      - order_number
+    OrderItem:
+      type: object
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        order_item_quantity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        order_item_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        order_item_discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        order_item_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+      required:
+      - name
+      - order_item_price
+      - order_item_quantity
+      - order_item_total
+      - sku
+    PaymentMethodEnum:
+      enum:
+      - card_online
+      - cash_on_delivery
+      type: string
+      description: |-
+        * `card_online` - card_online
+        * `cash_on_delivery` - cash_on_delivery
+    Price:
+      type: object
+      properties:
+        sku:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        currency:
+          type: string
+        valid_from:
+          type: string
+          format: date-time
+      required:
+      - currency
+      - price
+      - sku
+      - valid_from
+    Product:
+      type: object
+      properties:
+        product_sku:
+          type: string
+          maxLength: 100
+        product_ean:
+          type: string
+          nullable: true
+          maxLength: 50
+        product_name:
+          type: string
+          maxLength: 255
+        brand:
+          type: string
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        available:
+          type: integer
+          readOnly: true
+        rating_avg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+        rating_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        product_characteristics:
+          nullable: true
+      required:
+      - available
+      - brand
+      - category
+      - price
+      - product_name
+      - product_sku
+    ProductDetail:
+      type: object
+      properties:
+        product_sku:
+          type: string
+          maxLength: 100
+        product_ean:
+          type: string
+          nullable: true
+          maxLength: 50
+        product_name:
+          type: string
+          maxLength: 255
+        brand:
+          type: string
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        available:
+          type: integer
+          readOnly: true
+        rating_avg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+        rating_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        product_characteristics:
+          nullable: true
+        product_description:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        seo_title:
+          type: string
+          nullable: true
+          maxLength: 255
+        seo_description:
+          type: string
+          nullable: true
+          maxLength: 500
+      required:
+      - available
+      - brand
+      - category
+      - images
+      - price
+      - product_name
+      - product_sku
+    Review:
+      type: object
+      properties:
+        id_review:
+          type: integer
+          readOnly: true
+        review_type:
+          type: string
+          maxLength: 20
+        review_rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          nullable: true
+        review_text:
+          type: string
+          nullable: true
+        seller_answer:
+          type: string
+          nullable: true
+        review_status:
+          type: string
+          maxLength: 20
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        author:
+          type: string
+          readOnly: true
+      required:
+      - author
+      - created_at
+      - id_review
+    ReviewIn:
+      type: object
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+        text:
+          type: string
+          maxLength: 5000
+        is_question:
+          type: boolean
+          default: false
+      required:
+      - text
+    Shipment:
+      type: object
+      properties:
+        tracking_number:
+          type: string
+          maxLength: 100
+    StatusChange:
+      type: object
+      properties:
+        status:
+          type: string
+          maxLength: 20
+        reason:
+          type: string
+          maxLength: 500
+      required:
+      - status
+    Stock:
+      type: object
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+        reserved:
+          type: integer
+        available:
+          type: integer
+      required:
+      - available
+      - quantity
+      - reserved
+      - sku
+    StockOperation:
+      type: object
+      properties:
+        quantity:
+          type: integer
+        reason:
+          type: string
+          maxLength: 500
+        document_number:
+          type: string
+          maxLength: 50
+      required:
+      - quantity
+      - reason
+    TokenRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+      - email
+      - password
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - expires_at
+      - token
+  securitySchemes:
+    TokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 'Формат: `Token <ключ>`. Ключ выпускается в панели (Сервисные учётки)
+        или через POST /api/v1/mobile/auth/token/ для покупателя.'

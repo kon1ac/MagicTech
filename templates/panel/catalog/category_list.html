@@ -1,0 +1,15 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Категории{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Категории' %}</h1><p class="muted">Дерево до 3 уровней, атрибуты фильтрации</p></div>
+  {% can 'categories' 'create' as can_create %}{% if can_create %}<a class="btn btn-primary" href="{% url 'panel:category_create' %}">+ Категория</a>{% endif %}</header>
+<div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Название / slug" data-hotkey="/"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
+{% include 'panel/partials/list_tools.html' %}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>{% sort_header 'id' 'ID' %}</th><th>{% sort_header 'name' 'Название' %}</th><th>Slug</th><th>Родитель</th><th>{% sort_header 'level' 'Уровень' %}</th><th>Активна</th><th></th></tr></thead>
+  <tbody>{% for c in page_obj %}<tr><td>{{ c.id_category }}</td><td>{{ c.category_name }}</td><td><code>{{ c.category_slug }}</code></td><td>{{ c.id_parent|default:'—' }}</td><td>{{ c.category_level }}</td><td>{{ c.is_active|yesno:'да,нет' }}</td>
+    <td><a href="{% url 'panel:category_edit' c.pk %}">Изменить</a> · <a href="{% url 'panel:category_delete' c.pk %}">Удалить</a></td></tr>{% empty %}<tr><td colspan="7" class="muted">Пусто</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include 'panel/partials/pagination.html' %}
+{% endblock %}

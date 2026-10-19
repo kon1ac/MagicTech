@@ -1,0 +1,21 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Архив{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Архив устаревших данных</h1><p class="muted">Закрытые заказы старше срока переносятся в orders_archive (JSON-снимок) и удаляются из рабочих таблиц. Доступ — по временному гранту, каждый просмотр в аудите.</p></div></header>
+{% if can_archive %}{% include 'panel/db/_tabs.html' %}{% endif %}
+<div class="grid-2">
+  {% if can_archive %}<section class="card"><h2>Архивировать</h2>
+    <form method="post" class="form-stack" data-confirm="Перенести закрытые заказы в архив?">{% csrf_token %}<input type="hidden" name="form" value="archive">
+      <p><label>Закрытые заказы старше, дней</label><input type="number" name="days" min="30" value="365"></p>
+      <p><label><input type="checkbox" name="confirm" value="1" required> Подтверждаю архивацию</label></p><button class="btn btn-primary">Архивировать</button></form></section>{% endif %}
+  {% if grant_form %}<section class="card"><h2>Предоставить доступ к архиву</h2>
+    <form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="form" value="grant">{{ grant_form.as_p }}<button class="btn">Выдать доступ</button></form>
+    <ul class="timeline">{% for g in grants %}<li>{{ g.id_user.email }} до {% udate g.expires_at %} · выдал {{ g.granted_by.email }} · {{ g.grant_reason }}</li>{% endfor %}</ul></section>{% endif %}
+</div>
+<section class="card" style="margin-top:1rem"><h2>Архивные заказы</h2>
+  <div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Номер / email" data-hotkey="/"><button class="btn">Поиск</button></form></div>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Номер</th><th>Покупатель</th><th class="num">Сумма</th><th>Дата заказа</th><th>Архивирован</th></tr></thead>
+    <tbody>{% for a in page_obj %}<tr><td><a href="{% url 'panel:archive_detail' a.pk %}">{{ a.order_number }}</a></td><td>{{ a.customer_email }}</td><td class="num">{% money a.order_total %}</td><td>{% udate a.order_created_at %}</td><td>{% udate a.archived_at %}</td></tr>{% empty %}<tr><td colspan="5" class="muted">Архив пуст</td></tr>{% endfor %}</tbody></table></div>
+  {% include 'panel/partials/pagination.html' %}</section>
+{% endblock %}

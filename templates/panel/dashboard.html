@@ -1,0 +1,36 @@
+{% extends 'panel/base.html' %}
+{% load panel_extras %}
+{% block title %}Обзор{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{% tr 'Обзор' %}</h1><p class="muted">Операционная сводка MagicTech</p></div></header>
+<section class="stats-grid">
+  <article class="stat-card"><span class="stat-label">Активные товары</span><strong class="stat-value">{{ stats.products }}</strong></article>
+  <article class="stat-card accent"><span class="stat-label">Заказы в работе</span><strong class="stat-value">{{ stats.orders_open }}</strong></article>
+  <article class="stat-card"><span class="stat-label">Поступило оплат</span><strong class="stat-value">{% money stats.revenue %}</strong></article>
+  <article class="stat-card warn"><span class="stat-label">Отзывы на модерации</span><strong class="stat-value">{{ stats.reviews_pending }}</strong></article>
+  <article class="stat-card"><span class="stat-label">Задания на сборку</span><strong class="stat-value">{{ stats.assembly }}</strong></article>
+  <article class="stat-card danger"><span class="stat-label">Мало на складе (≤ 5)</span><strong class="stat-value">{{ stats.low_stock }}</strong></article>
+</section>
+<div class="grid-2">
+  <section class="card">
+    <h2>Последние заказы</h2>
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Номер</th><th>Статус</th><th class="num">Сумма</th><th>Дата</th></tr></thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr><td><a href="{% url 'panel:order_detail' o.id_order %}">{{ o.order_number }}</a></td>
+          <td><span class="badge badge-{{ o.order_status }}">{{ status_labels|get_item:o.order_status }}</span></td>
+          <td class="num">{% money o.total %}</td><td>{% udate o.created_at %}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">Нет заказов</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="card">
+    <h2>Заказы по статусам</h2>
+    <ul class="status-list">
+      {% for row in status_breakdown %}<li><a href="{% url 'panel:order_list' %}?status={{ row.code }}">{{ row.label }}</a><strong>{{ row.cnt }}</strong></li>
+      {% empty %}<li class="muted">Нет данных</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

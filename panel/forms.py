@@ -204,7 +204,7 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product_name'].widget.attrs['data-hotkey'] = 'ctrl+e'
+        self.fields['product_name'].widget.attrs['data-hotkey'] = 'alt+e'
         if self.instance.pk:
             self.fields['price'].initial = self.instance.current_price
         else:

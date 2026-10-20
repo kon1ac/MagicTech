@@ -1,4 +1,4 @@
-<nav class="card">
+<nav class="reveal">
   <a href="{% url 'store:account' %}" class="{% if request.resolver_match.url_name == 'account' %}active{% endif %}">Профиль</a>
   <a href="{% url 'store:account_orders' %}" class="{% if 'order' in request.resolver_match.url_name %}active{% endif %}">Мои заказы</a>
   <a href="{% url 'store:account_returns' %}" class="{% if 'return' in request.resolver_match.url_name %}active{% endif %}">Возвраты</a>

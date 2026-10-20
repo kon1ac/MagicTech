@@ -3,9 +3,9 @@
 {% block title %}Личный кабинет{% endblock %}
 {% block content %}
 <div class="account">{% include 'store/account/_nav.html' %}
-  <div><section class="card"><h1 style="margin-top:0">Профиль</h1><p class="hint">{{ store_user.email }}</p>
+  <div><section class="card reveal-right"><h1 style="margin-top:0">Профиль</h1><p class="hint">{{ store_user.email }}</p>
     <form method="post" class="form" style="max-width:520px">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form></section>
-    <section class="card"><h2 style="margin-top:0">Последние заказы</h2>
+    <section class="card reveal"><h2 style="margin-top:0">Последние заказы</h2>
       <table class="data-table">{% for o in orders %}<tr><td><a href="{% url 'store:account_order' o.order_number %}">{{ o.order_number }}</a></td><td><span class="badge badge-{{ o.order_status }}">{{ status_labels|get_item:o.order_status }}</span></td><td class="num">{{ o.total|floatformat:'2g' }} ₽</td></tr>{% empty %}<tr><td class="muted">Заказов пока нет</td></tr>{% endfor %}</table></section></div>
 </div>
 {% endblock %}

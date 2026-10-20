@@ -1,10 +1,10 @@
 {% extends 'store/base.html' %}
 {% block title %}Корзина{% endblock %}
 {% block content %}
-<h1>Корзина</h1>
+<h1 class="reveal">Корзина</h1>
 {% if totals and totals.lines %}
 <div class="summary">
-  <section class="card">
+  <section class="card reveal-left">
     {% if expires_at %}<p class="hint">Товары зарезервированы до {{ expires_at|date:'H:i' }}. Резерв продлевается при изменении корзины.</p>{% endif %}
     <div class="table-wrap"><table class="data-table">
       <thead><tr><th>Товар</th><th class="num">Цена</th><th>Кол-во</th><th class="num">Скидка</th><th class="num">Сумма</th><th></th></tr></thead>
@@ -17,7 +17,7 @@
         <td><form method="post" action="{% url 'store:cart_update' %}">{% csrf_token %}<input type="hidden" name="sku" value="{{ line.product.product_sku }}"><input type="hidden" name="quantity" value="0"><button class="btn btn-sm" aria-label="Удалить">✕</button></form></td></tr>{% endfor %}</tbody>
     </table></div>
   </section>
-  <aside class="card">
+  <aside class="card reveal-right">
     <form method="post" action="{% url 'store:cart_promo' %}" style="display:flex;gap:.4rem">{% csrf_token %}
       <input name="promo_code" placeholder="Промокод" value="{{ cart.cart_promo_code|default:'' }}" style="flex:1">
       {% if cart.cart_promo_code %}<button class="btn" name="remove" value="1">✕</button>{% else %}<button class="btn">Применить</button>{% endif %}</form>
@@ -28,5 +28,5 @@
     <a class="btn btn-primary btn-block" href="{% url 'store:checkout' %}">Оформить заказ</a>
   </aside>
 </div>
-{% else %}<div class="card"><p>Корзина пуста.</p><a class="btn btn-primary" href="{% url 'store:catalog' %}">В каталог</a></div>{% endif %}
+{% else %}<div class="card reveal"><p>Корзина пуста.</p><a class="btn btn-primary" href="{% url 'store:catalog' %}">В каталог</a></div>{% endif %}
 {% endblock %}

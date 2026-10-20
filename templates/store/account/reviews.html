@@ -2,7 +2,7 @@
 {% block title %}Мои отзывы{% endblock %}
 {% block content %}
 <div class="account">{% include 'store/account/_nav.html' %}
-  <section class="card"><h1 style="margin-top:0">Мои отзывы и вопросы</h1>
+  <section class="card reveal-right"><h1 style="margin-top:0">Мои отзывы и вопросы</h1>
     {% for r in reviews %}<div style="border-bottom:1px dashed var(--border);padding:.6rem 0"><a href="{% url 'store:product' r.id_product.product_sku %}">{{ r.id_product.product_name }}</a> · {% if r.review_rating %}{{ r.review_rating }}★ · {% endif %}<span class="badge badge-{{ r.review_status|upper }}">{{ r.get_review_status_display|default:r.review_status }}</span><p style="margin:.3rem 0">{{ r.review_text }}</p>{% if r.seller_answer %}<p class="hint">Ответ: {{ r.seller_answer }}</p>{% endif %}</div>{% empty %}<p class="muted">Отзывов пока нет.</p>{% endfor %}</section>
 </div>
 {% endblock %}

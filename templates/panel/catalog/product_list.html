@@ -4,7 +4,7 @@
 {% block content %}
 <header class="page-header"><div><h1>{% tr 'Товары' %}</h1><p class="muted">Карточки, цены, характеристики, изображения, SEO</p></div>
   <div class="toolbar"><a class="btn" href="{% url 'panel:io_index' %}">Импорт / экспорт</a>
-  {% can 'products' 'create' as can_create %}{% if can_create %}<a class="btn btn-primary" href="{% url 'panel:product_create' %}">+ Товар <kbd>Ctrl N</kbd></a>{% endif %}</div></header>
+  {% can 'products' 'create' as can_create %}{% if can_create %}<a class="btn btn-primary" href="{% url 'panel:product_create' %}">+ Товар <kbd>Alt N</kbd></a>{% endif %}</div></header>
 <div class="quick-filters">
   <a class="chip {% if not filters.stock and not filters.active %}active{% endif %}" href="?">Все</a>
   <a class="chip {% if filters.stock == 'out' %}active{% endif %}" href="?stock=out">Нет в наличии</a>

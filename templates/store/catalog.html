@@ -2,8 +2,9 @@
 {% block title %}{% if category %}{{ category.category_name }}{% elif filters.q %}Поиск «{{ filters.q }}»{% else %}Каталог{% endif %}{% endblock %}
 {% block content %}
 <nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a>{% for c in breadcrumbs %} › <a href="{% url 'store:category' c.category_slug %}">{{ c.category_name }}</a>{% endfor %}</nav>
+
 <div class="layout">
-  <aside class="filters" id="filters">
+  <aside class="filters reveal-left" id="filters">
     <form method="get" action="{% if category %}{% url 'store:category' category.category_slug %}{% else %}{% url 'store:catalog' %}{% endif %}" id="filterForm">
       {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
       <input type="hidden" name="sort" value="{{ filters.sort }}">
@@ -27,7 +28,7 @@
       <div style="display:flex;gap:.5rem"><button class="btn filters-toggle" type="button" onclick="document.getElementById('filters').classList.toggle('open')">Фильтры</button>
         <select aria-label="Сортировка" onchange="const f=document.getElementById('filterForm');f.sort.value=this.value;f.submit()">{% for code, label in sort_labels.items %}<option value="{{ code }}" {% if filters.sort == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     </div>
-    <div class="grid">{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
+    <div class="grid reveal-stagger">{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
     {% if page_obj.has_other_pages %}<nav class="pagination">{% if page_obj.has_previous %}<a class="btn" href="?{{ query }}&page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn" href="?{{ query }}&page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}</nav>{% endif %}
   </section>
 </div>

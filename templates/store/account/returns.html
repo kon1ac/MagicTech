@@ -3,7 +3,7 @@
 {% block title %}Возвраты{% endblock %}
 {% block content %}
 <div class="account">{% include 'store/account/_nav.html' %}
-  <section class="card"><h1 style="margin-top:0">Мои возвраты</h1>
+  <section class="card reveal-right"><h1 style="margin-top:0">Мои возвраты</h1>
     <table class="data-table"><thead><tr><th>#</th><th>Заказ</th><th>Причина</th><th>Статус</th><th class="num">Сумма</th><th>Решение</th></tr></thead>
       <tbody>{% for r in returns %}<tr><td>{{ r.pk }}</td><td><a href="{% url 'store:account_order' r.id_order.order_number %}">{{ r.id_order.order_number }}</a></td><td>{{ r.return_reason|default:'' }}</td><td><span class="badge badge-{{ r.return_status }}">{{ status_labels|get_item:r.return_status }}</span></td><td class="num">{{ r.refund_amount|floatformat:'2g' }}</td><td class="hint">{{ r.return_decision|default:'' }}</td></tr>{% empty %}<tr><td colspan="6" class="muted">Заявок нет. Возврат оформляется из карточки завершённого заказа.</td></tr>{% endfor %}</tbody></table></section>
 </div>

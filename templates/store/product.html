@@ -6,35 +6,42 @@
 {% block content %}
 <nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a>{% for c in breadcrumbs %} › <a href="{% url 'store:category' c.category_slug %}">{{ c.category_name }}</a>{% endfor %}</nav>
 <div class="product-page">
-  <div class="carousel" id="carousel">
-    {% for img in images %}<img src="{{ img.url }}" alt="{{ img.media_alt|default:product.product_name }}" class="{% if forloop.first %}active{% endif %}">{% empty %}<img src="{% static 'store/placeholder.svg' %}" alt="" class="active">{% endfor %}
-    {% if images|length > 1 %}<button class="nav prev" type="button" aria-label="Назад">‹</button><button class="nav next" type="button" aria-label="Вперёд">›</button>
-    <div class="carousel-thumbs">{% for img in images %}<img src="{{ img.url }}" alt="" data-i="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}">{% endfor %}</div>{% endif %}
+  <div class="reveal-left">
+    <div class="carousel" id="carousel">
+      {% for img in images %}<img src="{{ img.url }}" alt="{{ img.media_alt|default:product.product_name }}" class="{% if forloop.first %}active{% endif %}">{% empty %}<img src="{% static 'store/placeholder.svg' %}" alt="" class="active">{% endfor %}
+      {% if images|length > 1 %}<button class="nav prev" type="button" aria-label="Назад">‹</button><button class="nav next" type="button" aria-label="Вперёд">›</button>
+      <div class="carousel-thumbs">{% for img in images %}<img src="{{ img.url }}" alt="" data-i="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}">{% endfor %}</div>{% endif %}
+    </div>
   </div>
-  <div>
-    <h1 style="margin-top:0">{{ product.product_name }}</h1>
-    <p class="hint">Артикул <code>{{ product.product_sku }}</code>{% if product.id_brand %} · {{ product.id_brand.brand_name }}{% endif %}{% if product.rating_count %} · <span class="rating">★ {{ product.rating_avg }}</span> ({{ product.rating_count }} отзывов){% endif %}</p>
-    <p class="price" style="font-size:1.8rem;margin:.5rem 0">{% if product.price_now is not None %}{{ product.price_now|floatformat:'2g' }} ₽{% else %}Цена по запросу{% endif %}</p>
-    {% if product.available > 0 %}<p class="stock-ok">В наличии: {{ product.available }} {{ product.id_unit.unit_name|default:'шт.' }}</p>
-    <form method="post" action="{% url 'store:cart_add' %}" style="display:flex;gap:.5rem;max-width:320px">{% csrf_token %}<input type="hidden" name="sku" value="{{ product.product_sku }}"><input type="number" name="quantity" value="1" min="1" max="{{ product.available }}" style="width:90px"><button class="btn btn-primary" style="flex:1">В корзину</button></form>
-    {% else %}<p class="stock-no">Нет в наличии</p>{% endif %}
-    <form method="post" action="{% url 'store:wishlist_toggle' product.product_sku %}" style="margin-top:.5rem">{% csrf_token %}<button class="btn btn-sm">{% if in_wishlist %}♥ В избранном{% else %}♡ В избранное{% endif %}</button></form>
-    {% if characteristics %}<div class="card" style="margin-top:1.25rem"><h2 style="margin-top:0;font-size:1.05rem">Характеристики</h2><table class="chars">{% for name, value in characteristics %}<tr><td>{{ name }}</td><td>{{ value }}</td></tr>{% endfor %}</table></div>{% endif %}
+  <div class="reveal-right">
+    <div class="product-details">
+      <h1>{{ product.product_name }}</h1>
+      <div class="meta">
+        <p class="hint">Артикул <code>{{ product.product_sku }}</code>{% if product.id_brand %} · {{ product.id_brand.brand_name }}{% endif %}</p>
+        {% if product.rating_count %}<span class="rating">★ {{ product.rating_avg }} ({{ product.rating_count }} отзывов)</span>{% endif %}
+      </div>
+      <p class="price">{% if product.price_now is not None %}{{ product.price_now|floatformat:'2g' }} ₽{% else %}Цена по запросу{% endif %}</p>
+      {% if product.available > 0 %}<p class="stock-ok">В наличии: {{ product.available }} {{ product.id_unit.unit_name|default:'шт.' }}</p>
+      <form method="post" action="{% url 'store:cart_add' %}" class="add-to-cart-form" style="display:flex;gap:.5rem;max-width:320px">{% csrf_token %}<input type="hidden" name="sku" value="{{ product.product_sku }}"><input type="number" name="quantity" value="1" min="1" max="{{ product.available }}" style="width:80px"><button class="btn btn-primary" style="flex:1">В корзину</button></form>
+      {% else %}<p class="stock-no">Нет в наличии</p>{% endif %}
+      <form method="post" action="{% url 'store:wishlist_toggle' product.product_sku %}" style="margin-top:.75rem">{% csrf_token %}<button class="btn btn-sm">{% if in_wishlist %}♥ В избранном{% else %}♡ В избранное{% endif %}</button></form>
+      {% if characteristics %}<div class="card" style="margin-top:1.25rem"><h2 style="margin-top:0;font-size:1.05rem">Характеристики</h2><table class="chars">{% for name, value in characteristics %}<tr><td>{{ name }}</td><td>{{ value }}</td></tr>{% endfor %}</table></div>{% endif %}
+    </div>
   </div>
 </div>
-{% if product.product_description %}<section class="card"><h2>Описание</h2><p>{{ product.product_description|linebreaksbr }}</p></section>{% endif %}
-<section class="card"><h2>Отзывы ({{ reviews|length }})</h2>
+{% if product.product_description %}<section class="card reveal"><h2>Описание</h2><p>{{ product.product_description|linebreaksbr }}</p></section>{% endif %}
+<section class="card reveal"><h2>Отзывы ({{ reviews|length }})</h2>
   {% for r in reviews %}<div style="border-bottom:1px dashed var(--border);padding:.6rem 0"><strong>{{ r.id_user.profile.profile_first_name|default:'Покупатель' }}</strong> <span class="rating">{% for i in "12345" %}{% if forloop.counter <= r.review_rating %}★{% else %}☆{% endif %}{% endfor %}</span> <span class="hint">{{ r.created_at|date:'d.m.Y' }}</span>
     <p style="margin:.3rem 0">{{ r.review_text|linebreaksbr }}</p>{% if r.review_photo %}<img src="{{ r.review_photo.url }}" alt="" style="max-height:120px;border-radius:8px">{% endif %}
     {% if r.seller_answer %}<p class="hint">↳ Ответ MagicTech: {{ r.seller_answer }}</p>{% endif %}</div>{% empty %}<p class="muted">Отзывов пока нет.</p>{% endfor %}
   {% if can_review %}<h3>Оставить отзыв</h3><form method="post" action="{% url 'store:product_review' product.product_sku %}" enctype="multipart/form-data" class="form" style="max-width:520px">{% csrf_token %}<input type="hidden" name="kind" value="review">{{ review_form.as_p }}<button class="btn btn-primary">Отправить на модерацию</button></form>
   {% elif store_user %}<p class="hint">Оставить отзыв могут покупатели, получившие этот товар.</p>{% else %}<p class="hint"><a href="{% url 'store:login' %}?next={{ request.path }}">Войдите</a>, чтобы оставить отзыв или задать вопрос.</p>{% endif %}
 </section>
-<section class="card"><h2>Вопросы о товаре</h2>
+<section class="card reveal"><h2>Вопросы о товаре</h2>
   {% for q in questions %}<div style="border-bottom:1px dashed var(--border);padding:.5rem 0"><strong>Вопрос:</strong> {{ q.review_text }}{% if q.seller_answer %}<br><strong>Ответ:</strong> {{ q.seller_answer }}{% endif %}</div>{% empty %}<p class="muted">Вопросов пока нет.</p>{% endfor %}
   {% if store_user %}<form method="post" action="{% url 'store:product_review' product.product_sku %}" class="form" style="max-width:520px;margin-top:.75rem">{% csrf_token %}<input type="hidden" name="kind" value="question">{{ question_form.as_p }}<button class="btn">Задать вопрос</button></form>{% endif %}
 </section>
-{% if recommendations %}<section><h2>С этим также покупают</h2><div class="grid">{% for p in recommendations %}{% include 'store/_card.html' %}{% endfor %}</div></section>{% endif %}
+{% if recommendations %}<section class="reveal"><h2>С этим также покупают</h2><div class="grid reveal-stagger">{% for p in recommendations %}{% include 'store/_card.html' %}{% endfor %}</div></section>{% endif %}
 {% endblock %}
 {% block scripts %}<script>
 (function () {

@@ -270,7 +270,7 @@ def brandbook_view(request):
 
 @panel_login_required
 def command_search_view(request):
-    """Командная строка Ctrl+K: быстрый переход к товару/заказу/пользователю."""
+    """Командная строка Alt+K: быстрый переход к товару/заказу/пользователю."""
     from users.permissions import has_permission
 
     q = request.GET.get('q', '').strip()

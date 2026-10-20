@@ -14,7 +14,7 @@ EN = {
     'Массовое действие': 'Bulk action', 'Подтверждаю операцию': 'I confirm this operation',
     'Журнал изменений': 'Change log', 'Связанные объекты': 'Related objects', 'Витрина': 'Storefront',
     'Горячие клавиши': 'Hotkeys', 'Брендбук': 'Brand book',
-    'Поиск по SKU / названию (Ctrl+K)': 'Search SKU / name (Ctrl+K)',
+    'Поиск по SKU / названию (Alt+K)': 'Search SKU / name (Alt+K)',
 }
 
 

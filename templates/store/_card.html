@@ -1,11 +1,13 @@
 {% load static %}
-<article class="product-card">
+<article class="product-card reveal">
   <a href="{% url 'store:product' p.product_sku %}"><img src="{{ p.main_image|default:'' }}{% if not p.main_image %}{% static 'store/placeholder.svg' %}{% endif %}" alt="{{ p.product_name }}" loading="lazy"></a>
   <a class="name" href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a>
   <span class="hint">{{ p.id_brand.brand_name|default:'' }}{% if p.rating_count %} · <span class="rating">★ {{ p.rating_avg }}</span> ({{ p.rating_count }}){% endif %}</span>
   <span class="price">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% else %}—{% endif %}</span>
   {% if p.available > 0 %}<span class="stock-ok">В наличии: {{ p.available }} шт.</span>{% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
+  <div class="actions">
   {% if p.available > 0 and p.price_now is not None %}
   <form method="post" action="{% url 'store:cart_add' %}">{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm btn-block">В корзину</button></form>
   {% endif %}
+  </div>
 </article>

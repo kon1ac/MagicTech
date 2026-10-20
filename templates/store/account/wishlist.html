@@ -2,6 +2,6 @@
 {% block title %}Избранное{% endblock %}
 {% block content %}
 <div class="account">{% include 'store/account/_nav.html' %}
-  <section><h1 style="margin-top:0">Избранное</h1><div class="grid">{% for p in products %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Добавляйте товары в избранное кнопкой ♡ на карточке.</p>{% endfor %}</div></section>
+  <section class="reveal-right"><h1 style="margin-top:0">Избранное</h1><div class="grid reveal-stagger">{% for p in products %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Добавляйте товары в избранное кнопкой ♡ на карточке.</p>{% endfor %}</div></section>
 </div>
 {% endblock %}

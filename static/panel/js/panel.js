@@ -72,7 +72,7 @@
     });
   });
 
-  // ---- командная строка Ctrl+K
+  // ---- командная строка Alt+K
   const palette = document.getElementById('palette');
   const input = document.getElementById('paletteInput');
   const list = document.getElementById('paletteResults');
@@ -117,35 +117,124 @@
     if (e.key === 'Escape') closePalette();
   });
 
-  // ---- горячие клавиши (≥ 8): глобальные и контекстные через data-hotkey
+  // ---- Горячие клавиши.
+  // Combos на Ctrl (Ctrl+K/N/O/E) перехватываются браузером и Electron/VS Code —
+  // preventDefault на них не действует, событие до страницы не доходит.
+  // Поэтому основной модификатор — Alt, плюс резервный лидер `\` + клавиша,
+  // который не конфликтует ни с чем. Клавиша берётся из e.code, чтобы
+  // работать и в русской раскладке (e.key вернул бы 'ы' вместо 's').
   const typing = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
-  function trigger(key) {
-    const el = document.querySelector('[data-hotkey="' + key + '"]');
-    if (!el) return false;
-    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)) { el.focus(); el.scrollIntoView({ block: 'center' }); }
-    else el.click();
-    return true;
+  function trigger(keys) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    for (const key of list) {
+      const el = document.querySelector('[data-hotkey="' + key + '"]');
+      if (!el) continue;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)) { el.focus(); el.scrollIntoView({ block: 'center' }); }
+      else el.click();
+      return true;
+    }
+    return false;
   }
-  document.addEventListener('keydown', (e) => {
-    if (document.body.dataset.hotkeys === 'off') return;
-    const k = e.key.toLowerCase();
-    const mod = e.ctrlKey || e.metaKey;
-    if (mod && k === 'k') { e.preventDefault(); openPalette(); return; }
-    if (mod && k === 'o') { e.preventDefault(); window.location.href = '/panel/orders/'; return; }
-    if (mod && k === 'n') { e.preventDefault(); window.location.href = '/panel/products/new/'; return; }
-    if (mod && k === 'e') {
-      const checked = document.querySelector('input.row-check:checked[data-edit-url]');
-      if (checked) { e.preventDefault(); window.location.href = checked.dataset.editUrl; return; }
-      if (trigger('ctrl+e')) e.preventDefault();
+  const go = (url) => () => { window.location.href = url; };
+  function focusSearch() {
+    const s = document.querySelector('[data-hotkey="/"]');
+    if (s) { s.focus(); s.select(); } else openPalette();
+  }
+  function editSelected() {
+    const checked = document.querySelector('input.row-check:checked[data-edit-url]');
+    if (checked) { window.location.href = checked.dataset.editUrl; return true; }
+    return trigger(['alt+e']);
+  }
+  function toggleTheme() { document.getElementById('themeToggle')?.click(); }
+
+  // Нормализация нажатия в стабильный ключ: 'alt+k', 's', 'shift+/'
+  function comboOf(e) {
+    const code = e.code || '';
+    let base;
+    if (/^Key[A-Z]$/.test(code)) base = code.slice(3).toLowerCase();
+    else if (/^Digit\d$/.test(code)) base = code.slice(5);
+    else if (code === 'Slash') base = e.shiftKey ? '?' : '/';
+    else if (code === 'Backquote') base = '`';
+    else if (code === 'Backslash') base = '\\';
+    else if (code === 'Space') base = 'space';
+    else base = (e.key || '').toLowerCase();
+    const mods = [];
+    if (e.ctrlKey) mods.push('ctrl');
+    if (e.metaKey) mods.push('meta');
+    if (e.altKey) mods.push('alt');
+    return mods.length ? mods.join('+') + '+' + base : base;
+  }
+
+  const GLOBAL = {
+    'alt+k': openPalette, 'alt+`': openPalette,
+    'alt+o': go('/panel/orders/'),
+    'alt+n': go('/panel/products/new/'),
+    'alt+g': go('/panel/'),
+    'alt+e': editSelected,
+    'alt+t': toggleTheme,
+    'alt+/': focusSearch,
+    'alt+h': go('/panel/help/hotkeys/'),
+  };
+  // Контекстные одиночные клавиши: работают только вне полей ввода.
+  const SINGLE = {
+    '/': focusSearch,
+    '?': go('/panel/help/hotkeys/'),
+    'g': go('/panel/'),
+    's': () => trigger('s'),
+    'i': () => { if (!trigger('i')) window.location.href = '/panel/stock/receipt/'; },
+    'w': () => trigger('w'),
+    'p': () => trigger('p'),
+  };
+  // Лидер `\` + клавиша — запасной путь, когда Alt тоже занят.
+  const CHORD = {
+    'k': openPalette, 'o': go('/panel/orders/'), 'n': go('/panel/products/new/'),
+    'e': editSelected, 'g': go('/panel/'), 's': () => trigger('s'),
+    'i': () => { if (!trigger('i')) window.location.href = '/panel/stock/receipt/'; },
+    'w': () => trigger('w'), 'p': () => trigger('p'),
+    '/': focusSearch, '?': go('/panel/help/hotkeys/'),
+  };
+  let chordPending = false, chordTimer;
+  function showChordHint(on) {
+    let el = document.getElementById('chordHint');
+    if (!el && on) {
+      el = document.createElement('div');
+      el.id = 'chordHint';
+      el.className = 'chord-hint';
+      el.textContent = 'Ждём вторую клавишу… (k · o · n · e · g · s · i · w · p · / · ?)';
+      document.body.appendChild(el);
       return;
     }
-    if (mod || e.altKey || typing()) return;
-    if (e.key === '/') { e.preventDefault(); const s = document.querySelector('[data-hotkey="/"]'); if (s) s.focus(); else openPalette(); return; }
-    if (e.key === '?') { window.location.href = '/panel/help/hotkeys/'; return; }
-    if (k === 's' && trigger('s')) { e.preventDefault(); return; }
-    if (k === 'i') { if (!trigger('i')) window.location.href = '/panel/stock/receipt/'; return; }
-    if (k === 'w' && trigger('w')) { e.preventDefault(); return; }
-    if (k === 'p' && trigger('p')) { e.preventDefault(); return; }
-    if (k === 'g') { window.location.href = '/panel/'; }
+    if (el && !on) el.remove();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (document.body.dataset.hotkeys === 'off') return;
+    if (e.isComposing) return;
+    const combo = comboOf(e);
+
+    // 1) Ожидаем вторую клавишу после `\`
+    if (chordPending) {
+      const base = combo.split('+').pop();
+      const action = CHORD[base];
+      chordPending = false; clearTimeout(chordTimer); showChordHint(false);
+      if (action) { e.preventDefault(); action(); return; }
+      if (base === 'escape') return;
+    }
+
+    // 2) Лидер
+    if (combo === '\\' && !typing()) {
+      e.preventDefault(); chordPending = true; showChordHint(true);
+      chordTimer = setTimeout(() => { chordPending = false; showChordHint(false); }, 1500);
+      return;
+    }
+
+    // 3) Комбо с модификатором — работают даже в полях ввода
+    const withMod = GLOBAL[combo];
+    if (withMod) { e.preventDefault(); withMod(); return; }
+
+    // 4) Одиночные клавиши — только вне полей ввода
+    if (e.ctrlKey || e.metaKey || e.altKey || typing()) return;
+    const single = SINGLE[combo] || (e.shiftKey && combo === 'shift+/' ? SINGLE['?'] : null);
+    if (single) { e.preventDefault(); single(); }
   });
 })();

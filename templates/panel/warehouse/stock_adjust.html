@@ -1,7 +1,6 @@
 {% extends 'panel/base.html' %}
 {% block title %}Корректировка остатка{% endblock %}
 {% block content %}
-<<<<<<< HEAD
 <header class="page-header"><div><h1>Корректировка остатка</h1><p class="muted">{{ product.product_sku }} — {{ product.product_name }}</p></div><a class="btn" href="{% url 'panel:stock_list' %}">← Склад</a></header>
 <div class="grid-2">
   <section class="card">
@@ -11,18 +10,4 @@
   </section>
   {% include 'panel/partials/history.html' %}
 </div>
-=======
-<section class="card">
-  <h1>Корректировка остатка</h1>
-  <p><strong>{{ product.product_sku }}</strong> — {{ product.product_name }}</p>
-  <p>Текущий остаток: {{ stock.stock_quantity|default:0 }} · резерв: {{ stock.stock_reserved|default:0 }}</p>
-  <div class="critical-box">
-    <p>Критическая операция. Требуется явное подтверждение и указание причины. Запись попадёт в журнал аудита.</p>
-  </div>
-  <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Применить</button>
-    <a class="btn btn-ghost" href="{% url 'panel:stock_list' %}">Отмена</a>
-  </form>
-</section>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% endblock %}

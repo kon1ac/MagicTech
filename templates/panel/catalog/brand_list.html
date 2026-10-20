@@ -1,5 +1,4 @@
 {% extends 'panel/base.html' %}
-<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Бренды{% endblock %}
 {% block content %}
@@ -11,15 +10,5 @@
   <tbody>{% for b in page_obj %}<tr><td>{{ b.id_brand }}</td><td>{% if b.brand_logo_url %}<img src="{{ b.brand_logo_url.url }}" alt="" height="28">{% endif %}</td><td>{{ b.brand_name }}</td><td><code>{{ b.brand_slug }}</code></td><td>{{ b.is_active|yesno:'да,нет' }}</td>
     <td><a href="{% url 'panel:brand_edit' b.pk %}">Изменить</a> · <a href="{% url 'panel:brand_delete' b.pk %}">Удалить</a></td></tr>{% empty %}<tr><td colspan="6" class="muted">Пусто</td></tr>{% endfor %}</tbody>
 </table></div>
-=======
-{% block title %}Бренды{% endblock %}
-{% block content %}
-<header class="page-header"><h1>Бренды</h1></header>
-<div class="toolbar"><a class="btn btn-primary" href="{% url 'panel:brand_create' %}">+ Бренд</a></div>
-<table class="data-table">
-  <thead><tr><th>ID</th><th>Название</th><th>Slug</th><th>Активен</th></tr></thead>
-  <tbody>{% for b in page_obj %}<tr><td>{{ b.id_brand }}</td><td>{{ b.brand_name }}</td><td>{{ b.brand_slug }}</td><td>{{ b.is_active|yesno:"да,нет" }}</td></tr>{% empty %}<tr><td colspan="4">Пусто</td></tr>{% endfor %}</tbody>
-</table>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

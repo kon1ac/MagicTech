@@ -1,5 +1,4 @@
 {% extends 'panel/base.html' %}
-<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
@@ -46,11 +45,4 @@
     {% endif %}
   </div>
 </div>
-=======
-{% block title %}{{ title }}{% endblock %}
-{% block content %}
-<section class="card"><h1>{{ title }}</h1>
-<form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Сохранить</button></form>
-</section>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% endblock %}

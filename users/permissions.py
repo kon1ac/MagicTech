@@ -1,22 +1,14 @@
-<<<<<<< HEAD
 """Матрица «Роль × Объект × Действие» — серверная авторизация панели и API."""
-=======
-"""Матрица «Роль × Объект × Действие» — серверная авторизация панели."""
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 from users.constants import (
     ROLE_ACCOUNTANT,
     ROLE_ADMIN,
-<<<<<<< HEAD
     ROLE_CUSTOMER,
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     ROLE_DB_ADMIN,
     ROLE_MERCHANDISER,
     ROLE_PICKER,
 )
 
-<<<<<<< HEAD
 ADMINS = {ROLE_ADMIN, ROLE_DB_ADMIN}
 ALL_STAFF = {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER, ROLE_ACCOUNTANT, ROLE_PICKER}
 
@@ -168,72 +160,6 @@ ACTION_LABELS = {
     'order': 'оформление заказа',
     'review': 'отзыв',
     'return': 'возврат',
-=======
-# resource -> action -> roles
-PERMISSION_MATRIX = {
-    'dashboard': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER, ROLE_ACCOUNTANT, ROLE_PICKER},
-    },
-    'users': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN},
-        'create': {ROLE_ADMIN, ROLE_DB_ADMIN},
-        'update': {ROLE_ADMIN, ROLE_DB_ADMIN},
-        'delete': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'categories': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'create': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'update': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'delete': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'brands': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'create': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'update': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'delete': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'products': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER, ROLE_PICKER},
-        'create': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'update': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'delete': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'promotions': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'create': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'update': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'delete': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'orders': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_ACCOUNTANT, ROLE_PICKER},
-        'update_status': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_PICKER},
-        'cancel_critical': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'stock': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER, ROLE_PICKER},
-        'adjust_critical': {ROLE_ADMIN, ROLE_DB_ADMIN},
-        'pick': {ROLE_ADMIN, ROLE_PICKER},
-    },
-    'payments': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_ACCOUNTANT},
-        'update': {ROLE_ADMIN, ROLE_ACCOUNTANT},
-    },
-    'returns': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_ACCOUNTANT},
-        'update': {ROLE_ADMIN, ROLE_ACCOUNTANT},
-    },
-    'reviews': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-        'moderate': {ROLE_ADMIN, ROLE_DB_ADMIN, ROLE_MERCHANDISER},
-    },
-    'audit': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN},
-        'export': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
-    'system': {
-        'view': {ROLE_ADMIN, ROLE_DB_ADMIN},
-    },
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 }
 
 

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from decimal import Decimal, InvalidOperation
 
 from django import template
@@ -6,9 +5,6 @@ from django.utils import timezone
 from django.utils.dateformat import format as date_format
 
 from panel.i18n import translate
-=======
-from django import template
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 register = template.Library()
 
@@ -17,7 +13,6 @@ register = template.Library()
 def get_item(mapping, key):
     if mapping is None:
         return key
-<<<<<<< HEAD
     if isinstance(mapping, dict):
         return mapping.get(key, key)
     return key
@@ -90,6 +85,3 @@ def json_pretty(value):
         return json.dumps(data, ensure_ascii=False, indent=1)
     except (TypeError, ValueError):
         return value
-=======
-    return mapping.get(key, key)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

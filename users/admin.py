@@ -30,7 +30,6 @@ class UserProfilesAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('created_at', 'updated_at')
     raw_id_fields = ('id_user',)
-<<<<<<< HEAD
 
 
 from .models import ApiToken, SavedFilter, UserSettings  # noqa: E402
@@ -44,5 +43,3 @@ class ApiTokenAdmin(admin.ModelAdmin):
 
 admin.site.register(UserSettings)
 admin.site.register(SavedFilter)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

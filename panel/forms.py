@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import json
 
 from django import forms
@@ -15,14 +14,6 @@ from shop.models import (
 )
 from users.constants import API_SCOPES, ROLE_CHOICES, ROLE_CUSTOMER, STAFF_ROLES
 from users.models import AuthCredentials, UserProfiles, UserSettings
-=======
-from django import forms
-from django.core.exceptions import ValidationError
-
-from shop.models import Brand, Category, Product, Promotion, Review
-from users.constants import ROLE_CHOICES, ROLE_CUSTOMER, STAFF_ROLES
-from users.models import AuthCredentials, UserProfiles
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 
 class LoginForm(forms.Form):
@@ -33,7 +24,6 @@ class LoginForm(forms.Form):
     )
 
 
-<<<<<<< HEAD
 def validate_password_strength(value: str) -> None:
     if len(value) < 8:
         raise ValidationError('Пароль — не короче 8 символов.')
@@ -41,32 +31,20 @@ def validate_password_strength(value: str) -> None:
         raise ValidationError('Пароль должен содержать буквы и цифры.')
 
 
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 class UserForm(forms.ModelForm):
     password = forms.CharField(
         label='Пароль',
         required=False,
-<<<<<<< HEAD
         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
         help_text='Для нового пользователя обязателен; при редактировании — оставьте пустым, чтобы не менять.',
     )
     profile_first_name = forms.CharField(label='Имя', required=False, max_length=100)
     profile_last_name = forms.CharField(label='Фамилия', required=False, max_length=100)
     profile_phone = forms.CharField(label='Телефон', required=False, max_length=30)
-=======
-        widget=forms.PasswordInput,
-        help_text='Оставьте пустым, чтобы не менять пароль.',
-    )
-    profile_first_name = forms.CharField(label='Имя', required=False)
-    profile_last_name = forms.CharField(label='Фамилия', required=False)
-    profile_phone = forms.CharField(label='Телефон', required=False)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
     class Meta:
         model = AuthCredentials
         fields = ('email', 'user_role', 'is_active')
-<<<<<<< HEAD
         labels = {'email': 'Email', 'user_role': 'Роль', 'is_active': 'Активен'}
 
     def __init__(self, *args, actor=None, **kwargs):
@@ -75,13 +53,6 @@ class UserForm(forms.ModelForm):
         self.fields['user_role'] = forms.ChoiceField(label='Роль', choices=ROLE_CHOICES)
         if self.instance.pk:
             self.fields['user_role'].initial = self.instance.user_role
-=======
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['user_role'].choices = ROLE_CHOICES
-        if self.instance.pk:
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
             profile = getattr(self.instance, 'profile', None)
             if profile:
                 self.fields['profile_first_name'].initial = profile.profile_first_name
@@ -92,7 +63,6 @@ class UserForm(forms.ModelForm):
         role = self.cleaned_data['user_role']
         if role not in STAFF_ROLES and role != ROLE_CUSTOMER:
             raise ValidationError('Неизвестная роль.')
-<<<<<<< HEAD
         if self.actor and self.instance.pk == self.actor.pk and role != self.actor.user_role:
             raise ValidationError('Нельзя сменить роль самому себе.')
         return role
@@ -111,37 +81,21 @@ class UserForm(forms.ModelForm):
             raise ValidationError('Нельзя деактивировать собственную учётную запись.')
         return active
 
-=======
-        return role
-
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     def save(self, commit=True):
         user = super().save(commit=False)
         password = self.cleaned_data.get('password')
         if password:
             user.set_password(password)
-<<<<<<< HEAD
         if commit:
             user.save()
             profile, _ = UserProfiles.objects.get_or_create(id_user=user)
             profile.profile_first_name = self.cleaned_data.get('profile_first_name') or None
             profile.profile_last_name = self.cleaned_data.get('profile_last_name') or None
             profile.profile_phone = self.cleaned_data.get('profile_phone') or None
-=======
-        elif not user.pk:
-            user.set_password('ChangeMe123!')
-        if commit:
-            user.save()
-            profile, _ = UserProfiles.objects.get_or_create(id_user=user)
-            profile.profile_first_name = self.cleaned_data.get('profile_first_name') or profile.profile_first_name
-            profile.profile_last_name = self.cleaned_data.get('profile_last_name') or profile.profile_last_name
-            profile.profile_phone = self.cleaned_data.get('profile_phone') or profile.profile_phone
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
             profile.save()
         return user
 
 
-<<<<<<< HEAD
 class JSONDictField(forms.CharField):
     """JSON-объект в textarea с понятной ошибкой валидации."""
 
@@ -192,29 +146,12 @@ class CategoryForm(forms.ModelForm):
             raise ValidationError('Допускается не более 3 уровней вложенности.')
         self.instance.category_level = level
         return data
-=======
-class CategoryForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = (
-            'category_name',
-            'category_slug',
-            'id_parent',
-            'category_level',
-            'category_attributes',
-            'is_active',
-        )
-        widgets = {
-            'category_attributes': forms.Textarea(attrs={'rows': 3}),
-        }
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 
 class BrandForm(forms.ModelForm):
     class Meta:
         model = Brand
         fields = ('brand_name', 'brand_slug', 'brand_description', 'brand_logo_url', 'is_active')
-<<<<<<< HEAD
         labels = {'brand_name': 'Название', 'brand_slug': 'Slug', 'brand_description': 'Описание',
                   'brand_logo_url': 'Логотип', 'is_active': 'Активен'}
 
@@ -374,46 +311,6 @@ class PromotionForm(forms.ModelForm):
                 [PromotionBrand(id_promotion=promo, id_brand=b) for b in self.cleaned_data['brands']])
         return promo
 
-=======
-
-
-class ProductForm(forms.ModelForm):
-    class Meta:
-        model = Product
-        fields = (
-            'product_sku',
-            'product_ean',
-            'product_name',
-            'id_brand',
-            'id_category',
-            'product_description',
-            'product_characteristics',
-            'is_active',
-        )
-        widgets = {
-            'product_description': forms.Textarea(attrs={'rows': 4}),
-            'product_characteristics': forms.Textarea(attrs={'rows': 4}),
-        }
-
-
-class PromotionForm(forms.ModelForm):
-    class Meta:
-        model = Promotion
-        fields = (
-            'promotion_name',
-            'promotion_type',
-            'promotion_value',
-            'promotion_promo_code',
-            'start_at',
-            'end_at',
-            'is_active',
-        )
-        widgets = {
-            'start_at': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'end_at': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        }
-
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 class StockAdjustForm(forms.Form):
     delta = forms.IntegerField(label='Изменение (+/-)')
@@ -423,7 +320,6 @@ class StockAdjustForm(forms.Form):
         required=True,
     )
 
-<<<<<<< HEAD
     def clean_delta(self):
         delta = self.cleaned_data['delta']
         if delta == 0:
@@ -442,18 +338,11 @@ class StockReceiptForm(forms.Form):
 class OrderStatusForm(forms.Form):
     new_status = forms.ChoiceField(label='Новый статус')
     reason = forms.CharField(label='Комментарий / причина', required=False, widget=forms.Textarea(attrs={'rows': 2}))
-=======
-
-class OrderStatusForm(forms.Form):
-    new_status = forms.ChoiceField(label='Новый статус')
-    reason = forms.CharField(label='Комментарий', required=False, widget=forms.Textarea(attrs={'rows': 2}))
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     confirm_cancel = forms.BooleanField(
         label='Подтверждаю отмену заказа (критическая операция)',
         required=False,
     )
 
-<<<<<<< HEAD
     def __init__(self, *args, allowed: set, **kwargs):
         super().__init__(*args, **kwargs)
         from users.constants import ORDER_STATUS_LABELS
@@ -559,20 +448,3 @@ class ArchiveGrantForm(forms.Form):
 class RestoreForm(forms.Form):
     confirm_name = forms.CharField(label='Введите имя базы данных для подтверждения')
     confirm = forms.BooleanField(label='Понимаю, что текущие данные будут заменены данными из копии', required=True)
-=======
-    def __init__(self, *args, current_status: str, **kwargs):
-        super().__init__(*args, **kwargs)
-        from users.constants import ORDER_STATUS_FLOW, ORDER_STATUS_LABELS
-
-        choices = [
-            (code, ORDER_STATUS_LABELS.get(code, code))
-            for code in sorted(ORDER_STATUS_FLOW.get(current_status, set()))
-        ]
-        self.fields['new_status'].choices = choices
-
-
-class ReviewModerationForm(forms.ModelForm):
-    class Meta:
-        model = Review
-        fields = ('review_status',)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

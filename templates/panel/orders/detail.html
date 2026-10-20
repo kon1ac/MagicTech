@@ -1,5 +1,4 @@
 {% extends 'panel/base.html' %}
-<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Заказ {{ order.order_number }}{% endblock %}
 {% block content %}
@@ -64,49 +63,5 @@
       </dl></section>
     {% include 'panel/partials/history.html' %}
   </div>
-=======
-{% block title %}Заказ {{ order.order_number }}{% endblock %}
-{% block content %}
-<header class="page-header">
-  <h1>Заказ {{ order.order_number }}</h1>
-  <p class="muted">{{ order.id_user.email }} · {{ order.created_at|date:"d.m.Y H:i" }}</p>
-</header>
-<div class="grid-2">
-  <section class="card">
-    <h2>Состав</h2>
-    <table class="data-table">
-      <thead><tr><th>Товар</th><th>Кол-во</th><th>Цена</th><th>Итого</th></tr></thead>
-      <tbody>
-      {% for item in order.items.all %}
-      <tr>
-        <td>{{ item.id_product.product_name }} ({{ item.id_product.product_sku }})</td>
-        <td>{{ item.order_item_quantity }}</td>
-        <td>{{ item.order_item_price }}</td>
-        <td>{{ item.order_item_total }}</td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    <p><strong>Итого:</strong> {{ order.total }} ₽ (скидка {{ order.discount_total }} ₽)</p>
-    {% if order.order_status == 'ASSEMBLY' %}
-    <a class="btn btn-primary" href="{% url 'panel:order_pick' order.id_order %}">Списать и завершить сборку</a>
-    {% endif %}
-  </section>
-  <section class="card">
-    <h2>Статус заказа</h2>
-    <p>Текущий: <span class="badge">{{ order.order_status }}</span></p>
-    {% if can_change and form.fields.new_status.choices %}
-    <form method="post" class="form-stack">{% csrf_token %}
-      {{ form.as_p }}
-      <div class="critical-box">
-        <p>Отмена заказа — критическая операция: резервы будут сняты, действие попадёт в аудит.</p>
-      </div>
-      <button class="btn btn-primary" type="submit">Сменить статус (S)</button>
-    </form>
-    {% else %}
-    <p class="muted">Нет доступных переходов или недостаточно прав.</p>
-    {% endif %}
-  </section>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 </div>
 {% endblock %}

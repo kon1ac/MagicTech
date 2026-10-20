@@ -1,5 +1,4 @@
 {% extends 'panel/base.html' %}
-<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Товары{% endblock %}
 {% block content %}
@@ -34,18 +33,5 @@
     <td class="num">{{ p.available }}</td><td class="num">{{ p.rating_avg }} ({{ p.rating_count }})</td><td>{{ p.is_active|yesno:'да,нет' }}</td></tr>
   {% empty %}<tr><td colspan="9" class="muted">Товаров нет</td></tr>{% endfor %}</tbody>
 </table></div>
-=======
-{% block title %}Товары{% endblock %}
-{% block content %}
-<header class="page-header"><h1>Каталог товаров</h1></header>
-<div class="toolbar">
-  <form method="get"><input type="search" name="q" value="{{ q }}" placeholder="SKU / название"></form>
-  <a class="btn btn-primary" href="{% url 'panel:product_create' %}">+ Товар (Ctrl+N)</a>
-</div>
-<table class="data-table">
-  <thead><tr><th>SKU</th><th>Название</th><th>Бренд</th><th>Категория</th><th>Активен</th></tr></thead>
-  <tbody>{% for p in page_obj %}<tr><td>{{ p.product_sku }}</td><td>{{ p.product_name }}</td><td>{{ p.id_brand }}</td><td>{{ p.id_category }}</td><td>{{ p.is_active|yesno:"да,нет" }}</td></tr>{% empty %}<tr><td colspan="5">Пусто</td></tr>{% endfor %}</tbody>
-</table>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

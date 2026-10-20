@@ -1,15 +1,11 @@
-<<<<<<< HEAD
 import uuid
 
 from django.core.validators import MaxValueValidator, MinValueValidator
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 from django.db import models
 
 from users.models import AuthCredentials
 
 
-<<<<<<< HEAD
 class Unit(models.Model):
     """Справочник единиц измерения (таблица units)."""
 
@@ -76,8 +72,6 @@ class PromotionTypeRef(models.Model):
         return self.type_name
 
 
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 class Category(models.Model):
     """Категория товаров (таблица categories)."""
 
@@ -106,7 +100,6 @@ class Category(models.Model):
     def __str__(self):
         return self.category_name
 
-<<<<<<< HEAD
     def ancestors(self):
         node, chain = self, []
         while node is not None:
@@ -148,8 +141,6 @@ class Characteristic(models.Model):
     def __str__(self):
         return self.char_name
 
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 class Brand(models.Model):
     """Бренд (таблица brands)."""
@@ -201,7 +192,6 @@ class Product(models.Model):
     product_description = models.TextField(blank=True, null=True)
     product_characteristics = models.JSONField(blank=True, null=True)
     product_images = models.JSONField(blank=True, null=True)
-<<<<<<< HEAD
     id_unit = models.ForeignKey(
         Unit, on_delete=models.SET_NULL, blank=True, null=True, db_column='id_unit'
     )
@@ -214,8 +204,6 @@ class Product(models.Model):
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     rating_count = models.IntegerField(default=0)
     sales_count = models.IntegerField(default=0)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -224,7 +212,6 @@ class Product(models.Model):
         db_table = 'products'
         verbose_name = 'Товар'
         verbose_name_plural = 'Товары'
-<<<<<<< HEAD
         indexes = [
             models.Index(fields=['is_active', 'id_category'], name='products_active_cat_idx'),
             models.Index(fields=['id_brand'], name='products_brand_idx'),
@@ -232,13 +219,10 @@ class Product(models.Model):
             models.Index(fields=['-created_at'], name='products_created_idx'),
             models.Index(fields=['-rating_avg'], name='products_rating_idx'),
         ]
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
     def __str__(self):
         return f'{self.product_sku} — {self.product_name}'
 
-<<<<<<< HEAD
     @property
     def current_price(self):
         price = self.prices.filter(valid_to__isnull=True).order_by('-valid_from').first()
@@ -246,7 +230,7 @@ class Product(models.Model):
 
     @property
     def main_image(self):
-        images = sorted(self.media.all(), key=lambda m: (not m.is_main, m.sort_order))  # использует prefetch
+        images = sorted(self.media.all(), key=lambda m: (not m.is_main, m.sort_order))
         return images[0].url if images else None
 
 
@@ -275,8 +259,6 @@ class ProductImage(models.Model):
             return self.media_file.url
         return self.media_url
 
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
 class Price(models.Model):
     """Цена товара (таблица prices)."""
@@ -288,16 +270,11 @@ class Price(models.Model):
         db_column='id_product',
         related_name='prices',
     )
-<<<<<<< HEAD
     product_price = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
     )
     price_currency = models.CharField(max_length=3, default='RUB')
     price_reason = models.CharField(max_length=255, blank=True, null=True)
-=======
-    product_price = models.DecimalField(max_digits=12, decimal_places=2)
-    price_currency = models.CharField(max_length=3, default='RUB')
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     valid_from = models.DateTimeField(auto_now_add=True)
     valid_to = models.DateTimeField(blank=True, null=True)
     id_user = models.ForeignKey(
@@ -312,13 +289,10 @@ class Price(models.Model):
 
     class Meta:
         db_table = 'prices'
-<<<<<<< HEAD
         indexes = [models.Index(fields=['id_product', 'valid_to'], name='prices_current_idx')]
         constraints = [
             models.CheckConstraint(condition=models.Q(product_price__gte=0), name='prices_non_negative'),
         ]
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
         verbose_name = 'Цена'
         verbose_name_plural = 'Цены'
 
@@ -335,7 +309,6 @@ class Promotion(models.Model):
     promotion_value = models.DecimalField(max_digits=12, decimal_places=2)
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
-<<<<<<< HEAD
     promotion_promo_code = models.CharField(max_length=50, blank=True, null=True, unique=True)
     promotion_description = models.TextField(blank=True, null=True)
     promotion_min_sum = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -343,9 +316,6 @@ class Promotion(models.Model):
     usage_limit = models.IntegerField(blank=True, null=True)
     usage_count = models.IntegerField(default=0)
     is_stackable = models.BooleanField(default=False)
-=======
-    promotion_promo_code = models.CharField(max_length=50, blank=True, null=True)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     is_active = models.BooleanField(default=True)
     id_user = models.ForeignKey(
         AuthCredentials,
@@ -385,14 +355,11 @@ class Stock(models.Model):
 
     class Meta:
         db_table = 'stock'
-<<<<<<< HEAD
         constraints = [
             models.UniqueConstraint(fields=['id_product'], name='stock_one_per_product'),
             models.CheckConstraint(condition=models.Q(stock_quantity__gte=0), name='stock_quantity_non_negative'),
             models.CheckConstraint(condition=models.Q(stock_reserved__gte=0), name='stock_reserved_non_negative'),
         ]
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
         verbose_name = 'Остаток'
         verbose_name_plural = 'Остатки'
 
@@ -418,10 +385,7 @@ class Cart(models.Model):
     )
     cart_session_id = models.CharField(max_length=100, blank=True, null=True)
     cart_status = models.CharField(max_length=20, default='active')
-<<<<<<< HEAD
     cart_promo_code = models.CharField(max_length=50, blank=True, null=True)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -452,7 +416,6 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     order_payment_method = models.CharField(max_length=30, blank=True, null=True)
     order_payment_status = models.CharField(max_length=20, blank=True, null=True)
-<<<<<<< HEAD
     order_channel = models.CharField(max_length=20, default='site')
     external_order_id = models.CharField(max_length=100, blank=True, null=True)
     order_promo_code = models.CharField(max_length=50, blank=True, null=True)
@@ -464,20 +427,15 @@ class Order(models.Model):
     paid_at = models.DateTimeField(blank=True, null=True)
     shipped_at = models.DateTimeField(blank=True, null=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'orders'
-<<<<<<< HEAD
         indexes = [
             models.Index(fields=['order_status', '-created_at'], name='orders_status_created_idx'),
             models.Index(fields=['id_user', '-created_at'], name='orders_user_created_idx'),
         ]
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
 
@@ -495,7 +453,6 @@ class Payment(models.Model):
         db_column='id_order',
         related_name='payments',
     )
-<<<<<<< HEAD
     payment_uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     external_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     payment_provider = models.CharField(max_length=30)
@@ -503,9 +460,6 @@ class Payment(models.Model):
     payment_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_requisites = models.JSONField(blank=True, null=True)
     paid_at = models.DateTimeField(blank=True, null=True)
-=======
-    payment_provider = models.CharField(max_length=30)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     payment_amount = models.DecimalField(max_digits=12, decimal_places=2)
     payment_currency = models.CharField(max_length=3, default='RUB')
     payment_status = models.CharField(max_length=20, default='PENDING')
@@ -552,7 +506,6 @@ class Return(models.Model):
         related_name='returns',
     )
     return_reason = models.CharField(max_length=255, blank=True, null=True)
-<<<<<<< HEAD
     id_reason = models.ForeignKey(
         ReturnReason, on_delete=models.SET_NULL, blank=True, null=True, db_column='id_reason'
     )
@@ -573,9 +526,6 @@ class Return(models.Model):
         related_name='returns_decided',
     )
     decided_at = models.DateTimeField(blank=True, null=True)
-=======
-    return_status = models.CharField(max_length=30, default='NEW')
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -613,7 +563,6 @@ class Review(models.Model):
         related_name='reviews',
     )
     review_type = models.CharField(max_length=20, default='review')
-<<<<<<< HEAD
     review_rating = models.SmallIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
@@ -622,11 +571,6 @@ class Review(models.Model):
     review_status = models.CharField(max_length=20, default='pending')
     seller_answer = models.TextField(blank=True, null=True)
     answered_at = models.DateTimeField(blank=True, null=True)
-=======
-    review_rating = models.SmallIntegerField(blank=True, null=True)
-    review_text = models.TextField(blank=True, null=True)
-    review_status = models.CharField(max_length=20, default='pending')
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -654,10 +598,7 @@ class AuditLog(models.Model):
     audit_object_type = models.CharField(max_length=50)
     object_id = models.BigIntegerField(blank=True, null=True)
     audit_action = models.CharField(max_length=50)
-<<<<<<< HEAD
     audit_reason = models.CharField(max_length=500, blank=True, null=True)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     audit_before = models.TextField(blank=True, null=True)
     audit_after = models.TextField(blank=True, null=True)
     audit_ip = models.GenericIPAddressField(blank=True, null=True)
@@ -666,13 +607,10 @@ class AuditLog(models.Model):
 
     class Meta:
         db_table = 'audit_log'
-<<<<<<< HEAD
         indexes = [
             models.Index(fields=['audit_object_type', 'object_id'], name='audit_object_idx'),
             models.Index(fields=['-created_at'], name='audit_created_idx'),
         ]
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
         verbose_name = 'Запись аудита'
         verbose_name_plural = 'Журнал аудита'
 
@@ -698,10 +636,7 @@ class OrderItem(models.Model):
     )
     order_item_quantity = models.IntegerField()
     order_item_price = models.DecimalField(max_digits=12, decimal_places=2)
-<<<<<<< HEAD
     order_item_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
     order_item_total = models.DecimalField(max_digits=12, decimal_places=2)
 
     class Meta:
@@ -862,14 +797,9 @@ class ReturnItem(models.Model):
         db_column='id_order_item',
         related_name='return_items',
     )
-<<<<<<< HEAD
     return_item_quantity = models.IntegerField(validators=[MinValueValidator(1)])
     return_item_refund_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_defect = models.BooleanField(default=False)
-=======
-    return_item_quantity = models.IntegerField()
-    return_item_refund_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 
     class Meta:
         db_table = 'return_items'
@@ -878,7 +808,6 @@ class ReturnItem(models.Model):
 
     def __str__(self):
         return f'Возврат {self.id_return} — позиция {self.id_order_item}'
-<<<<<<< HEAD
 
 
 class StockMovement(models.Model):
@@ -960,7 +889,7 @@ class PaymentLog(models.Model):
     id_payment = models.ForeignKey(
         Payment, on_delete=models.CASCADE, db_column='id_payment', related_name='logs'
     )
-    log_direction = models.CharField(max_length=20)  # request / response / callback / manual
+    log_direction = models.CharField(max_length=20)
     log_payload = models.JSONField(blank=True, null=True)
     http_status = models.SmallIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1002,7 +931,7 @@ class BankStatementLine(models.Model):
     order_number = models.CharField(max_length=50, blank=True, null=True)
     line_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     operation_date = models.DateField(blank=True, null=True)
-    match_status = models.CharField(max_length=20)  # matched / amount_mismatch / not_found / duplicate / invalid
+    match_status = models.CharField(max_length=20)
     match_note = models.CharField(max_length=500, blank=True, null=True)
     id_order = models.ForeignKey(
         Order, on_delete=models.SET_NULL, blank=True, null=True, db_column='id_order'
@@ -1043,9 +972,9 @@ class ImportJob(models.Model):
     """Журнал импортов CSV (таблица import_jobs)."""
 
     id_import_job = models.BigAutoField(primary_key=True)
-    import_kind = models.CharField(max_length=20)  # products / stock / prices
+    import_kind = models.CharField(max_length=20)
     file_name = models.CharField(max_length=255)
-    import_status = models.CharField(max_length=20)  # success / failed
+    import_status = models.CharField(max_length=20)
     rows_total = models.IntegerField(default=0)
     rows_ok = models.IntegerField(default=0)
     rows_failed = models.IntegerField(default=0)
@@ -1066,11 +995,11 @@ class BackupRecord(models.Model):
     """Резервные копии БД и результаты проверки restore (таблица backups)."""
 
     id_backup = models.BigAutoField(primary_key=True)
-    backup_kind = models.CharField(max_length=20)  # full / incremental / schema
+    backup_kind = models.CharField(max_length=20)
     file_path = models.CharField(max_length=500)
     file_size = models.BigIntegerField(default=0)
     checksum = models.CharField(max_length=64, blank=True, null=True)
-    backup_status = models.CharField(max_length=20)  # success / failed
+    backup_status = models.CharField(max_length=20)
     backup_output = models.TextField(blank=True, null=True)
     verified_at = models.DateTimeField(blank=True, null=True)
     verify_status = models.CharField(max_length=20, blank=True, null=True)
@@ -1092,7 +1021,7 @@ class ScheduledJob(models.Model):
     id_job = models.BigAutoField(primary_key=True)
     job_code = models.SlugField(max_length=50, unique=True)
     job_name = models.CharField(max_length=255)
-    job_schedule = models.CharField(max_length=100)  # cron-выражение
+    job_schedule = models.CharField(max_length=100)
     job_command = models.CharField(max_length=255)
     is_enabled = models.BooleanField(default=True)
     last_run_at = models.DateTimeField(blank=True, null=True)
@@ -1145,5 +1074,3 @@ class ArchiveAccessGrant(models.Model):
         db_table = 'archive_access_grants'
         verbose_name = 'Доступ к архиву'
         verbose_name_plural = 'Доступы к архиву'
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

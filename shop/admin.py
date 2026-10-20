@@ -264,7 +264,6 @@ class ReturnItemAdmin(admin.ModelAdmin):
         'return_item_refund_amount',
     )
     raw_id_fields = ('id_return', 'id_order_item')
-<<<<<<< HEAD
 
 
 # ---- реестры, добавленные во второй итерации: техническая регистрация для администратора
@@ -313,5 +312,3 @@ for _model in (Unit, OrderStatusRef, ReturnReason, PromotionTypeRef, Characteris
                BankStatementImport, BankStatementLine, ImportJob, BackupRecord, ScheduledJob, ArchivedOrder,
                ArchiveAccessGrant):
     admin.site.register(_model)
-=======
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719

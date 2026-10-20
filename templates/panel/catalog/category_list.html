@@ -1,5 +1,4 @@
 {% extends 'panel/base.html' %}
-<<<<<<< HEAD
 {% load panel_extras %}
 {% block title %}Категории{% endblock %}
 {% block content %}
@@ -12,15 +11,5 @@
   <tbody>{% for c in page_obj %}<tr><td>{{ c.id_category }}</td><td>{{ c.category_name }}</td><td><code>{{ c.category_slug }}</code></td><td>{{ c.id_parent|default:'—' }}</td><td>{{ c.category_level }}</td><td>{{ c.is_active|yesno:'да,нет' }}</td>
     <td><a href="{% url 'panel:category_edit' c.pk %}">Изменить</a> · <a href="{% url 'panel:category_delete' c.pk %}">Удалить</a></td></tr>{% empty %}<tr><td colspan="7" class="muted">Пусто</td></tr>{% endfor %}</tbody>
 </table></div>
-=======
-{% block title %}Категории{% endblock %}
-{% block content %}
-<header class="page-header"><h1>Категории</h1></header>
-<div class="toolbar"><a class="btn btn-primary" href="{% url 'panel:category_create' %}">+ Категория</a></div>
-<table class="data-table">
-  <thead><tr><th>ID</th><th>Название</th><th>Уровень</th><th>Активна</th></tr></thead>
-  <tbody>{% for c in page_obj %}<tr><td>{{ c.id_category }}</td><td>{{ c.category_name }}</td><td>{{ c.category_level }}</td><td>{{ c.is_active|yesno:"да,нет" }}</td></tr>{% empty %}<tr><td colspan="4">Пусто</td></tr>{% endfor %}</tbody>
-</table>
->>>>>>> b935e5dc6d02be0bbd35e6ef434b9d4cc58e4719
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}

@@ -31,7 +31,10 @@ def sign(body: bytes) -> str:
 
 
 def verify_signature(body: bytes, signature: str | None) -> bool:
-    return bool(signature) and hmac.compare_digest(sign(body), signature)
+    """Подпись обязательна: пустой/отсутствующий заголовок отклоняется до сравнения."""
+    if not signature:
+        return False
+    return hmac.compare_digest(sign(body), signature)
 
 
 def log(payment: Payment, direction: str, payload, http_status: int | None = None) -> None:

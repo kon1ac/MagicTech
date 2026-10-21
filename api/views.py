@@ -344,7 +344,10 @@ class YooKassaWebhookView(APIView):
                        'type': 'notification', 'event': 'payment.succeeded',
                        'object': {'id': 'yk-…', 'status': 'succeeded', 'amount': {'value': '4990.00', 'currency': 'RUB'}}})])
     def post(self, request):
-        payment = payment_service.process_webhook(request.body, request.headers.get('X-Signature'), request=request._request)
+        signature = request.headers.get('X-Signature')
+        if not signature:
+            raise ValidationError('Отсутствует заголовок X-Signature.')
+        payment = payment_service.process_webhook(request.body, signature, request=request._request)
         return Response({'status': 'ok', 'payment_status': payment.payment_status})
 
 

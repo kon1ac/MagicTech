@@ -7,16 +7,26 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-qz+1171j_ngvh!!i@()tqu7=j1de7)!0mzb^nxxdm&ctwj^&43',
-)
+# Локальные секреты берутся из .env (файл не попадает в git), боевые значения — из окружения процесса.
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(BASE_DIR / '.env')
+
+# Обязательные переменные окружения: секреты не должны иметь значений по умолчанию в коде.
+for _env_var in ('DJANGO_SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'YOOKASSA_WEBHOOK_SECRET'):
+    if not os.environ.get(_env_var):
+        raise RuntimeError(
+            f'Установите переменную окружения {_env_var} '
+            f'(локально — скопируйте .env.example в .env и заполните значения)'
+        )
+
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,testserver').split(',')
+_ALLOWED_HOSTS_RAW = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
+ALLOWED_HOSTS = [h.strip() for h in _ALLOWED_HOSTS_RAW.split(',') if h.strip()] if _ALLOWED_HOSTS_RAW else (['127.0.0.1'] if DEBUG else [])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -70,12 +80,13 @@ WSGI_APPLICATION = 'magictech_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'MagicTech'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', '1'),
+        'NAME': os.environ['DB_NAME'],
+        'USER': os.environ['DB_USER'],
+        'PASSWORD': os.environ['DB_PASSWORD'],
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
         'CONN_MAX_AGE': 60,
+        'OPTIONS': {'sslmode': os.environ.get('DB_SSL_MODE', 'prefer')},
     }
 }
 
@@ -144,7 +155,7 @@ MAGTECH_CATALOG_PAGE_SIZE = 50
 MAGTECH_CATALOG_CACHE_TTL = 300
 MAGTECH_STOCK_CACHE_TTL = 0
 MAGTECH_YOOKASSA_COMMISSION_PCT = 2.8
-MAGTECH_YOOKASSA_WEBHOOK_SECRET = os.environ.get('YOOKASSA_WEBHOOK_SECRET', 'magictech-webhook-secret')
+MAGTECH_YOOKASSA_WEBHOOK_SECRET = os.environ['YOOKASSA_WEBHOOK_SECRET']
 MAGTECH_BACKUP_DIR = Path(os.environ.get('MAGTECH_BACKUP_DIR', BASE_DIR / 'backups'))
 MAGTECH_ARCHIVE_AFTER_DAYS = 365
 

@@ -32,6 +32,8 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
+copy .env.example .env      # затем заполните секреты в .env (см. раздел «Переменные окружения»)
+
 python manage.py migrate
 python manage.py seed_magtech          # ~60 товаров, ~70 заказов, отзывы, возвраты
 python manage.py ensure_superuser       # Django Admin: Magic / 123
@@ -428,20 +430,31 @@ python manage.py test tests --keepdb        # с кэшем миграций (б
 
 ## Переменные окружения
 
-| Переменная | По умолчанию | Описание |
-|-----------|--------------|----------|
-| `DB_NAME` | `MagicTech` | Имя базы данных |
-| `DB_USER` | `postgres` | Пользователь БД |
-| `DB_PASSWORD` | `1` | Пароль БД |
-| `DB_HOST` | `localhost` | Хост БД |
-| `DB_PORT` | `5432` | Порт БД |
-| `REDIS_URL` | — | URL Redis для кэша |
-| `DJANGO_DEBUG` | `1` | Режим отладки |
-| `DJANGO_SECRET_KEY` | dev-ключ | Секретный ключ |
-| `YOOKASSA_WEBHOOK_SECRET` | `magictech-webhook-secret` | Подпись веб-хуков |
-| `MAGTECH_BACKUP_DIR` | `./backups` | Каталог бэкапов |
-| `PG_BIN` | PATH | Путь к утилитам PostgreSQL |
-| `MAGTECH_SQLITE=1` | — | Переключить на SQLite (быстрые проверки) |
+Секреты **не имеют значений по умолчанию в коде** — приложение не запустится без них.
+Локально: скопируйте `.env.example` в `.env` и заполните значения (файл `.env` в `.gitignore`).
+Боевой контур: задавайте переменные окружения процесса.
+
+```powershell
+copy .env.example .env
+python -c "from django.core.management.utils import get_random_secret_key as g; print(g())"   # DJANGO_SECRET_KEY
+python -c "import secrets; print(secrets.token_hex(32))"                                       # YOOKASSA_WEBHOOK_SECRET
+```
+
+| Переменная | Обязательная | По умолчанию | Описание |
+|-----------|--------------|--------------|----------|
+| `DJANGO_SECRET_KEY` | **да** | — | Секретный ключ Django (генерировать, не коммитить) |
+| `DB_NAME` | **да** | — | Имя базы данных |
+| `DB_USER` | **да** | — | Пользователь БД |
+| `DB_PASSWORD` | **да** | — | Пароль БД |
+| `YOOKASSA_WEBHOOK_SECRET` | **да** | — | Ключ HMAC-SHA256 подписи веб-хуков |
+| `DB_HOST` | нет | `localhost` | Хост БД |
+| `DB_PORT` | нет | `5432` | Порт БД |
+| `DB_SSL_MODE` | нет | `prefer` | `prefer` / `require` / `verify-full` (production — `require`) |
+| `DJANGO_DEBUG` | нет | `1` | Режим отладки (production — `0`) |
+| `DJANGO_ALLOWED_HOSTS` | нет | `127.0.0.1` при DEBUG, иначе пусто | Разрешённые Host через запятую |
+| `REDIS_URL` | нет | — | URL Redis для кэша |
+| `MAGTECH_BACKUP_DIR` | нет | `./backups` | Каталог бэкапов |
+| `PG_BIN` | нет | PATH | Путь к утилитам PostgreSQL |
 
 ---
 

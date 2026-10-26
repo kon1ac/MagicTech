@@ -18,6 +18,21 @@ TRUNC = {'day': TruncDay, 'week': TruncWeek, 'month': TruncMonth}
 SALE_STATUSES = ['PAID', 'CONFIRMED', 'ASSEMBLY', 'PACKED', 'COMPLETED']
 
 
+def net_revenue():
+    """Фактические поступления за всё время: сумма успешных платежей минус оформленные возвраты.
+
+    Полностью возвращённый платёж (REFUNDED) даёт ноль — возврат равен сумме платежа,
+    поэтому статус REFUNDED намеренно включён в выборку, а не исключён.
+    """
+    agg = Payment.objects.filter(
+        payment_status__in=['SUCCESS', 'PARTIALLY_REFUNDED', 'REFUNDED']
+    ).aggregate(
+        gross=Coalesce(Sum('payment_amount'), ZERO, output_field=MONEY),
+        refunded=Coalesce(Sum('payment_refund_amount'), ZERO, output_field=MONEY),
+    )
+    return agg['gross'] - agg['refunded']
+
+
 def period_bounds(params):
     today = timezone.localdate()
     try:

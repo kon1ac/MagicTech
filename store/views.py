@@ -20,6 +20,7 @@ from shop.services import (
     reviews as review_service,
 )
 from shop.services.audit import write_audit
+from shop.services.login_guard import store_login_guard
 from store.forms import CheckoutForm, LoginForm, ProfileForm, QuestionForm, RegisterForm, ReviewForm
 from users.auth_session import authenticate_credentials, get_current_user, login_user, logout_user
 from users.constants import (
@@ -272,15 +273,23 @@ def pay_view(request, uid):
 
 @require_http_methods(['GET', 'POST'])
 def login_view(request):
+    blocked_for = store_login_guard.lockout_for(request)
+    if blocked_for:
+        messages.error(request, f'Слишком много неудачных попыток входа. Повторите через {blocked_for} сек.')
+        return render(request, 'store/login.html', {'form': LoginForm(), 'next': request.GET.get('next', '')},
+                      status=429)
     form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         guest_key = request.session.session_key
-        user = authenticate_credentials(form.cleaned_data['email'], form.cleaned_data['password'], staff_only=False)
+        email = form.cleaned_data['email']
+        user = authenticate_credentials(email, form.cleaned_data['password'], staff_only=False)
         if user:
+            store_login_guard.reset(email, request)
             login_user(request, user)
             cart_service.merge_session_cart(guest_key, user)
             write_audit(user=user, object_type='session', object_id=user.pk, action='store_login', request=request)
             return redirect(_safe_next(request, '/account/'))
+        store_login_guard.register_fail(email, request)
         messages.error(request, 'Неверный email или пароль.')
     return render(request, 'store/login.html', {'form': form, 'next': request.GET.get('next', '')})
 

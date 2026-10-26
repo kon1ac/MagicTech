@@ -159,6 +159,13 @@ MAGTECH_YOOKASSA_WEBHOOK_SECRET = os.environ['YOOKASSA_WEBHOOK_SECRET']
 MAGTECH_BACKUP_DIR = Path(os.environ.get('MAGTECH_BACKUP_DIR', BASE_DIR / 'backups'))
 MAGTECH_ARCHIVE_AFTER_DAYS = 365
 
+# Защита от перебора пароля: сколько неудачных входов с одного IP и по одному
+# адресу до временной блокировки. Панель (доступ к администрированию) жёстче.
+MAGTECH_LOGIN_FAIL_WINDOW_SECONDS = 900
+MAGTECH_LOGIN_MAX_IP = int(os.environ.get('MAGTECH_LOGIN_MAX_IP', 20))
+MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS', 5))
+MAGTECH_STORE_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_STORE_LOGIN_MAX_ATTEMPTS', 10))
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['api.auth.ApiTokenAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],

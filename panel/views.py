@@ -1,10 +1,8 @@
 """Панель: вход, обзор, пользователи и роли, настройки пользователя, справка."""
 
-from decimal import Decimal
-
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, ProtectedError, Q, Sum
+from django.db.models import Count, ProtectedError, Q
 from django.db.models.deletion import RestrictedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,8 +12,10 @@ from django.views.decorators.http import require_http_methods, require_POST
 from panel.decorators import panel_login_required, permission_required
 from panel.forms import LoginForm, UserForm, UserSettingsForm
 from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate
-from shop.models import Order, Payment, Product, Review, Stock
+from shop.models import Order, Product, Review, Stock
 from shop.services.audit import object_history, write_audit
+from shop.services.login_guard import login_guard
+from shop.services.reports import net_revenue
 from users.auth_session import authenticate_credentials, get_panel_user, login_user, logout_user
 from users.constants import ORDER_STATUS_LABELS, ROLE_CHOICES, ROLE_GHOST, ROLE_LABELS
 from users.models import AuthCredentials, SavedFilter, UserSettings
@@ -26,18 +26,25 @@ from users.permissions import ACTION_LABELS, PERMISSION_MATRIX
 def login_view(request):
     if get_panel_user(request):
         return redirect('panel:dashboard')
+    blocked_for = login_guard.lockout_for(request)
+    if blocked_for:
+        messages.error(request, f'Слишком много неудачных попыток входа. Повторите через {blocked_for} сек.')
+        return render(request, 'panel/login.html', {'form': LoginForm()}, status=429)
     form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        user = authenticate_credentials(form.cleaned_data['email'], form.cleaned_data['password'])
+        email = form.cleaned_data['email']
+        user = authenticate_credentials(email, form.cleaned_data['password'])
         if user:
+            login_guard.reset(email, request)
             login_user(request, user)
             write_audit(user=user, object_type='session', object_id=user.id_user, action='login', request=request)
             next_url = request.GET.get('next', '')
             if next_url.startswith('/panel') and url_has_allowed_host_and_scheme(next_url, {request.get_host()}):
                 return redirect(next_url)
             return redirect('panel:dashboard')
+        login_guard.register_fail(email, request)
         write_audit(user=None, object_type='session', object_id=None, action='login_failed',
-                    after={'email': form.cleaned_data['email']}, request=request)
+                    after={'email': email}, request=request)
         messages.error(request, 'Неверный email или пароль, либо нет доступа к панели.')
     return render(request, 'panel/login.html', {'form': form})
 
@@ -57,8 +64,7 @@ def dashboard_view(request):
     stats = {
         'products': Product.objects.filter(is_active=True).count(),
         'orders_open': Order.objects.exclude(order_status__in=['COMPLETED', 'CANCELLED', 'RETURNED']).count(),
-        'revenue': Payment.objects.filter(payment_status__in=['SUCCESS', 'PARTIALLY_REFUNDED']).aggregate(
-            s=Sum('payment_amount'))['s'] or Decimal('0'),
+        'revenue': net_revenue(),
         'reviews_pending': Review.objects.filter(review_status='pending').count(),
         'assembly': Order.objects.filter(order_status='ASSEMBLY').count(),
         'low_stock': Stock.objects.filter(stock_quantity__lte=5).count(),

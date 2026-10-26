@@ -1,4 +1,4 @@
-from django.test import Client
+from django.test import Client, override_settings
 
 from shop.models import AuditLog, Order, Review
 from tests.base import PASSWORD, MagicTestCase

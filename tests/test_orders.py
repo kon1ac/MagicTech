@@ -7,6 +7,7 @@ from django.utils import timezone
 from shop.models import Order, Payment, Reservation
 from shop.services import orders as order_service
 from shop.services import payments as payment_service
+from shop.services.reports import net_revenue
 from tests.base import MagicTestCase
 
 

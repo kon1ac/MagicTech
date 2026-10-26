@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'store/_tokens.css' %}">
   <link rel="stylesheet" href="{% static 'panel/css/magictech.css' %}">
 </head>
 <body data-hotkeys="{% if panel_settings and not panel_settings.hotkeys_enabled %}off{% else %}on{% endif %}">
@@ -67,6 +68,8 @@
     {"type": "Действие", "title": "Приход товара", "url": "/panel/stock/receipt/"},
     {"type": "Действие", "title": "Настройки", "url": "/panel/settings/"}
   ]</script>
+  {# доступность переходов по хоткеям для текущей роли: [[префикс, bool], …] #}
+  {{ hotkey_guards|json_script:"hotkeyGuards" }}
   {% else %}
   <main id="main">{% block bare_content %}{% endblock %}</main>
   {% endif %}

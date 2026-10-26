@@ -1,0 +1,144 @@
+/* ==========================================================================
+   MagicTech — единые токены дизайн-системы.
+   Подключается ПЕРВЫМ и в витрину (store.css), и в панель (magictech.css),
+   поэтому обе части опираются на одну палитру, радиусы, шрифты и переходы.
+
+   Здесь ТОЛЬКО CSS-переменные: сброс стилей и компоненты остаются в своих
+   файлах, чтобы ни одна сторона не тянула чужой reset.
+
+   Темы намеренно разные по характеру:
+     [data-theme='dark']  — «Neon Tech»:    стекло, неон, цветные свечения
+     [data-theme='light'] — «Premium Clean»: матовые поверхности, янтарь, острые углы
+   ========================================================================== */
+
+/* ---------- 1. Базовые токены (общие для обеих тем) ---------- */
+:root {
+  --header-h: 72px;
+  --wrap: 1280px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.45s;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* анимация перехода между темами: цвет/тень/рамка плавно «дышат» */
+  --theme-transition: background-color var(--dur) var(--ease),
+                      color var(--dur) var(--ease),
+                      border-color var(--dur) var(--ease),
+                      box-shadow var(--dur) var(--ease);
+}
+
+/* ---------- 2. Тёмная тема «Neon Tech» ---------- */
+[data-theme='dark'] {
+  --bg: #070b18;
+  --bg-2: #0d1428;
+  --surface: rgba(20, 28, 52, 0.55);
+  --surface-2: rgba(28, 38, 66, 0.72);
+  --surface-solid: #111a32;
+  --text: #eef2ff;
+  --text-2: #93a2c9;
+  --neon-a: #8b5cf6;
+  --neon-b: #22d3ee;
+  --accent: var(--neon-a);
+  --accent-2: var(--neon-b);
+  --on-accent: #ffffff;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --ok: #34d399;
+  --border: rgba(139, 92, 246, 0.22);
+  --border-soft: rgba(148, 163, 220, 0.14);
+
+  /* стекло: крупные скругления, размытие обязательно */
+  --radius: 20px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+
+  /* цветные светящиеся тени */
+  --shadow-card: 0 20px 45px rgba(3, 6, 18, 0.65);
+  --shadow-hover: 0 0 0 1px rgba(139, 92, 246, 0.55), 0 20px 60px rgba(139, 92, 246, 0.28);
+  --shadow-neon: 0 0 24px rgba(139, 92, 246, 0.45);
+  --inset-glass: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+
+  --font-display: 'Unbounded', var(--font-body);
+  --display-weight: 600;
+  --display-spacing: -0.02em;
+
+  /* кнопка — градиент фиолетовый → голубой */
+  --btn-bg: linear-gradient(120deg, var(--neon-a), var(--neon-b));
+  --btn-text: #ffffff;
+  --btn-border: transparent;
+  --btn-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+  --btn-ghost-bg: rgba(255, 255, 255, 0.05);
+  --btn-ghost-border: rgba(148, 163, 220, 0.28);
+
+  --field-bg: rgba(12, 18, 38, 0.6);
+  --field-border: rgba(148, 163, 220, 0.24);
+  --skeleton: linear-gradient(90deg, rgba(139,92,246,0.10) 25%, rgba(34,211,238,0.18) 37%, rgba(139,92,246,0.10) 63%);
+  --backdrop: blur(18px) saturate(160%);
+}
+
+/* ---------- 3. Светлая тема «Premium Clean» ---------- */
+[data-theme='light'] {
+  --bg: #f6f1e8;
+  --bg-2: #efe7da;
+  --surface: #fffdfa;
+  --surface-2: #ffffff;
+  --surface-solid: #fffdfa;
+  --text: #17150f;
+  --text-2: #6f6a5e;
+  --ink: #14120d;
+  --amber: #c8860a;
+  --accent: var(--ink);
+  --accent-2: var(--amber);
+  --on-accent: #fffdfa;
+  --warn: #b45309;
+  --danger: #b0353f;
+  --ok: #2f7d55;
+  --border: rgba(20, 18, 13, 0.12);
+  --border-soft: rgba(20, 18, 13, 0.08);
+
+  /* бутик: строгие острые углы */
+  --radius: 4px;
+  --radius-sm: 3px;
+  --radius-pill: 4px;
+
+  /* мягкие серые тени, без свечения */
+  --shadow-card: 0 2px 4px rgba(20, 18, 13, 0.05), 0 12px 28px rgba(20, 18, 13, 0.07);
+  --shadow-hover: 0 4px 10px rgba(20, 18, 13, 0.07), 0 24px 48px rgba(20, 18, 13, 0.10);
+  --shadow-neon: 0 12px 28px rgba(200, 134, 10, 0.18);
+  --inset-glass: none;
+
+  --font-display: 'Manrope', var(--font-body);
+  --display-weight: 800;
+  --display-spacing: -0.03em;
+
+  /* кнопка — сплошной чёрный, без градиента */
+  --btn-bg: var(--ink);
+  --btn-text: #fffdfa;
+  --btn-border: var(--ink);
+  --btn-shadow: 0 10px 24px rgba(20, 18, 13, 0.18);
+  --btn-ghost-bg: transparent;
+  --btn-ghost-border: rgba(20, 18, 13, 0.28);
+
+  --field-bg: #fffdfa;
+  --field-border: rgba(20, 18, 13, 0.22);
+  --skeleton: linear-gradient(90deg, rgba(20,18,13,0.05) 25%, rgba(20,18,13,0.12) 37%, rgba(20,18,13,0.05) 63%);
+  --backdrop: blur(10px) saturate(120%);
+}
+
+/* ---------- 4. Алиасы имён панели ----------
+   magictech.css исторически обращается к --primary/--muted/--shadow. Держим
+   их производными от общих токенов, чтобы панель наследовала тему витрины
+   без переписывания каждого правила. */
+:root {
+  --primary: var(--accent);
+  --primary-hover: var(--accent-2);
+  --muted: var(--text-2);
+  --border-color: var(--border);
+  --radius-lg: var(--radius);
+  --shadow: var(--shadow-card);
+  --shadow-glow: var(--shadow-neon);
+  --transition: var(--dur) var(--ease);
+  --accent-glow: color-mix(in srgb, var(--accent) 20%, transparent);
+  --font: var(--font-body);
+  --space: 8px;
+}

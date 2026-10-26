@@ -2,34 +2,34 @@
 {% load panel_extras %}
 {% block title %}Горячие клавиши{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>{% tr 'Горячие клавиши' %}</h1><p class="muted">Отключаются в <a href="{% url 'panel:settings' %}">настройках</a>. Работают при русской раскладке (используется физическая клавиша). При вводе текста срабатывают только сочетания с Alt.</p></div><a class="btn" href="{% url 'panel:brandbook' %}">{% tr 'Брендбук' %}</a></header>
+<header class="page-header"><div><h1>{% tr 'Горячие клавиши' %}</h1><p class="muted">Отключаются в <a href="{% url 'panel:settings' %}">настройках</a>. Работают при русской раскладке (используется физическая клавиша). При вводе текста срабатывают только сочетания с Alt. Переходы, недоступные вашей роли{% if panel_role_label %} «{{ panel_role_label }}»{% endif %}, пометжены серым — клавиша ничего не откроет.</p></div><a class="btn" href="{% url 'panel:brandbook' %}">{% tr 'Брендбук' %}</a></header>
 <div class="grid-2">
   <section class="card"><h2>Глобальные</h2><ul class="status-list">
     <li><span><kbd>Alt</kbd>+<kbd>K</kbd></span><span>Командная строка / поиск</span></li>
-    <li><span><kbd>Alt</kbd>+<kbd>O</kbd></span><span>Список заказов</span></li>
-    <li><span><kbd>Alt</kbd>+<kbd>N</kbd></span><span>Новый товар</span></li>
-    <li><span><kbd>Alt</kbd>+<kbd>E</kbd></span><span>Редактировать выбранный товар</span></li>
-    <li><span><kbd>Alt</kbd>+<kbd>G</kbd></span><span>На обзор</span></li>
+    {% if hotkeys_allowed.alt_o %}<li><span><kbd>Alt</kbd>+<kbd>O</kbd></span><span>Список заказов</span></li>{% else %}<li class="hk-off"><span><kbd>Alt</kbd>+<kbd>O</kbd></span><span>Список заказов — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_n %}<li><span><kbd>Alt</kbd>+<kbd>N</kbd></span><span>Новый товар</span></li>{% else %}<li class="hk-off"><span><kbd>Alt</kbd>+<kbd>N</kbd></span><span>Новый товар — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_e %}<li><span><kbd>Alt</kbd>+<kbd>E</kbd></span><span>Редактировать выбранный товар</span></li>{% else %}<li class="hk-off"><span><kbd>Alt</kbd>+<kbd>E</kbd></span><span>Редактировать выбранный товар — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_g %}<li><span><kbd>Alt</kbd>+<kbd>G</kbd></span><span>На обзор</span></li>{% else %}<li class="hk-off"><span><kbd>Alt</kbd>+<kbd>G</kbd></span><span>На обзор — нет права</span></li>{% endif %}
     <li><span><kbd>Alt</kbd>+<kbd>T</kbd></span><span>Переключить тему</span></li>
     <li><span><kbd>Alt</kbd>+<kbd>/</kbd></span><span>Фокус в поиск списка</span></li>
     <li><span><kbd>Alt</kbd>+<kbd>H</kbd></span><span>Эта справка</span></li></ul></section>
   <section class="card"><h2>Контекстные (одиночные буквы)</h2><p class="hint" style="margin:0 0 .5rem">Срабатывают, когда фокус не в поле ввода. Работают в любой раскладке.</p><ul class="status-list">
     <li><span><kbd>/</kbd></span><span>Фокус в поиск списка</span></li>
     <li><span><kbd>?</kbd></span><span>Эта справка</span></li>
-    <li><span><kbd>G</kbd></span><span>На обзор</span></li>
+    {% if hotkeys_allowed.alt_g %}<li><span><kbd>G</kbd></span><span>На обзор</span></li>{% else %}<li class="hk-off"><span><kbd>G</kbd></span><span>На обзор — нет права</span></li>{% endif %}
     <li><span><kbd>S</kbd></span><span>Сменить статус (в карточке заказа)</span></li>
-    <li><span><kbd>I</kbd></span><span>Приход товара</span></li>
-    <li><span><kbd>W</kbd></span><span>Сборка и списание</span></li>
+    {% if hotkeys_allowed.i %}<li><span><kbd>I</kbd></span><span>Приход товара</span></li>{% else %}<li class="hk-off"><span><kbd>I</kbd></span><span>Приход товара — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.w %}<li><span><kbd>W</kbd></span><span>Сборка и списание</span></li>{% else %}<li class="hk-off"><span><kbd>W</kbd></span><span>Сборка и списание — нет права</span></li>{% endif %}
     <li><span><kbd>P</kbd></span><span>Печать накладной PDF</span></li></ul></section>
   <section class="card"><h2>Резервный путь</h2><ul class="status-list">
     <li><span><kbd>\</kbd> затем <kbd>K</kbd></span><span>Командная строка</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>O</kbd></span><span>Заказы</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>N</kbd></span><span>Новый товар</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>E</kbd></span><span>Редактировать</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>G</kbd></span><span>На обзор</span></li>
+    {% if hotkeys_allowed.alt_o %}<li><span><kbd>\</kbd> затем <kbd>O</kbd></span><span>Заказы</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>O</kbd></span><span>Заказы — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_n %}<li><span><kbd>\</kbd> затем <kbd>N</kbd></span><span>Новый товар</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>N</kbd></span><span>Новый товар — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_e %}<li><span><kbd>\</kbd> затем <kbd>E</kbd></span><span>Редактировать</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>E</kbd></span><span>Редактировать — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.alt_g %}<li><span><kbd>\</kbd> затем <kbd>G</kbd></span><span>На обзор</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>G</kbd></span><span>На обзор — нет права</span></li>{% endif %}
     <li><span><kbd>\</kbd> затем <kbd>S</kbd></span><span>Сменить статус</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>I</kbd></span><span>Приход</span></li>
-    <li><span><kbd>\</kbd> затем <kbd>W</kbd></span><span>Сборка</span></li>
+    {% if hotkeys_allowed.i %}<li><span><kbd>\</kbd> затем <kbd>I</kbd></span><span>Приход</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>I</kbd></span><span>Приход — нет права</span></li>{% endif %}
+    {% if hotkeys_allowed.w %}<li><span><kbd>\</kbd> затем <kbd>W</kbd></span><span>Сборка</span></li>{% else %}<li class="hk-off"><span><kbd>\</kbd> затем <kbd>W</kbd></span><span>Сборка — нет права</span></li>{% endif %}
     <li><span><kbd>\</kbd> затем <kbd>P</kbd></span><span>Печать</span></li></ul></section>
 </div>
 {% endblock %}

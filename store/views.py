@@ -148,8 +148,19 @@ def _safe_next(request, default):
 
 # ---------------------------------------------------------------- корзина
 
+def _cart_partial(request, cart):
+    """Тело drawer-корзины: partial для fetch-обновлений (?drawer=1)."""
+    totals = cart_service.totals(cart) if cart else None
+    return render(request, 'store/_cart_body.html', {
+        'cart': cart, 'totals': totals,
+        'expires_at': cart_service.reservation_expires_at(cart) if cart else None,
+    })
+
+
 def cart_view(request):
     cart = _cart(request, create=False)
+    if request.GET.get('drawer'):
+        return _cart_partial(request, cart)
     totals = cart_service.totals(cart) if cart else None
     return render(request, 'store/cart.html', {
         'cart': cart, 'totals': totals,
@@ -178,6 +189,9 @@ def cart_update_view(request):
         cart_service.set_quantity(cart, product, int(request.POST.get('quantity', 0)))
     except (ValueError, ValidationError) as exc:
         messages.error(request, exc.messages[0] if isinstance(exc, ValidationError) else 'Некорректное количество.')
+    # drawer корзины меняет количество через fetch — ему нужен свежий HTML тела
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return _cart_partial(request, cart)
     return redirect('store:cart')
 
 

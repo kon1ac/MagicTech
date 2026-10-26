@@ -13,10 +13,24 @@
         <tfoot><tr><td colspan="4"><strong>Итого</strong>{% if order.discount_total %} (скидка {{ order.discount_total|floatformat:'2g' }} ₽){% endif %}</td><td class="num"><strong>{{ order.total|floatformat:'2g' }} ₽</strong></td></tr></tfoot></table></div>
       <p>Доставка: {{ order.delivery_address|default:'—' }} · {{ order.contact_phone|default:'' }}{% if order.tracking_number %} · трек {{ order.tracking_number }}{% endif %}</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        {% if order.order_status == 'NEW' or order.order_status == 'PAID' %}<form method="post" action="{% url 'store:account_order_cancel' order.order_number %}" onsubmit="return confirm('Отменить заказ?')">{% csrf_token %}<button class="btn">Отменить заказ</button></form>{% endif %}
+        {% if order.order_status == 'NEW' or order.order_status == 'PAID' %}<form method="post" action="{% url 'store:account_order_cancel' order.order_number %}" id="cancel-order-form">{% csrf_token %}<button class="btn" type="submit" data-modal-open="modal-cancel-order">Отменить заказ</button></form>{% endif %}
         {% if can_return %}<a class="btn" href="{% url 'store:account_return_create' order.order_number %}">Оформить возврат</a>{% endif %}
       </div></section>
     {% if returns %}<section class="card"><h2 style="margin-top:0">Возвраты по заказу</h2>{% for r in returns %}<p>#{{ r.pk }} · <span class="badge badge-{{ r.return_status }}">{{ return_labels|get_item:r.return_status }}</span> · {{ r.refund_amount|floatformat:'2g' }} ₽</p>{% endfor %}</section>{% endif %}
   </div>
 </div>
+
+{# подтверждение отмены — модалка с blur; без JS кнопка отправляет форму напрямую #}
+{% if order.order_status == 'NEW' or order.order_status == 'PAID' %}
+<div class="modal-backdrop" id="modal-cancel-order">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title">
+    <h2 id="cancel-order-title">Отменить заказ {{ order.order_number }}?</h2>
+    <p class="muted">Забронированные товары освободятся, а оплата (если она была) вернётся тем же способом.</p>
+    <div class="modal-actions">
+      <button class="btn" type="button" data-modal-close>Оставить заказ</button>
+      <button class="btn btn-danger" type="submit" form="cancel-order-form">Подтвердить отмену</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

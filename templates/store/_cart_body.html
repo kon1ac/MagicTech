@@ -1,0 +1,30 @@
+{% comment %}Содержимое drawer-корзины: отдаётся cart_view по ?drawer=1 и
+ подставляется в .drawer-body. Формы с data-qty отправляются через fetch.{% endcomment %}
+<span hidden data-cart-count="{% if totals %}{{ totals.quantity }}{% else %}0{% endif %}"></span>
+{% if totals and totals.lines %}
+  {% if expires_at %}<p class="hint">Товары зарезервированы до {{ expires_at|date:'H:i' }}.</p>{% endif %}
+  {% for line in totals.lines %}
+  <div class="drawer-line">
+    <a class="drawer-line-thumb" href="{% url 'store:product' line.product.product_sku %}">
+      <img src="{{ line.product.main_image|default:'' }}" alt="{{ line.product.product_name }}" loading="lazy">
+    </a>
+    <div class="drawer-line-info">
+      <a href="{% url 'store:product' line.product.product_sku %}">{{ line.product.product_name|truncatechars:48 }}</a>
+      <span class="hint">{{ line.price|floatformat:'2g' }} ₽ × {{ line.quantity }}</span>
+    </div>
+    <div class="drawer-line-total">{{ line.total|floatformat:'2g' }} ₽</div>
+    <form method="post" action="{% url 'store:cart_update' %}" data-qty>{% csrf_token %}
+      <input type="hidden" name="sku" value="{{ line.product.product_sku }}">
+      <input type="hidden" name="quantity" value="0">
+      <button class="drawer-line-remove" type="submit" aria-label="Удалить">✕</button>
+    </form>
+  </div>
+  {% endfor %}
+  <dl class="summary-mini"><dt>Товары ({{ totals.quantity }} шт.)</dt><dd>{{ totals.subtotal|floatformat:'2g' }} ₽</dd>
+    {% if totals.discount %}<dt>Скидка</dt><dd>−{{ totals.discount|floatformat:'2g' }} ₽</dd>{% endif %}
+    <dt><strong>Итого</strong></dt><dd><strong>{{ totals.total|floatformat:'2g' }} ₽</strong></dd></dl>
+  <a class="btn btn-primary btn-block" href="{% url 'store:checkout' %}">Оформить заказ</a>
+{% else %}
+  <p class="muted">Корзина пуста.</p>
+  <a class="btn btn-primary btn-block" href="{% url 'store:catalog' %}">В каталог</a>
+{% endif %}

@@ -1,19 +1,65 @@
 {% extends 'store/base.html' %}
 {% block title %}{% if category %}{{ category.category_name }}{% elif filters.q %}Поиск «{{ filters.q }}»{% else %}Каталог{% endif %}{% endblock %}
 {% block content %}
+
+{# ---------- карусель баннеров: автопрокрутка + свайп (store-ui.js) ---------- #}
+<div class="carousel" data-carousel>
+  <div class="carousel-track">
+    <div class="carousel-slide"><div class="hero-banner">
+      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
+      <div class="wrap hero-content">
+        <h1>Всё для рабочего места</h1>
+        <p>Клавиатуры, мыши и гарнитуры от проверенных брендов. Бесплатная доставка от 5 000 ₽.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}?sort=new">Новинки</a>
+          <a class="btn" href="{% url 'store:catalog' %}?in_stock=1">Только в наличии</a></div>
+      </div>
+    </div></div>
+    <div class="carousel-slide"><div class="hero-banner">
+      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
+      <div class="wrap hero-content">
+        <h1>Игровые сборки</h1>
+        <p>Механические клавиатуры, лёгкие мыши и гарнитуры с объёмным звуком.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}?sort=popular">Хиты продаж</a></div>
+      </div>
+    </div></div>
+    <div class="carousel-slide"><div class="hero-banner">
+      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
+      <div class="wrap hero-content">
+        <h1>Гарантия и возврат 14 дней</h1>
+        <p>Официальная гарантия, сервисная поддержка и простая замена товара.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:offer' %}">Условия оферты</a></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
 <nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a>{% for c in breadcrumbs %} › <a href="{% url 'store:category' c.category_slug %}">{{ c.category_name }}</a>{% endfor %}</nav>
 
 <div class="layout">
-  <aside class="filters reveal-left" id="filters">
-    <form method="get" action="{% if category %}{% url 'store:category' category.category_slug %}{% else %}{% url 'store:catalog' %}{% endif %}" id="filterForm">
+  <aside class="filters reveal-left" id="filters" data-filters-panel>
+    <div class="drawer-header filters-drawer-head">
+      <h3>Фильтры</h3>
+      <button class="drawer-close" type="button" data-close aria-label="Закрыть фильтры">✕</button>
+    </div>
+    <form method="get" action="{% if category %}{% url 'store:category' category.category_slug %}{% else %}{% url 'store:catalog' %}{% endif %}" data-filter-form>
       {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
-      <input type="hidden" name="sort" value="{{ filters.sort }}">
       <h3>Категории</h3>
       <ul class="tree">{% for n1 in tree %}<li><a href="{% url 'store:category' n1.category_slug %}" class="{% if category.category_slug == n1.category_slug %}active{% endif %}">{{ n1.category_name }}</a>
         {% if n1.children %}<ul>{% for n2 in n1.children %}<li><a href="{% url 'store:category' n2.category_slug %}" class="{% if category.category_slug == n2.category_slug %}active{% endif %}">{{ n2.category_name }}</a>
           {% if n2.children %}<ul>{% for n3 in n2.children %}<li><a href="{% url 'store:category' n3.category_slug %}" class="{% if category.category_slug == n3.category_slug %}active{% endif %}">{{ n3.category_name }}</a></li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ul>
+
       <h3>Цена, ₽</h3>
-      <div class="price-range"><input type="number" name="price_min" min="0" placeholder="от" value="{{ filters.price_min|default_if_none:'' }}"><input type="number" name="price_max" min="0" placeholder="до" value="{{ filters.price_max|default_if_none:'' }}"></div>
+      <div class="price-range">
+        <input type="number" name="price_min" min="0" placeholder="от" value="{{ filters.price_min|default_if_none:'' }}" aria-label="Цена от">
+        <input type="number" name="price_max" min="0" placeholder="до" value="{{ filters.price_max|default_if_none:'' }}" aria-label="Цена до">
+      </div>
+      {# двойной ползунок: JS синхронизирует его с полями выше #}
+      <div class="range-dual" data-price-range>
+        <div class="track"></div><div class="fill"></div>
+        <input type="range" data-range-min min="0" max="60000" step="500" value="{{ filters.price_min|default_if_none:0 }}" aria-label="Цена от, ползунок" tabindex="-1">
+        <input type="range" data-range-max min="0" max="60000" step="500" value="{{ filters.price_max|default_if_none:60000 }}" aria-label="Цена до, ползунок" tabindex="-1">
+      </div>
+
       <label style="margin-top:.5rem"><input type="checkbox" name="in_stock" value="1" {% if filters.in_stock %}checked{% endif %}> Только в наличии</label>
       {% if facets.brands %}<h3>Бренд</h3>{% for b in facets.brands %}<label><input type="checkbox" name="brand" value="{{ b.id }}" {% if b.id in selected_brands %}checked{% endif %}> {{ b.name }} <span class="count">{{ b.count }}</span></label>{% endfor %}{% endif %}
       {% for ch in facets.chars %}<h3>{{ ch.name }}</h3>{% for value, cnt in ch.values %}
@@ -22,14 +68,24 @@
       <a class="btn btn-block" style="margin-top:.5rem" href="{% if category %}{% url 'store:category' category.category_slug %}{% else %}{% url 'store:catalog' %}{% endif %}">Сбросить</a>
     </form>
   </aside>
+
   <section>
     <div class="toolbar">
-      <div><h1 style="margin:0">{% if category %}{{ category.category_name }}{% elif filters.q %}Результаты поиска «{{ filters.q }}»{% else %}Аксессуары для ПК{% endif %}</h1><span class="hint">Найдено: {{ page_obj.paginator.count }}</span></div>
-      <div style="display:flex;gap:.5rem"><button class="btn filters-toggle" type="button" onclick="document.getElementById('filters').classList.toggle('open')">Фильтры</button>
-        <select aria-label="Сортировка" onchange="const f=document.getElementById('filterForm');f.sort.value=this.value;f.submit()">{% for code, label in sort_labels.items %}<option value="{{ code }}" {% if filters.sort == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div><h1>{% if category %}{{ category.category_name }}{% elif filters.q %}Результаты поиска «{{ filters.q }}»{% else %}Аксессуары для ПК{% endif %}</h1>
+        <span class="hint" data-result-count>Найдено: {{ page_obj.paginator.count }}</span></div>
+      <div class="toolbar-right">
+        <button class="btn filters-toggle" type="button" data-open-filters>Фильтры</button>
+        {# кастомная сортировка: нативный select спрятан, но именно он хранит значение #}
+        <div class="select" data-sort-select>
+          <select name="sort" hidden aria-label="Сортировка">{% for code, label in sort_labels.items %}<option value="{{ code }}" {% if filters.sort == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <button class="select-btn" type="button" aria-expanded="false"><span class="select-value"></span>
+            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+          <ul class="select-list">{% for code, label in sort_labels.items %}<li data-value="{{ code }}">{{ label }}</li>{% endfor %}</ul>
+        </div>
+      </div>
     </div>
-    <div class="grid reveal-stagger">{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
-    {% if page_obj.has_other_pages %}<nav class="pagination">{% if page_obj.has_previous %}<a class="btn" href="?{{ query }}&page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}<span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn" href="?{{ query }}&page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}</nav>{% endif %}
+    <div class="grid reveal-stagger" data-catalog-grid>{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
+    {% if page_obj.has_other_pages %}<nav class="pagination" data-catalog-pager>{% if page_obj.has_previous %}<a class="btn" href="?{{ query }}&page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}<span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn" href="?{{ query }}&page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}</nav>{% endif %}
   </section>
 </div>
 {% endblock %}

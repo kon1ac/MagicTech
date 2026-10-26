@@ -135,14 +135,51 @@
     }
     return false;
   }
-  const go = (url) => () => { window.location.href = url; };
+  const go = (url) => () => {
+    // Проверка права на переход по клиентскому реестру (из RBAC-матрицы).
+    // Это не защита (её держат @permission_required на сервере), а забота:
+    // не водим пользователя в заведомый 403 — вместо этого понятный отказ.
+    if (!allowed(url)) { deny(url); return; }
+    window.location.href = url;
+  };
+
+  // [[префикс, доступна], …] из контекст-процессора панели
+  let HOTKEY_GUARDS = [];
+  try {
+    const el = document.getElementById('hotkeyGuards');
+    if (el) HOTKEY_GUARDS = JSON.parse(el.textContent) || [];
+  } catch (e) { HOTKEY_GUARDS = []; }
+  function allowed(url) {
+    for (const [prefix, ok] of HOTKEY_GUARDS) {
+      if (url.startsWith(prefix)) return ok;
+    }
+    return true;   // нет правила — не блокируем (навигация и так отфильтрована по правам)
+  }
+  function deny(url) {
+    let box = document.getElementById('hotkeyToast');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'hotkeyToast';
+      box.className = 'hotkey-toast';
+      box.setAttribute('role', 'status');
+      document.body.appendChild(box);
+    }
+    box.textContent = 'Недостаточно прав для: ' + url;
+    box.classList.add('show');
+    clearTimeout(deny._t);
+    deny._t = setTimeout(() => box.classList.remove('show'), 2600);
+  }
+
   function focusSearch() {
     const s = document.querySelector('[data-hotkey="/"]');
     if (s) { s.focus(); s.select(); } else openPalette();
   }
+  // Прямые переходы-заглушки тоже идут через go(), чтобы проверка прав
+  // работала одинаково для комбо и одиночных клавиш.
+  const goReceipt = go('/panel/stock/receipt/');
   function editSelected() {
     const checked = document.querySelector('input.row-check:checked[data-edit-url]');
-    if (checked) { window.location.href = checked.dataset.editUrl; return true; }
+    if (checked) { go(checked.dataset.editUrl)(); return true; }
     return trigger(['alt+e']);
   }
   function toggleTheme() { document.getElementById('themeToggle')?.click(); }
@@ -181,7 +218,7 @@
     '?': go('/panel/help/hotkeys/'),
     'g': go('/panel/'),
     's': () => trigger('s'),
-    'i': () => { if (!trigger('i')) window.location.href = '/panel/stock/receipt/'; },
+    'i': () => { if (!trigger('i')) goReceipt(); },
     'w': () => trigger('w'),
     'p': () => trigger('p'),
   };

@@ -1,34 +1,140 @@
 {% load static %}<!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Аксессуары для ПК{% endblock %} — MagicTech</title>
   <meta name="description" content="{% block meta_description %}MagicTech — интернет-магазин аксессуаров для ПК: клавиатуры, мыши, гарнитуры, веб-камеры, кабели и игровые кресла.{% endblock %}">
+  <meta name="theme-color" content="#070b18">
   {% block meta_extra %}{% endblock %}
   <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'store/_tokens.css' %}">
   <link rel="stylesheet" href="{% static 'store/store.css' %}">
-  <script>document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';</script>
+  <link rel="stylesheet" href="{% static 'store/store-fx.css' %}">
+  {# тему ставим до отрисовки — иначе видна вспышка «дефолтной» темы #}
+  <script>(function(){var t;try{t=localStorage.getItem('magtech-store-theme')}catch(e){}
+  document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')})();</script>
 </head>
 <body>
-<canvas id="particles-canvas"></canvas>
+
+{# ---------- стартовый лоадер (is-active снимаем после загрузки страницы) ---------- #}
+<div class="loader-overlay is-active" aria-hidden="true"><div class="loader-inner"></div></div>
+
+{# ---------- прогресс прокрутки страницы ---------- #}
+<div class="scroll-progress" aria-hidden="true"><div class="bar"></div></div>
+
+{# ---------- кастомный курсор: точка + догоняющее кольцо ---------- #}
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"></div>
+
+{# ---------- сюда ядро складывает тосты ---------- #}
+<div class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
 <header class="header"><div class="wrap">
   <a class="logo" href="{% url 'store:catalog' %}"><img src="{% static 'panel/img/logo.svg' %}" width="34" height="34" alt="">MagicTech</a>
+
+  {# мега-меню каталога: колонки — категории второго уровня, ссылки — третьего #}
+  <nav class="primary-nav" aria-label="Каталог">
+    {% for node in nav_tree %}
+      <div class="nav-item">
+        <a href="{% url 'store:category' slug=node.category_slug %}"{% if node.children %} data-mega-trigger aria-expanded="false"{% endif %}>{{ node.category_name }}{% if node.children %}
+          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>{% endif %}</a>
+        {% if node.children %}
+          <div class="mega-menu">
+            {% for child in node.children %}
+              <div>
+                <h4><a href="{% url 'store:category' slug=child.category_slug %}">{{ child.category_name }}</a></h4>
+                {% if child.children %}<ul>
+                  {% for leaf in child.children %}<li><a href="{% url 'store:category' slug=leaf.category_slug %}">{{ leaf.category_name }}</a></li>{% endfor %}
+                </ul>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </nav>
+
   <form class="search" action="{% url 'store:catalog' %}" method="get" role="search">
     <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Поиск: название, артикул, бренд…" aria-label="Поиск">
-    <button class="btn btn-primary">Найти</button></form>
-  <nav class="header-links">
-    {% if store_user %}<a href="{% url 'store:account_wishlist' %}" title="Избранное">♡</a><a href="{% url 'store:account' %}">Кабинет</a>{% else %}<a href="{% url 'store:login' %}">Войти</a>{% endif %}
-    <a class="cart-link" href="{% url 'store:cart' %}">🛒 Корзина{% if cart_count %}<span class="cart-count">{{ cart_count }}</span>{% endif %}</a>
+    <button class="btn btn-primary">Найти</button>
+  </form>
+
+  <nav class="header-links" aria-label="Профиль">
+    <button class="theme-switch" type="button" aria-label="Переключить тему" aria-pressed="false">
+      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>
+    </button>
+    {% if store_user %}
+      <a class="icon-btn" href="{% url 'store:account_wishlist' %}" title="Избранное" aria-label="Избранное">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>
+      </a>
+      <a class="icon-btn" href="{% url 'store:account' %}">Кабинет</a>
+    {% else %}
+      <a class="icon-btn" href="{% url 'store:login' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+        Войти
+      </a>
+    {% endif %}
+    {# data-cart-target — куда летит картинка при добавлении; data-cart-open — открывает drawer #}
+    <a class="icon-btn cart-link" href="{% url 'store:cart' %}" data-cart-open data-cart-target title="Корзина">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4h2.2l2.3 11.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.3L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+      <span class="hide-sm">Корзина</span>
+      <span class="cart-count" {% if not cart_count %}hidden{% endif %}>{{ cart_count }}</span>
+    </a>
   </nav>
 </div></header>
+
 <main class="wrap">
   {% if messages %}<ul class="messages">{% for m in messages %}<li class="msg msg-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
   {% block content %}{% endblock %}
 </main>
-{% block footer %}<footer class="footer"><div class="wrap">© MagicTech · аксессуары для ПК · <a href="{% url 'store:offer' %}">Публичная оферта</a> · Оплата картой через ЮKassa</div></footer>{% endblock %}
+
+{% block footer %}<footer class="footer"><div class="wrap">
+  <div class="footer-grid">
+    <div>
+      <h4>MagicTech</h4>
+      <p class="muted">Аксессуары для ПК и рабочие места: клавиатуры, мыши, гарнитуры, кабели, кресла.</p>
+    </div>
+    <div>
+      <h4>Каталог</h4>
+      <ul>{% for node in nav_tree|slice:":5" %}<li><a href="{% url 'store:category' slug=node.category_slug %}">{{ node.category_name }}</a></li>{% endfor %}</ul>
+    </div>
+    <div>
+      <h4>Покупателям</h4>
+      <ul>
+        <li><a href="{% url 'store:cart' %}">Корзина</a></li>
+        <li><a href="{% url 'store:checkout' %}">Оформление заказа</a></li>
+        <li><a href="{% url 'store:account_orders' %}">Мои заказы</a></li>
+        <li><a href="{% url 'store:offer' %}">Публичная оферта</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Оплата и доставка</h4>
+      <ul>
+        <li class="muted">Картой через ЮKassa</li>
+        <li class="muted">Самовывоз и курьер</li>
+        <li class="muted">Возврат в течение 14 дней</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom muted">© MagicTech · аксессуары для ПК · Оплата картой через ЮKassa</div>
+</div></footer>{% endblock %}
+
+{# ---------- drawer корзины: содержимое дотягивается fetch-ом (?drawer=1) ---------- #}
+<div class="drawer-backdrop" aria-hidden="true"></div>
+<aside class="drawer" data-drawer="cart" aria-label="Корзина">
+  <div class="drawer-header">
+    <h3>Корзина</h3>
+    <button class="drawer-close" type="button" data-close aria-label="Закрыть корзину">✕</button>
+  </div>
+  <div class="drawer-body"><p class="muted">Загрузка…</p></div>
+</aside>
+
 <script src="{% static 'store/store.js' %}"></script>
+<script src="{% static 'store/store-ui.js' %}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

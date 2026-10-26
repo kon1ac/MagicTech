@@ -1,13 +1,22 @@
 {% load static %}
 <article class="product-card reveal">
-  <a href="{% url 'store:product' p.product_sku %}"><img src="{{ p.main_image|default:'' }}{% if not p.main_image %}{% static 'store/placeholder.svg' %}{% endif %}" alt="{{ p.product_name }}" loading="lazy"></a>
-  <a class="name" href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a>
-  <span class="hint">{{ p.id_brand.brand_name|default:'' }}{% if p.rating_count %} · <span class="rating">★ {{ p.rating_avg }}</span> ({{ p.rating_count }}){% endif %}</span>
-  <span class="price">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% else %}—{% endif %}</span>
-  {% if p.available > 0 %}<span class="stock-ok">В наличии: {{ p.available }} шт.</span>{% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
-  <div class="actions">
-  {% if p.available > 0 and p.price_now is not None %}
-  <form method="post" action="{% url 'store:cart_add' %}">{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm btn-block">В корзину</button></form>
-  {% endif %}
+  <div class="media">
+    <a href="{% url 'store:product' p.product_sku %}"><img src="{{ p.main_image|default:'' }}{% if not p.main_image %}{% static 'store/placeholder.svg' %}{% endif %}" alt="{{ p.product_name }}" loading="lazy"></a>
   </div>
+  {% if store_user %}
+  <form method="post" action="{% url 'store:wishlist_toggle' p.product_sku %}" style="display:contents">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button class="wish-btn{% if p.id_product in wishlist %} is-on{% endif %}" type="submit" data-beat aria-label="В избранное">
+      <svg viewBox="0 0 24 24" fill="{% if p.id_product in wishlist %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>
+    </button>
+  </form>
+  {% endif %}
+  <div class="name"><a href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a></div>
+  <div class="sub">{{ p.id_brand.brand_name|default:'' }}{% if p.rating_count %} · <span class="rating">★ {{ p.rating_avg }}</span> ({{ p.rating_count }}){% endif %}</div>
+  <div class="price">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% else %}—{% endif %}</div>
+  {% if p.available > 0 %}<span class="stock-ok">В наличии: {{ p.available }} шт.</span>{% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
+  {% if p.available > 0 and p.price_now is not None %}
+  <div class="card-actions">
+    <form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm btn-block" type="submit">В корзину</button></form>
+  </div>
+  {% endif %}
 </article>

@@ -40,6 +40,52 @@ NAV = [
     ]),
 ]
 
+# Хоткеи, порождающие переход: клавиша -> URL. Единый источник истины для
+# panel.js и страницы справки — чтобы нигде не расходился список клавиш.
+HOTKEY_ROUTES = {
+    'alt+o': '/panel/orders/',
+    'alt+n': '/panel/products/new/',
+    'alt+g': '/panel/',
+    'alt+e': '/panel/products/',        # префикс: конкретный id подставляет JS
+    'i': '/panel/stock/receipt/',
+    'w': '/panel/picking/',
+}
+
+# Какое право нужно для перехода по URL-префиксу. Порядок важен: проверяется
+# первый совпавший префикс, поэтому частные пути стоят раньше общих
+# ('/panel/products/new/' раньше '/panel/products/'). Синхронизировано с
+# декораторами @permission_required в panel/views*.py — сама защита на
+# сервере, здесь только «не водить пользователя в заведомый 403».
+URL_GUARDS = [
+    ('/panel/products/new/', 'products', 'create'),
+    ('/panel/products/', 'products', 'update'),
+    ('/panel/orders/', 'orders', 'view'),
+    ('/panel/stock/receipt/', 'stock', 'receipt'),
+    ('/panel/picking/', 'stock', 'pick'),
+    ('/panel/users/', 'users', 'view'),
+    ('/panel/', 'dashboard', 'view'),
+]
+
+
+def url_guards_for(role: str) -> list[list]:
+    """[[префикс, доступна_ли], ...] в порядке URL_GUARDS — для проверки на клиенте."""
+    return [[prefix, has_permission(role, resource, action)] for prefix, resource, action in URL_GUARDS]
+
+
+def hotkeys_for(role: str) -> dict:
+    """Клавиша -> bool: какие переходы разрешены этой роли (для страницы справки).
+
+    Ключи с модификатором приводятся к виду 'alt_o': Django-шаблон не умеет
+    доставать из словаря ключи с '+'.
+    """
+    result = {}
+    for key, url in HOTKEY_ROUTES.items():
+        result[key.replace('+', '_')] = next(
+            (has_permission(role, r, a) for prefix, r, a in URL_GUARDS if url.startswith(prefix)),
+            True,
+        )
+    return result
+
 
 def panel_user(request):
     if not request.path.startswith('/panel'):
@@ -64,4 +110,7 @@ def panel_user(request):
         'panel_nav': nav,
         'panel_settings': user_settings,
         'permission_matrix': PERMISSION_MATRIX,
+        # доступность переходов по хоткеям для текущей роли (клиент + страница справки)
+        'hotkey_guards': url_guards_for(user.user_role) if user else [],
+        'hotkeys_allowed': hotkeys_for(user.user_role) if user else {},
     }

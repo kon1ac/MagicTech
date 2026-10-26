@@ -5,50 +5,102 @@
 {% block meta_extra %}{% if product.seo_keywords %}<meta name="keywords" content="{{ product.seo_keywords }}">{% endif %}{% endblock %}
 {% block content %}
 <nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a>{% for c in breadcrumbs %} › <a href="{% url 'store:category' c.category_slug %}">{{ c.category_name }}</a>{% endfor %}</nav>
+
 <div class="product-page">
-  <div class="reveal-left">
-    <div class="carousel" id="carousel">
-      {% for img in images %}<img src="{{ img.url }}" alt="{{ img.media_alt|default:product.product_name }}" class="{% if forloop.first %}active{% endif %}">{% empty %}<img src="{% static 'store/placeholder.svg' %}" alt="" class="active">{% endfor %}
-      {% if images|length > 1 %}<button class="nav prev" type="button" aria-label="Назад">‹</button><button class="nav next" type="button" aria-label="Вперёд">›</button>
-      <div class="carousel-thumbs">{% for img in images %}<img src="{{ img.url }}" alt="" data-i="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}">{% endfor %}</div>{% endif %}
+  {# ---------- галерея: зум по клику, миниатюры и стрелки листает store-ui.js ---------- #}
+  <div class="gallery reveal-left" data-gallery>
+    <div class="gallery-stage">
+      {% for img in images %}<img src="{{ img.url }}" alt="{{ img.media_alt|default:product.product_name }}" class="{% if forloop.first %}is-active{% endif %}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">{% empty %}<img src="{% static 'store/placeholder.svg' %}" alt="{{ product.product_name }}" class="is-active">{% endfor %}
+      {% if images|length > 1 %}<button class="gallery-nav prev" type="button" aria-label="Предыдущее фото">‹</button><button class="gallery-nav next" type="button" aria-label="Следующее фото">›</button>{% endif %}
     </div>
+    {% if images|length > 1 %}<div class="gallery-thumbs">{% for img in images %}<button type="button" class="{% if forloop.first %}is-active{% endif %}" aria-label="Фото {{ forloop.counter }}"><img src="{{ img.url }}" alt=""></button>{% endfor %}</div>{% endif %}
   </div>
+
+  {# ---------- липкий блок покупки: .buybox на десктопе, снизу выезжает при скролле ---------- #}
   <div class="reveal-right">
-    <div class="product-details">
-      <h1>{{ product.product_name }}</h1>
+    <h1>{{ product.product_name }}</h1>
+    <p class="hint">Артикул <code>{{ product.product_sku }}</code>{% if product.id_brand %} · <a href="{% url 'store:catalog' %}?q={{ product.id_brand.brand_name }}">{{ product.id_brand.brand_name }}</a>{% endif %}
+      {% if product.rating_count %} · <span class="rating">★ {{ product.rating_avg }} ({{ product.rating_count }}{% if product.rating_count == 1 %} отзыв{% elif product.rating_count < 5 %} отзыва{% else %} отзывов{% endif %})</span>{% endif %}</p>
+
+    <div class="buybox" data-buy-block>
+      <div class="price">{% if product.price_now is not None %}{{ product.price_now|floatformat:'2g' }} ₽{% else %}Цена по запросу{% endif %}</div>
       <div class="meta">
-        <p class="hint">Артикул <code>{{ product.product_sku }}</code>{% if product.id_brand %} · {{ product.id_brand.brand_name }}{% endif %}</p>
-        {% if product.rating_count %}<span class="rating">★ {{ product.rating_avg }} ({{ product.rating_count }} отзывов)</span>{% endif %}
+        {% if product.available > 0 %}<span class="stock-ok">В наличии: {{ product.available }} {{ product.id_unit.unit_name|default:'шт.' }}</span>
+        {% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
       </div>
-      <p class="price">{% if product.price_now is not None %}{{ product.price_now|floatformat:'2g' }} ₽{% else %}Цена по запросу{% endif %}</p>
-      {% if product.available > 0 %}<p class="stock-ok">В наличии: {{ product.available }} {{ product.id_unit.unit_name|default:'шт.' }}</p>
-      <form method="post" action="{% url 'store:cart_add' %}" class="add-to-cart-form" style="display:flex;gap:.5rem;max-width:320px">{% csrf_token %}<input type="hidden" name="sku" value="{{ product.product_sku }}"><input type="number" name="quantity" value="1" min="1" max="{{ product.available }}" style="width:80px"><button class="btn btn-primary" style="flex:1">В корзину</button></form>
-      {% else %}<p class="stock-no">Нет в наличии</p>{% endif %}
-      <form method="post" action="{% url 'store:wishlist_toggle' product.product_sku %}" style="margin-top:.75rem">{% csrf_token %}<button class="btn btn-sm">{% if in_wishlist %}♥ В избранном{% else %}♡ В избранное{% endif %}</button></form>
-      {% if characteristics %}<div class="card" style="margin-top:1.25rem"><h2 style="margin-top:0;font-size:1.05rem">Характеристики</h2><table class="chars">{% for name, value in characteristics %}<tr><td>{{ name }}</td><td>{{ value }}</td></tr>{% endfor %}</table></div>{% endif %}
+      {% if product.available > 0 and product.price_now is not None %}
+      <form method="post" action="{% url 'store:cart_add' %}" class="add-row" data-cart-add>{% csrf_token %}
+        <input type="hidden" name="sku" value="{{ product.product_sku }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <div class="qty">
+          <button type="button" data-step="-" aria-label="Меньше">−</button>
+          <input type="number" name="quantity" value="1" min="1" max="{{ product.available }}" aria-label="Количество">
+          <button type="button" data-step="+" aria-label="Больше">+</button>
+        </div>
+        <button class="btn btn-primary" type="submit">В корзину</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'store:wishlist_toggle' product.product_sku %}" style="margin-top:.75rem">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn btn-sm" type="submit" data-beat>{% if in_wishlist %}♥ В избранном{% else %}♡ В избранное{% endif %}</button>
+      </form>
     </div>
   </div>
 </div>
-{% if product.product_description %}<section class="card reveal"><h2>Описание</h2><p>{{ product.product_description|linebreaksbr }}</p></section>{% endif %}
-<section class="card reveal"><h2>Отзывы ({{ reviews|length }})</h2>
-  {% for r in reviews %}<div style="border-bottom:1px dashed var(--border);padding:.6rem 0"><strong>{{ r.id_user.profile.profile_first_name|default:'Покупатель' }}</strong> <span class="rating">{% for i in "12345" %}{% if forloop.counter <= r.review_rating %}★{% else %}☆{% endif %}{% endfor %}</span> <span class="hint">{{ r.created_at|date:'d.m.Y' }}</span>
-    <p style="margin:.3rem 0">{{ r.review_text|linebreaksbr }}</p>{% if r.review_photo %}<img src="{{ r.review_photo.url }}" alt="" style="max-height:120px;border-radius:8px">{% endif %}
-    {% if r.seller_answer %}<p class="hint">↳ Ответ MagicTech: {{ r.seller_answer }}</p>{% endif %}</div>{% empty %}<p class="muted">Отзывов пока нет.</p>{% endfor %}
-  {% if can_review %}<h3>Оставить отзыв</h3><form method="post" action="{% url 'store:product_review' product.product_sku %}" enctype="multipart/form-data" class="form" style="max-width:520px">{% csrf_token %}<input type="hidden" name="kind" value="review">{{ review_form.as_p }}<button class="btn btn-primary">Отправить на модерацию</button></form>
-  {% elif store_user %}<p class="hint">Оставить отзыв могут покупатели, получившие этот товар.</p>{% else %}<p class="hint"><a href="{% url 'store:login' %}?next={{ request.path }}">Войдите</a>, чтобы оставить отзыв или задать вопрос.</p>{% endif %}
+
+{# ---------- табы: описание / характеристики / отзывы / вопросы ---------- #}
+<section class="tabs reveal" data-tabs>
+  <div class="tabs-nav">
+    <button class="tab-btn is-active" type="button" data-tab="description">Описание</button>
+    {% if characteristics %}<button class="tab-btn" type="button" data-tab="chars">Характеристики</button>{% endif %}
+    <button class="tab-btn" type="button" data-tab="reviews">Отзывы ({{ reviews|length }})</button>
+    <button class="tab-btn" type="button" data-tab="questions">Вопросы ({{ questions|length }})</button>
+  </div>
+
+  <div class="tab-panel is-active" data-panel="description">
+    {% if product.product_description %}<div class="card"><p>{{ product.product_description|linebreaksbr }}</p></div>
+    {% else %}<p class="muted">Описание пока не заполнено.</p>{% endif %}
+  </div>
+
+  {% if characteristics %}
+  <div class="tab-panel" data-panel="chars">
+    <div class="card"><table class="chars">{% for name, value in characteristics %}<tr><td>{{ name }}</td><td>{{ value }}</td></tr>{% endfor %}</table></div>
+  </div>
+  {% endif %}
+
+  <div class="tab-panel" data-panel="reviews">
+    <div class="card">
+      {% for r in reviews %}<div style="border-bottom:1px dashed var(--border);padding:.6rem 0"><strong>{{ r.id_user.profile.profile_first_name|default:'Покупатель' }}</strong> <span class="rating">{% for i in "12345" %}{% if forloop.counter <= r.review_rating %}★{% else %}☆{% endif %}{% endfor %}</span> <span class="hint">{{ r.created_at|date:'d.m.Y' }}</span>
+        <p style="margin:.3rem 0">{{ r.review_text|linebreaksbr }}</p>{% if r.review_photo %}<img src="{{ r.review_photo.url }}" alt="" style="max-height:120px;border-radius:8px">{% endif %}
+        {% if r.seller_answer %}<p class="hint">↳ Ответ MagicTech: {{ r.seller_answer }}</p>{% endif %}</div>{% empty %}<p class="muted">Отзывов пока нет.</p>{% endfor %}
+      {% if can_review %}<h3>Оставить отзыв</h3><form method="post" action="{% url 'store:product_review' product.product_sku %}" enctype="multipart/form-data" class="form" style="max-width:520px">{% csrf_token %}<input type="hidden" name="kind" value="review">{{ review_form.as_p }}<button class="btn btn-primary">Отправить на модерацию</button></form>
+      {% elif store_user %}<p class="hint">Оставить отзыв могут покупатели, получившие этот товар.</p>{% else %}<p class="hint"><a href="{% url 'store:login' %}?next={{ request.path }}">Войдите</a>, чтобы оставить отзыв.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="questions">
+    <div class="card">
+      {% for q in questions %}<div style="border-bottom:1px dashed var(--border);padding:.5rem 0"><strong>Вопрос:</strong> {{ q.review_text }}{% if q.seller_answer %}<br><strong>Ответ:</strong> {{ q.seller_answer }}{% endif %}</div>{% empty %}<p class="muted">Вопросов пока нет.</p>{% endfor %}
+      {% if store_user %}<form method="post" action="{% url 'store:product_review' product.product_sku %}" class="form" style="max-width:520px;margin-top:.75rem">{% csrf_token %}<input type="hidden" name="kind" value="question">{{ question_form.as_p }}<button class="btn">Задать вопрос</button></form>
+      {% else %}<p class="hint"><a href="{% url 'store:login' %}?next={{ request.path }}">Войдите</a>, чтобы задать вопрос.</p>{% endif %}
+    </div>
+  </div>
 </section>
-<section class="card reveal"><h2>Вопросы о товаре</h2>
-  {% for q in questions %}<div style="border-bottom:1px dashed var(--border);padding:.5rem 0"><strong>Вопрос:</strong> {{ q.review_text }}{% if q.seller_answer %}<br><strong>Ответ:</strong> {{ q.seller_answer }}{% endif %}</div>{% empty %}<p class="muted">Вопросов пока нет.</p>{% endfor %}
-  {% if store_user %}<form method="post" action="{% url 'store:product_review' product.product_sku %}" class="form" style="max-width:520px;margin-top:.75rem">{% csrf_token %}<input type="hidden" name="kind" value="question">{{ question_form.as_p }}<button class="btn">Задать вопрос</button></form>{% endif %}
-</section>
+
 {% if recommendations %}<section class="reveal"><h2>С этим также покупают</h2><div class="grid reveal-stagger">{% for p in recommendations %}{% include 'store/_card.html' %}{% endfor %}</div></section>{% endif %}
+
+{# ---------- узкая панель покупки: появляется, когда buybox ушёл вверх ---------- #}
+{% if product.available > 0 and product.price_now is not None %}
+<div class="sticky-buy" data-sticky-buy>
+  <div class="wrap">
+    <span class="title">{{ product.product_name|truncatechars:48 }}</span>
+    <span class="sum">{{ product.price_now|floatformat:'2g' }} ₽</span>
+    <form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}
+      <input type="hidden" name="sku" value="{{ product.product_sku }}">
+      <input type="hidden" name="quantity" value="1">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn btn-primary btn-sm" type="submit">В корзину</button>
+    </form>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
-{% block scripts %}<script>
-(function () {
-  const root = document.getElementById('carousel'); if (!root) return;
-  const imgs = root.querySelectorAll(':scope > img'); const thumbs = root.querySelectorAll('.carousel-thumbs img'); let i = 0;
-  function show(n) { i = (n + imgs.length) % imgs.length; imgs.forEach((im, k) => im.classList.toggle('active', k === i)); thumbs.forEach((t, k) => t.classList.toggle('active', k === i)); }
-  root.querySelector('.prev')?.addEventListener('click', () => show(i - 1)); root.querySelector('.next')?.addEventListener('click', () => show(i + 1));
-  thumbs.forEach((t) => t.addEventListener('click', () => show(+t.dataset.i)));
-})();
-</script>{% endblock %}

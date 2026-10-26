@@ -54,8 +54,7 @@ python manage.py runserver
 
 | Email | Пароль | Роль |
 |-------|--------|------|
-| `admin@magtech.local` | `Admin123!` | Администратор |
-| `db@magtech.local` | `DbAdmin123!` | Администратор БД |
+| `admin@magtech.local` | `Admin123!` | Администратор БД |
 | `merch@magtech.local` | `Merch123!` | Товаровед |
 | `acc@magtech.local` | `Acc123!` | Бухгалтер / финансист |
 | `picker@magtech.local` | `Pick123!` | Сборщик заказов |

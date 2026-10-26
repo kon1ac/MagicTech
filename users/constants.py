@@ -6,6 +6,8 @@ ROLE_MERCHANDISER = 'MERCHANDISER'
 ROLE_ACCOUNTANT = 'ACCOUNTANT'
 ROLE_PICKER = 'PICKER'
 ROLE_CUSTOMER = 'CUSTOMER'
+# Системная роль-«призрак»: не выбирается в формах и не может войти в систему.
+ROLE_GHOST = 'GHOST'
 
 ROLE_CHOICES = [
     (ROLE_ADMIN, 'Администратор'),
@@ -15,6 +17,10 @@ ROLE_CHOICES = [
     (ROLE_PICKER, 'Сборщик заказов'),
     (ROLE_CUSTOMER, 'Покупатель'),
 ]
+
+# Служебные роли показываются в интерфейсе, но недоступны для назначения.
+ROLE_LABELS = dict(ROLE_CHOICES)
+ROLE_LABELS[ROLE_GHOST] = 'Удалённый пользователь'
 
 STAFF_ROLES = {
     ROLE_ADMIN,

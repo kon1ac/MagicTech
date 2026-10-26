@@ -22,6 +22,37 @@ class AuthCredentials(models.Model):
     def __str__(self):
         return f'{self.email} ({self.user_role})'
 
+    @classmethod
+    def get_or_create_ghost(cls):
+        """Возвращает системную учётную запись-«призрак».
+
+        Используется для переноса сиротских внешних ключей (Order.id_user,
+        Return.id_user) при удалении реального пользователя.
+        """
+        return cls.objects.get_or_create(
+            email='ghost@system.local',
+            defaults={
+                'password_hash': '',
+                'user_role': 'GHOST',
+                'is_active': False,
+            },
+        )
+
+    def transfer_orphans_to_ghost(self):
+        """Переносит заказы и возвраты на ghost-учётку перед удалением пользователя.
+
+        Вызывается ДО delete(): Order.id_user и Return.id_user стоят в RESTRICT,
+        и именно этот перенос снимает блокировку. updated_at документов не
+        сдвигаем — это не редактирование заказа, а служебная перепривязка.
+        Возвращает число перенесённых документов.
+        """
+        from shop.models import Order, Return
+
+        ghost, _ = self.get_or_create_ghost()
+        moved = Order.objects.filter(id_user=self).update(id_user=ghost)
+        moved += Return.objects.filter(id_user=self).update(id_user=ghost)
+        return moved
+
     # совместимость с DRF: аутентифицированный пользователь API
     is_authenticated = True
     is_anonymous = False

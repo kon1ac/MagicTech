@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.http import HttpRequest
 
-from users.constants import STAFF_ROLES
+from users.constants import ROLE_GHOST, STAFF_ROLES
 from users.models import AuthCredentials
 
 SESSION_USER_KEY = 'magtech_user_id'
@@ -33,7 +33,7 @@ def get_current_user(request: HttpRequest) -> AuthCredentials | None:
 
 def get_panel_user(request: HttpRequest) -> AuthCredentials | None:
     user = get_current_user(request)
-    if user is None or user.user_role not in STAFF_ROLES:
+    if user is None or user.user_role not in STAFF_ROLES or user.user_role == ROLE_GHOST:
         return None
     return user
 
@@ -45,6 +45,8 @@ def authenticate_credentials(email: str, password: str, *, staff_only: bool = Tr
         AuthCredentials().set_password(password)  # выравнивание времени ответа
         return None
     if staff_only and user.user_role not in STAFF_ROLES:
+        return None
+    if user.user_role == ROLE_GHOST:
         return None
     if not user.check_password(password):
         return None

@@ -3,7 +3,9 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Count, ProtectedError, Q, Sum
+from django.db.models.deletion import RestrictedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -15,7 +17,7 @@ from panel.listing import apply_sorting, default_filter_redirect, list_context, 
 from shop.models import Order, Payment, Product, Review, Stock
 from shop.services.audit import object_history, write_audit
 from users.auth_session import authenticate_credentials, get_panel_user, login_user, logout_user
-from users.constants import ORDER_STATUS_LABELS, ROLE_CHOICES, ROLE_LABELS
+from users.constants import ORDER_STATUS_LABELS, ROLE_CHOICES, ROLE_GHOST, ROLE_LABELS
 from users.models import AuthCredentials, SavedFilter, UserSettings
 from users.permissions import ACTION_LABELS, PERMISSION_MATRIX
 
@@ -143,23 +145,31 @@ def user_delete_view(request, pk):
     if user.pk == request.panel_user.pk:
         messages.error(request, 'Нельзя удалить собственную учётную запись.')
         return redirect('panel:user_list')
+    if user.user_role == ROLE_GHOST:
+        messages.error(request, 'Удаление системной учётной записи запрещено.')
+        return redirect('panel:user_list')
     if request.method == 'POST' and request.POST.get('confirm'):
         snapshot = {'email': user.email, 'role': user.user_role}
         try:
-            user.delete()
+            with transaction.atomic():
+                # Снимаем RESTRICT-блокировку: заказы и возвраты переезжают на ghost
+                moved = user.transfer_orphans_to_ghost()
+                user.delete()
             action, text = 'delete', 'Пользователь удалён.'
-        except ProtectedError:
-            # есть заказы/возвраты — физически удалять нельзя, деактивируем
+            after = {'moved_to_ghost': moved} if moved else None
+        except (RestrictedError, ProtectedError) as exc:
+            # Что-то не учтено в переносе — не ломаем историю, просто деактивируем
             user.is_active = False
             user.save(update_fields=['is_active', 'updated_at'])
-            action, text = 'deactivate', 'У пользователя есть заказы — учётная запись деактивирована.'
+            action, text = 'deactivate', f'У пользователя есть зависимости — учётная запись деактивирована. ({exc})'
+            after = None
         write_audit(user=request.panel_user, object_type='user', object_id=pk, action=action,
-                    before=snapshot, request=request)
+                    before=snapshot, after=after, request=request)
         messages.success(request, text)
         return redirect('panel:user_list')
     return render(request, 'panel/confirm.html', {
         'title': 'Удаление пользователя', 'object': user.email, 'back': 'panel:user_list',
-        'text': 'Учётная запись будет удалена. Если у пользователя есть заказы — она будет деактивирована.'})
+        'text': 'Учётная запись будет удалена. Заказы и возвраты перейдут на системную учётную запись.'})
 
 
 @panel_login_required

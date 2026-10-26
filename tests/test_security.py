@@ -63,6 +63,51 @@ class SecurityTests(MagicTestCase):
         self.assertEqual(self.client.get('/panel/db/').status_code, 403)  # без HTTPS — отказ
         self.assertTrue(AuditLog.objects.filter(audit_object_type='db_access', id_user=self.dbadmin).exists())
 
+    def test_dbadmin_has_every_panel_permission(self):
+        """DB_ADMIN — «царь и бог»: ни одной закрытой двери. Кроме личных действий покупателя."""
+        from users.constants import ROLE_DB_ADMIN
+        from users.permissions import PERMISSION_MATRIX, has_permission
+
+        for resource, actions in PERMISSION_MATRIX.items():
+            for action, roles in actions.items():
+                if resource == 'store':
+                    # Личные данные (отзыв/возврат/заказ от имени покупателя) — не «власть над БД»,
+                    # они и дальше проверяются матрицей и владельцем записи.
+                    expected = ROLE_DB_ADMIN in roles
+                else:
+                    expected = True
+                self.assertEqual(has_permission(ROLE_DB_ADMIN, resource, action), expected, f'{resource}.{action}')
+
+    def test_ghost_user_cannot_log_in(self):
+        ghost, _ = AuthCredentials.get_or_create_ghost()
+        self.assertEqual(ghost.password_hash, '')  # пустая строка, не None
+        self.assertEqual(ghost.user_role, 'GHOST')
+        self.assertFalse(ghost.is_active)
+
+    def test_dbadmin_deletes_buyer_with_orders_via_ghost(self):
+        """Заказ с RESTRICT-ссылкой не должен давать 500: ссылки уходят на ghost, покупатель удаляется."""
+        from users.models import AuthCredentials as AC
+
+        order, _ = self.place_order(user=self.buyer)
+        self.login_panel(self.dbadmin)
+        r = self.client.post(f'/panel/users/{self.buyer.pk}/delete/', {'confirm': '1'})
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(AuthCredentials.objects.filter(pk=self.buyer.pk).exists())
+        ghost, _ = AC.get_or_create_ghost()
+        self.assertEqual(Order.objects.get(pk=order.pk).id_user_id, ghost.pk)
+        self.assertTrue(AuditLog.objects.filter(
+            audit_object_type='user', audit_action='delete',
+            id_user=self.dbadmin, audit_after__contains='"moved_to_ghost"'
+        ).exists())
+        # страница заказа не падает: email ghost на месте
+        self.assertEqual(self.client.get(f'/panel/orders/{order.pk}/', secure=True).status_code, 200)
+
+    def test_delete_user_without_orders_is_physical(self):
+        self.login_panel(self.dbadmin)
+        r = self.client.post(f'/panel/users/{self.other_buyer.pk}/delete/', {'confirm': '1'})
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(AuthCredentials.objects.filter(pk=self.other_buyer.pk).exists())
+
     def test_csrf_enforced(self):
         client = Client(enforce_csrf_checks=True)
         r = client.post('/panel/login/', {'email': self.admin.email, 'password': PASSWORD})

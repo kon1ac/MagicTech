@@ -164,6 +164,14 @@ ACTION_LABELS = {
 
 
 def has_permission(role: str, resource: str, action: str) -> bool:
+    """Проверяет, разрешено ли роли выполнить действие на ресурсе.
+
+    DB_ADMIN — «царь и бог»: закрытых дверей перед ним нет. Оговорка одна:
+    личные действия покупателя (store.*) ему не отдаём — он отвечает за
+    целостность данных, а не за оформление чужих заказов, отзывов и возвратов.
+    """
+    if role == ROLE_DB_ADMIN and resource != 'store':
+        return True
     resource_rules = PERMISSION_MATRIX.get(resource, {})
     allowed = resource_rules.get(action, set())
     return role in allowed

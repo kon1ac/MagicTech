@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import ProtectedError, Q
+from django.db.models.deletion import RestrictedError
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
@@ -67,7 +68,7 @@ def _crud_delete(request, obj, *, object_type, back, title):
         snapshot, obj_pk = _snapshot(obj), obj.pk
         try:
             obj.delete()
-        except ProtectedError:
+        except (ProtectedError, RestrictedError):
             messages.error(request, 'Объект используется в других документах — удаление запрещено. '
                                     'Сделайте его неактивным.')
             return redirect(back)

@@ -53,9 +53,16 @@ class AuthCredentials(models.Model):
         moved += Return.objects.filter(id_user=self).update(id_user=ghost)
         return moved
 
-    # совместимость с DRF: аутентифицированный пользователь API
-    is_authenticated = True
+    # совместимость с DRF: аутентифицированный пользователь API.
+    # Property, а не константа True: экземпляр, собранный в памяти (например
+    # AuthCredentials() для выравнивания времени ответа), не должен считаться
+    # аутентифицированным. Активность учётки здесь не проверяется — её
+    # обеспечивает ApiTokenAuthentication и get_current_user.
     is_anonymous = False
+
+    @property
+    def is_authenticated(self) -> bool:
+        return self.pk is not None
 
     def set_password(self, raw_password: str) -> None:
         """Хеширует пароль и сохраняет его в password_hash."""

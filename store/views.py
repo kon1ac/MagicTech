@@ -3,7 +3,7 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -130,12 +130,17 @@ def wishlist_toggle_view(request, sku):
     if not user:
         return redirect(f'/account/login/?next=/product/{sku}/')
     product = get_object_or_404(Product, product_sku=sku)
-    item = Wishlist.objects.filter(id_user=user, id_product=product).first()
-    if item:
-        item.delete()
+    # Сначала удаляем: delete() атомарен и идемпотентен, а проверка «есть ли
+    # запись» через filter().first() + create() на двойной клик упиралась в
+    # UniqueConstraint wishlist_unique и отдавала 500.
+    deleted, _ = Wishlist.objects.filter(id_user=user, id_product=product).delete()
+    if deleted:
         messages.info(request, 'Удалено из избранного.')
     else:
-        Wishlist.objects.create(id_user=user, id_product=product)
+        try:
+            Wishlist.objects.create(id_user=user, id_product=product)
+        except IntegrityError:
+            pass  # параллельный запрос уже добавил — это и есть нужный результат
         messages.success(request, 'Добавлено в избранное.')
     return redirect(_safe_next(request, f'/product/{sku}/'))
 

@@ -75,7 +75,7 @@ def orders_csv(queryset) -> bytes:
         [o.order_number, timezone.localtime(o.created_at).strftime('%d.%m.%Y %H:%M'), o.id_user.email,
          ORDER_STATUS_LABELS.get(o.order_status, o.order_status),
          PAYMENT_METHOD_LABELS.get(o.order_payment_method, o.order_payment_method or ''),
-         o.order_payment_status or '', o.total_items, o.discount_total, o.total, o.order_channel]
+         o.order_payment_status or '', o.subtotal, o.discount_total, o.total, o.order_channel]
         for o in queryset.select_related('id_user').iterator(chunk_size=2000)
     )
     return csv_bytes(['Номер', 'Дата', 'Покупатель', 'Статус', 'Способ оплаты', 'Статус оплаты',

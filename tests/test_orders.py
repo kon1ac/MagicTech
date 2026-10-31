@@ -147,3 +147,32 @@ class PaymentTests(MagicTestCase):
             payment_service.refund(payment, Decimal('1501'), actor=self.accountant, reason='Слишком много')
         payment = payment_service.refund(payment, Decimal('1500'), actor=self.accountant, reason='Остаток')
         self.assertEqual(payment.payment_status, 'REFUNDED')
+
+    def test_payment_log_payload_is_sanitized(self):
+        """payload веб-хука приходит извне: Decimal не должен ронять запись,
+        а гигантское тело — раздувать payment_logs."""
+        _, payment = self.place_order()
+        payment_service.log(payment, 'callback', {'amount': Decimal('10.50'), 'obj': payment})
+        self.assertEqual(payment.logs.get(log_direction='callback').log_payload['amount'], '10.50')
+
+        payment_service.log(payment, 'callback', {'blob': 'x' * 200_000})
+        huge = payment.logs.get(log_direction='callback', log_payload__truncated=True).log_payload
+        self.assertTrue(huge['truncated'])
+        self.assertLess(len(str(huge)), 20_000)
+
+    def test_net_revenue_subtracts_refunds(self):
+        """Выручка дашборда — факт поступлений: возвраты вычитаются, полностью
+        возвращённый платёж даёт ноль (раньше считалось «грязными» и было завышено)."""
+        self.assertEqual(net_revenue(), Decimal('0'))
+        _, payment = self.place_order()
+        self.pay(payment)
+        self.assertEqual(net_revenue(), Decimal('2000'))
+        payment = payment_service.refund(Payment.objects.get(pk=payment.pk), Decimal('500'),
+                                         actor=self.accountant, reason='Частично')
+        self.assertEqual(net_revenue(), Decimal('1500'))
+        payment = payment_service.refund(payment, Decimal('1500'), actor=self.accountant, reason='Остаток')
+        self.assertEqual(net_revenue(), Decimal('0'))
+        # отменённый неоплаченный заказ в выручку не попадает
+        order, _ = self.place_order()
+        order_service.change_order_status(order, 'CANCELLED', actor=self.admin, reason='Передумал')
+        self.assertEqual(net_revenue(), Decimal('0'))

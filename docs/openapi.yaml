@@ -1206,7 +1206,7 @@ components:
           type: string
           format: email
           readOnly: true
-        total_items:
+        subtotal:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$

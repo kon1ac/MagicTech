@@ -25,7 +25,10 @@ def client_meta(request: HttpRequest | None) -> tuple[str | None, str | None]:
 def _dump(payload: dict[str, Any] | None) -> str | None:
     if payload is None:
         return None
-    return json.dumps(payload, ensure_ascii=False, cls=DjangoJSONEncoder)
+    # default=str — намеренно: аудит пишется внутри бизнес-транзакций
+    # (checkout, платёж, смена статуса). TypeError на случайно попавшем в
+    # snapshot объекте модели откатил бы всю операцию и показал покупателю 500.
+    return json.dumps(payload, ensure_ascii=False, cls=DjangoJSONEncoder, default=str)
 
 
 def write_audit(

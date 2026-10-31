@@ -164,7 +164,7 @@ def checkout(
         order_number=f'TMP-{cart.pk}-{timezone.now().timestamp()}',
         id_user=user,
         order_status='NEW',
-        total_items=totals.subtotal,
+        subtotal=totals.subtotal,
         discount_total=totals.discount,
         total=totals.total,
         order_payment_method=payment_method,

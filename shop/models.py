@@ -411,7 +411,7 @@ class Order(models.Model):
         related_name='orders',
     )
     order_status = models.CharField(max_length=20, default='NEW')
-    total_items = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     order_payment_method = models.CharField(max_length=30, blank=True, null=True)

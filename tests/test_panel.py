@@ -1,4 +1,5 @@
 from shop.models import Order
+from shop.services import exports
 from tests.base import MagicTestCase
 from users.models import SavedFilter, UserSettings
 
@@ -68,6 +69,18 @@ class PanelTests(MagicTestCase):
         self.assertContains(self.client.get('/panel/io/export/catalog.xml'), '<offer id="MS-001"')
         self.assertIn('MS-001', self.client.get('/panel/io/export/catalog.csv').content.decode('utf-8'))
         self.assertEqual(self.client.get('/panel/reports/sales.csv').status_code, 200)
+
+    def test_exports_have_no_n_plus_one(self):
+        """Регрессия N+1: select_related + iterator держат число запросов постоянным."""
+        self.place_order(user=self.buyer)
+        self.place_order(user=self.other_buyer, items=[(self.keyboard, 1)])
+        with self.assertNumQueries(1):
+            orders = exports.orders_csv(Order.objects.all()).decode('utf-8')
+        self.assertIn('buyer@t.local', orders)
+        self.assertIn('other@t.local', orders)
+        with self.assertNumQueries(1):
+            catalog = exports.catalog_csv().decode('utf-8')
+        self.assertIn('MS-001', catalog)
 
 
 class StoreTests(MagicTestCase):

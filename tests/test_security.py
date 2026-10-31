@@ -1,4 +1,5 @@
 from django.test import Client, override_settings
+from django.utils import timezone
 
 from shop.models import AuditLog, Order, Review
 from tests.base import PASSWORD, MagicTestCase
@@ -108,6 +109,18 @@ class SecurityTests(MagicTestCase):
         self.assertEqual(r.status_code, 302)
         self.assertFalse(AuthCredentials.objects.filter(pk=self.other_buyer.pk).exists())
 
+    def test_cannot_delete_own_account(self):
+        """Самоблокировка администратора: ни GET, ни POST не удаляют свою учётную запись."""
+        self.login_panel(self.admin)
+        for method in (self.client.get, self.client.post):
+            r = method(f'/panel/users/{self.admin.pk}/delete/', {'confirm': '1'})
+            self.assertEqual(r.status_code, 302)
+            self.assertTrue(r['Location'].endswith('/panel/users/'))
+            self.assertTrue(AuthCredentials.objects.filter(pk=self.admin.pk).exists())
+        self.assertContains(self.client.get('/panel/users/', secure=True),
+                            'Нельзя удалить собственную учётную запись')
+        self.assertFalse(AuditLog.objects.filter(audit_object_type='user', object_id=self.admin.pk).exists())
+
     def test_csrf_enforced(self):
         client = Client(enforce_csrf_checks=True)
         r = client.post('/panel/login/', {'email': self.admin.email, 'password': PASSWORD})
@@ -128,3 +141,46 @@ class SecurityTests(MagicTestCase):
     def test_open_redirect_blocked(self):
         r = self.client.post('/account/login/?next=https://evil.example/', {'email': self.buyer.email, 'password': PASSWORD})
         self.assertEqual(r['Location'], '/account/')
+
+    @override_settings(MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS=3)
+    def test_panel_login_bruteforce_lockout(self):
+        for _ in range(3):
+            r = self.client.post('/panel/login/', {'email': self.admin.email, 'password': 'Wrong123'})
+            self.assertEqual(r.status_code, 200)
+        # после лимита даже верный пароль отклоняется с 429 — вход в панель закрыт
+        r = self.client.post('/panel/login/', {'email': self.admin.email, 'password': PASSWORD}, secure=True)
+        self.assertEqual(r.status_code, 429)
+        self.assertEqual(self.client.get('/panel/', secure=True).status_code, 302)
+
+    @override_settings(MAGTECH_STORE_LOGIN_MAX_ATTEMPTS=3)
+    def test_store_login_bruteforce_lockout(self):
+        for _ in range(3):
+            r = self.client.post('/account/login/', {'email': self.buyer.email, 'password': 'Wrong123'})
+            self.assertEqual(r.status_code, 200)
+        r = self.client.post('/account/login/', {'email': self.buyer.email, 'password': PASSWORD})
+        self.assertEqual(r.status_code, 429)
+
+    @override_settings(MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS=3)
+    def test_successful_login_resets_lockout_counter(self):
+        for _ in range(2):
+            self.client.post('/panel/login/', {'email': self.admin.email, 'password': 'Wrong123'})
+        self.login_panel(self.admin)  # успешный вход обнуляет счётчик
+        self.client.post('/panel/logout/')
+        # 2 «сгоревшие» попытки не должны сложиться с новой третьей
+        r = self.client.post('/panel/login/', {'email': self.admin.email, 'password': 'Wrong123'})
+        self.assertEqual(r.status_code, 200)
+
+    def test_is_authenticated_is_property_not_constant(self):
+        """Несохранённый в БД экземпляр не должен считаться аутентифицированным."""
+        self.assertFalse(AuthCredentials().is_authenticated)
+        self.assertTrue(self.admin.is_authenticated)
+        self.assertFalse(AuthCredentials().is_anonymous)
+
+    def test_audit_survives_unserializable_payload(self):
+        """Аудит пишется внутри бизнес-транзакций: не-JSON в snapshot не должен
+        ронять операцию — значение приводится к строке."""
+        from shop.services.audit import write_audit
+
+        entry = write_audit(user=self.admin, object_type='test', object_id=self.admin.pk,
+                            action='probe', after={'order': Order.objects.first(), 'when': timezone.now()})
+        self.assertIsNotNone(entry.audit_after)

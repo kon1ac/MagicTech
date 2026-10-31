@@ -35,7 +35,7 @@ def audited_exception_handler(exc, context):
         object_type='api', object_id=None, action=f'error_{response.status_code}',
         after={'path': request.path if request else '', 'method': request.method if request else '',
                'error': str(payload['error']['message'])[:300]},
-        request=request._request if request is not None and hasattr(request, '_request') else None,
+        request=request,
     )
     response.data = payload
     return response

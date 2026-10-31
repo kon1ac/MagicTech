@@ -156,6 +156,9 @@ MAGTECH_CATALOG_CACHE_TTL = 300
 MAGTECH_STOCK_CACHE_TTL = 0
 MAGTECH_YOOKASSA_COMMISSION_PCT = 2.8
 MAGTECH_YOOKASSA_WEBHOOK_SECRET = os.environ['YOOKASSA_WEBHOOK_SECRET']
+# Максимальный размер payload в payment_logs: тело веб-хука приходит извне,
+# без ограничения одна большая запись раздувала бы таблицу логов.
+MAGTECH_PAYMENT_LOG_MAX_BYTES = 16384
 MAGTECH_BACKUP_DIR = Path(os.environ.get('MAGTECH_BACKUP_DIR', BASE_DIR / 'backups'))
 MAGTECH_ARCHIVE_AFTER_DAYS = 365
 

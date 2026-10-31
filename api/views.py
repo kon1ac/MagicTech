@@ -148,9 +148,9 @@ class MarketplaceOrdersView(MarketplaceView):
                 cart, user=customer, payment_method='marketplace', offer_accepted=True,
                 delivery_address=data['delivery_address'], contact_phone=data['contact_phone'],
                 comment=f'Маркетплейс {data["marketplace"]}', channel='marketplace',
-                external_order_id=data['external_order_id'], request=request._request)
+                external_order_id=data['external_order_id'], request=request)
             payment_service.register_marketplace_payment(order, marketplace=data['marketplace'], actor=request.user,
-                                                         request=request._request)
+                                                         request=request)
         order.refresh_from_db()
         return Response(s.OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
@@ -164,7 +164,7 @@ class MarketplaceShipView(MarketplaceView):
         ser.is_valid(raise_exception=True)
         order = order_service.confirm_shipment(order, actor=request.user,
                                                tracking_number=ser.validated_data.get('tracking_number', ''),
-                                               request=request._request)
+                                               request=request)
         return Response(s.OrderSerializer(order).data)
 
 
@@ -185,7 +185,7 @@ class MobileTokenView(APIView):
             raise ValidationError('Неверный email или пароль.')
         expires = timezone.now() + timedelta(days=30)
         token, key = ApiToken.issue(user, 'mobile-app', ['mobile'], expires_at=expires)
-        write_audit(user=user, object_type='api_token', object_id=token.pk, action='issue_mobile', request=request._request)
+        write_audit(user=user, object_type='api_token', object_id=token.pk, action='issue_mobile', request=request)
         return Response({'token': key, 'expires_at': expires})
 
 
@@ -246,7 +246,7 @@ class MobileReviewsView(APIView):
         ser.is_valid(raise_exception=True)
         review = review_service.create_review(request.user, product, rating=ser.validated_data.get('rating'),
                                               text=ser.validated_data['text'], is_question=ser.validated_data['is_question'],
-                                              request=request._request)
+                                              request=request)
         return Response(s.ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
 
 
@@ -313,7 +313,7 @@ class MobileOrdersView(MobileView):
         order, payment = order_service.checkout(
             cart, user=request.user, payment_method=data['payment_method'], offer_accepted=data['offer_accepted'],
             delivery_address=data['delivery_address'], contact_phone=data['contact_phone'],
-            comment=data.get('comment', ''), channel='mobile', request=request._request)
+            comment=data.get('comment', ''), channel='mobile', request=request)
         body = s.OrderSerializer(order).data
         if payment:
             body['payment'] = {'payment_uid': str(payment.payment_uid), 'confirmation_url': f'/pay/{payment.payment_uid}/'}
@@ -347,7 +347,7 @@ class YooKassaWebhookView(APIView):
         signature = request.headers.get('X-Signature')
         if not signature:
             raise ValidationError('Отсутствует заголовок X-Signature.')
-        payment = payment_service.process_webhook(request.body, signature, request=request._request)
+        payment = payment_service.process_webhook(request.body, signature, request=request)
         return Response({'status': 'ok', 'payment_status': payment.payment_status})
 
 
@@ -385,7 +385,7 @@ class InternalOrderStatusView(InternalView):
         if ser.validated_data['status'] == 'CANCELLED' and not has_permission(request.user.user_role, 'orders', 'cancel_critical'):
             raise PermissionDenied('Отмена — критическая операция администратора.')
         order = order_service.change_order_status(order, ser.validated_data['status'], actor=request.user,
-                                                  reason=ser.validated_data.get('reason', ''), request=request._request)
+                                                  reason=ser.validated_data.get('reason', ''), request=request)
         return Response(s.OrderSerializer(order).data)
 
 
@@ -400,7 +400,7 @@ class InternalStockReceiptView(InternalView):
         ser.is_valid(raise_exception=True)
         receive_stock(product, ser.validated_data['quantity'], actor=request.user,
                       document_number=ser.validated_data.get('document_number', ''),
-                      reason=ser.validated_data['reason'], request=request._request)
+                      reason=ser.validated_data['reason'], request=request)
         stock = Stock.objects.get(id_product=product)
         return Response({'sku': sku, 'quantity': stock.stock_quantity, 'reserved': stock.stock_reserved,
                          'available': stock.available_quantity})
@@ -416,6 +416,6 @@ class InternalStockAdjustView(InternalView):
         ser = s.StockOperationSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         stock = adjust_stock(product, ser.validated_data['quantity'], actor=request.user,
-                             reason=ser.validated_data['reason'], request=request._request)
+                             reason=ser.validated_data['reason'], request=request)
         return Response({'sku': sku, 'quantity': stock.stock_quantity, 'reserved': stock.stock_reserved,
                          'available': stock.available_quantity})

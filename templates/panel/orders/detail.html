@@ -21,7 +21,7 @@
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена на момент заказа</th><th class="num">Скидка</th><th class="num">Итого</th></tr></thead>
         <tbody>{% for item in order.items.all %}<tr><td><a href="{% url 'panel:product_edit' item.id_product_id %}">{{ item.id_product.product_sku }}</a> {{ item.id_product.product_name }}</td><td class="num">{{ item.order_item_quantity }}</td><td class="num">{% money item.order_item_price %}</td><td class="num">{% if item.order_item_discount %}−{% money item.order_item_discount %}{% endif %}</td><td class="num">{% money item.order_item_total %}</td></tr>{% endfor %}</tbody>
-        <tfoot><tr><td colspan="3">Сумма товаров {% money order.total_items %}{% for p in promotions %}<br><span class="hint">Акция «{{ p.id_promotion.promotion_name }}»: −{% money p.order_promotion_discount %}</span>{% endfor %}</td><td class="num">{% if order.discount_total %}−{% money order.discount_total %}{% endif %}</td><td class="num"><strong>{% money order.total %}</strong></td></tr></tfoot>
+        <tfoot><tr><td colspan="3">Сумма товаров {% money order.subtotal %}{% for p in promotions %}<br><span class="hint">Акция «{{ p.id_promotion.promotion_name }}»: −{% money p.order_promotion_discount %}</span>{% endfor %}</td><td class="num">{% if order.discount_total %}−{% money order.discount_total %}{% endif %}</td><td class="num"><strong>{% money order.total %}</strong></td></tr></tfoot>
       </table></div>
     </section>
     {% if can_change %}

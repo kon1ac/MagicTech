@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone
 
@@ -37,9 +38,31 @@ def verify_signature(body: bytes, signature: str | None) -> bool:
     return hmac.compare_digest(sign(body), signature)
 
 
+def _safe_payload(payload):
+    """Готовит payload к записи в payment_logs.
+
+    Тело веб-хука приходит извне и ничем не ограничено, поэтому payload
+    прогоняется через JSON round-trip: это одновременно и валидация
+    (несериализуемое значение вроде модели или Decimal не уронит обработку
+    платежа), и проверка размера (иначе один «щедрый» запрос раздул бы
+    таблицу payment_logs).
+    """
+    if payload is None:
+        return None
+    try:
+        text = json.dumps(payload, ensure_ascii=False, cls=DjangoJSONEncoder, default=str)
+    except (TypeError, ValueError):
+        return {'unserializable': str(type(payload))}
+    limit = settings.MAGTECH_PAYMENT_LOG_MAX_BYTES
+    if len(text.encode('utf-8')) > limit:
+        return {'truncated': True, 'size': len(text), 'preview': text[:limit]}
+    return json.loads(text)
+
+
 def log(payment: Payment, direction: str, payload, http_status: int | None = None) -> None:
     PaymentLog.objects.create(
-        id_payment=payment, log_direction=direction, log_payload=payload, http_status=http_status
+        id_payment=payment, log_direction=direction, log_payload=_safe_payload(payload),
+        http_status=http_status,
     )
 
 

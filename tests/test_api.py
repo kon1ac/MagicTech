@@ -1,4 +1,6 @@
 
+from decimal import Decimal
+
 from rest_framework.test import APIClient
 
 from shop.models import AuditLog, Order
@@ -105,6 +107,15 @@ class ApiTests(MagicTestCase):
         self.assertEqual(r.status_code, 400)  # перескок этапа
         r = self.api.post(f'/api/v1/internal/orders/{order.order_number}/status/', {'status': 'CONFIRMED'}, format='json')
         self.assertEqual(r.status_code, 200)
+
+    def test_order_contract_uses_subtotal(self):
+        """Сумма товаров до скидки отдаётся как subtotal; старое имя total_items ушло из контракта."""
+        order, _ = self.place_order()
+        self.auth(self.mp_key)
+        row = next(r for r in self.api.get('/api/v1/internal/orders/').json()['results']
+                   if r['order_number'] == order.order_number)
+        self.assertEqual(Decimal(row['subtotal']), order.subtotal)
+        self.assertNotIn('total_items', row)
 
     def test_openapi_schema(self):
         r = self.client.get('/api/schema/')

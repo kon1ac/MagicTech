@@ -77,6 +77,14 @@ ORDER_RE = re.compile(r'MT-\d{6}-\d{6}', re.IGNORECASE)
 class Table:
     headers: list[str]
     rows: list[list[str]] = field(default_factory=list)
+    # физические номера строк в файле (1-based), параллельно rows: отчёт об
+    # ошибках должен указывать на строку, которую пользователь видит в Excel
+    row_numbers: list[int] = field(default_factory=list)
+
+    def numbered_rows(self):
+        """Пары (номер строки в файле, значения) — нумерация не сбивается пустыми строками."""
+        numbers = self.row_numbers or list(range(2, len(self.rows) + 2))
+        return zip(numbers, self.rows)
 
 
 def read_table(data: bytes, filename: str) -> Table:
@@ -88,7 +96,13 @@ def read_table(data: bytes, filename: str) -> Table:
         values = [['' if c is None else str(c) for c in row] for row in sheet.iter_rows(values_only=True)]
         if not values:
             raise ValidationError('Файл пуст.')
-        return Table(headers=[h.strip() for h in values[0]], rows=values[1:MAX_ROWS + 1])
+        body = values[1:]
+        if len(body) > MAX_ROWS:
+            # раньше XLSX молча обрезался, а CSV падал с ошибкой — поведение
+            # должно быть одинаковым, иначе часть товаров тихо не загружалась
+            raise ValidationError(f'Слишком много строк (максимум {MAX_ROWS}).')
+        return Table(headers=[h.strip() for h in values[0]], rows=body,
+                     row_numbers=list(range(2, len(body) + 2)))
     for encoding in ('utf-8-sig', 'cp1251'):
         try:
             text = data.decode(encoding)
@@ -100,12 +114,23 @@ def read_table(data: bytes, filename: str) -> Table:
     sample = text[:4096]
     delimiter = ';' if sample.count(';') >= sample.count(',') else ','
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
-    rows = [row for row in reader if any(cell.strip() for cell in row)]
-    if not rows:
+    rows, numbers = [], []
+    header = None
+    for line_no, row in enumerate(reader, start=1):
+        if header is None:
+            if not any(cell.strip() for cell in row):
+                continue  # пустые строки до заголовка
+            header = row
+            continue
+        if not any(cell.strip() for cell in row):
+            continue  # пустая строка внутри файла — не сдвигаем нумерацию
+        rows.append(row)
+        numbers.append(line_no)
+    if header is None:
         raise ValidationError('Файл пуст.')
-    if len(rows) - 1 > MAX_ROWS:
+    if len(rows) > MAX_ROWS:
         raise ValidationError(f'Слишком много строк (максимум {MAX_ROWS}).')
-    return Table(headers=[h.strip() for h in rows[0]], rows=rows[1:])
+    return Table(headers=[h.strip() for h in header], rows=rows, row_numbers=numbers)
 
 
 def guess_mapping(headers: list[str], fields: dict) -> dict[str, int | None]:
@@ -169,7 +194,7 @@ def import_products(table: Table, mapping: dict, *, actor, file_name: str, reque
     started = time.monotonic()
     _check_mapping(mapping, PRODUCT_REQUIRED, PRODUCT_FIELDS)
     errors, parsed, seen_sku, seen_ean = [], [], {}, {}
-    for n, row in enumerate(table.rows, start=2):  # строка 1 — заголовок
+    for n, row in table.numbered_rows():  # строка 1 — заголовок
         def err(msg, n=n):
             errors.append({'row': n, 'error': msg})
 
@@ -340,7 +365,7 @@ def import_stock(table: Table, mapping: dict, *, actor, file_name: str, default_
     started = time.monotonic()
     _check_mapping(mapping, STOCK_REQUIRED, STOCK_FIELDS)
     rows, errors = [], []
-    for n, row in enumerate(table.rows, start=2):
+    for n, row in table.numbered_rows():
         sku = _cell(row, mapping['sku'])
         try:
             qty = int(_cell(row, mapping['quantity']))
@@ -402,7 +427,7 @@ def import_prices(table: Table, mapping: dict, *, actor, file_name: str, request
     started = time.monotonic()
     _check_mapping(mapping, PRICE_REQUIRED, PRICE_FIELDS)
     rows, errors = [], []
-    for n, row in enumerate(table.rows, start=2):
+    for n, row in table.numbered_rows():
         sku = _cell(row, mapping['sku'])
         try:
             price = _decimal(_cell(row, mapping['price'])).quantize(Decimal('0.01'))
@@ -463,7 +488,7 @@ def import_bank_statement(table: Table, mapping: dict, *, actor, file_name: str,
             BankStatementLine.objects.filter(match_status='matched').values_list('id_order_id', flat=True)
         )
         lines = []
-        for n, row in enumerate(table.rows, start=2):
+        for n, row in table.numbered_rows():
             raw = dict(zip(table.headers, row))
             text = _cell(row, mapping['order_number'])
             found = ORDER_RE.search(text)

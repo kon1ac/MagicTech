@@ -1,5 +1,8 @@
 """Публичная часть: витрина, карточка товара, корзина, оформление, оплата, личный кабинет."""
 
+from functools import wraps
+
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -45,6 +48,14 @@ def _cart(request, create=True):
 
 
 def login_required_store(view):
+    """Вход обязателен: иначе редирект на страницу входа с возвратом обратно.
+
+    functools.wraps (а не ручное копирование __name__) — иначе теряются
+    __qualname__, __doc__ и __wrapped__, и Django не видит атрибуты,
+    проставленные декораторами ниже (require_http_methods, require_POST).
+    """
+
+    @wraps(view)
     def wrapper(request, *args, **kwargs):
         user = get_current_user(request)
         if not user:
@@ -52,7 +63,6 @@ def login_required_store(view):
         request.store_user = user
         return view(request, *args, **kwargs)
 
-    wrapper.__name__ = view.__name__
     return wrapper
 
 
@@ -66,7 +76,7 @@ def catalog_view(request, slug=None):
     qs, category, facets = catalog.search(filters)
     if filters['category'] and category is None:
         raise Http404('Категория не найдена')
-    page = Paginator(qs.prefetch_related('media'), 50).get_page(request.GET.get('page'))
+    page = Paginator(qs.prefetch_related('media'), settings.MAGTECH_CATALOG_PAGE_SIZE).get_page(request.GET.get('page'))
     user = get_current_user(request)
     wishlist = set(Wishlist.objects.filter(id_user=user).values_list('id_product', flat=True)) if user else set()
     query = request.GET.copy()
@@ -86,10 +96,11 @@ def product_view(request, sku):
     user = get_current_user(request)
     reviews = (Review.objects.filter(id_product=product, review_status='approved')
                .select_related('id_user__profile').order_by('-created_at'))
-    char_names = catalog.filterable_characteristics()
-    from shop.models import Characteristic
-
-    char_names.update({c.char_code: c.char_name for c in Characteristic.objects.all()})
+    # Копируем словарь из кеша: filterable_characteristics() отдаёт тот же самый
+    # объект всем запросам, и update() на нём отравил бы кеш полным списком
+    # характеристик до истечения TTL.
+    char_names = {**catalog.filterable_characteristics(),
+                  **{c.char_code: c.char_name for c in Characteristic.objects.all()}}
     return render(request, 'store/product.html', {
         'product': product, 'images': product.media.all(),
         'characteristics': [(char_names.get(k, k), v) for k, v in (product.product_characteristics or {}).items()],
@@ -278,12 +289,13 @@ def pay_view(request, uid):
 
 @require_http_methods(['GET', 'POST'])
 def login_view(request):
-    blocked_for = store_login_guard.lockout_for(request)
+    form = LoginForm(request.POST or None)
+    email = form.cleaned_data['email'] if request.method == 'POST' and form.is_valid() else ''
+    blocked_for = store_login_guard.lockout_for(request, email)
     if blocked_for:
         messages.error(request, f'Слишком много неудачных попыток входа. Повторите через {blocked_for} сек.')
-        return render(request, 'store/login.html', {'form': LoginForm(), 'next': request.GET.get('next', '')},
+        return render(request, 'store/login.html', {'form': form, 'next': request.GET.get('next', '')},
                       status=429)
-    form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         guest_key = request.session.session_key
         email = form.cleaned_data['email']

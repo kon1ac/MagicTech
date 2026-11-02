@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import shutil
 import subprocess
@@ -20,6 +21,8 @@ from django.utils import timezone
 
 from shop.models import ArchivedOrder, ArchiveAccessGrant, BackupRecord, Order, ScheduledJob
 from shop.services.audit import write_audit
+
+logger = logging.getLogger('magictech')
 
 # Таблицы с персональными данными пользователей ИС и где лежат файлы
 USER_DATA_MAP = [
@@ -200,6 +203,7 @@ def create_backup(kind: str = 'full', *, actor=None, request=None) -> BackupReco
     elif kind == 'schema':
         cmd += ['--schema-only']
     record = BackupRecord(backup_kind=kind, file_path=str(path), id_user=actor)
+    extra_path = None
     try:
         proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=3600)
         if kind == 'schema' and proc.returncode == 0:
@@ -209,10 +213,20 @@ def create_backup(kind: str = 'full', *, actor=None, request=None) -> BackupReco
                 ref += ['-t', table]
             proc2 = subprocess.run(ref, env=env, capture_output=True, text=True, timeout=3600)
             proc = proc if proc2.returncode == 0 else proc2
+            if proc2.returncode == 0:
+                extra_path = data_path
+            else:
+                # второй дамп не удался — файл на диске остался бы сиротой
+                data_path.unlink(missing_ok=True)
         record.backup_status = 'success' if proc.returncode == 0 else 'failed'
         record.backup_output = (proc.stderr or proc.stdout or '')[-4000:]
     except (subprocess.TimeoutExpired, OSError) as exc:
         record.backup_status, record.backup_output = 'failed', str(exc)
+    if extra_path is not None:
+        # путь к данным справочников фиксируем в записи, иначе его не найти
+        # при восстановлении: на диске файл есть, а в БД о нём ничего нет
+        marker = f'refdata: {extra_path}'
+        record.backup_output = f'{marker}\n{record.backup_output or ""}'.strip()
     if record.backup_status == 'success' and path.exists():
         record.file_size = path.stat().st_size
         record.checksum = _sha256(path)
@@ -324,32 +338,56 @@ def _order_snapshot(order: Order) -> dict:
                   for i in order.items.select_related('id_product')],
         'payments': [model_to_dict(p) | {'payment_uid': str(p.payment_uid)} for p in order.payments.all()],
         'returns': [model_to_dict(r, exclude=['return_photo']) for r in order.returns.all()],
+        # движения склада переживают архивацию (id_order у них отвязывается),
+        # поэтому их координаты фиксируются в снимке
+        'stock_movements': [
+            {'type': m.movement_type, 'quantity': m.movement_quantity, 'after': m.quantity_after,
+             'reserved_after': m.reserved_after, 'sku': m.id_product.product_sku,
+             'document': m.document_number, 'reason': m.movement_reason, 'at': m.created_at}
+            for m in order.stock_movements.select_related('id_product')
+        ],
         'created_at': order.created_at,
     }
     return json.loads(json.dumps(data, cls=DjangoJSONEncoder))
 
 
-@transaction.atomic
 def archive_old_orders(days: int | None = None, *, actor=None, request=None, limit: int = 5000) -> int:
-    """Переносит закрытые заказы старше N дней в orders_archive (JSON-снимок) и удаляет из рабочих таблиц."""
+    """Переносит закрытые заказы старше N дней в orders_archive (JSON-снимок) и удаляет из рабочих таблиц.
+
+    Каждый заказ — в своей транзакции: сбой на одном не должен откатывать
+    уже перенесённые в архив. Платежи не удаляются: Payment.id_order —
+    SET_NULL, деньги и payment_logs остаются в БД после архивации заказа.
+    """
     days = days or settings.MAGTECH_ARCHIVE_AFTER_DAYS
     cutoff = timezone.now() - timedelta(days=days)
-    qs = Order.objects.filter(order_status__in=['COMPLETED', 'CANCELLED', 'RETURNED'], updated_at__lt=cutoff)
+    ids = list(Order.objects.filter(
+        order_status__in=['COMPLETED', 'CANCELLED', 'RETURNED'], updated_at__lt=cutoff
+    ).values_list('pk', flat=True)[:limit])
     count = 0
-    for order in qs.select_related('id_user')[:limit]:
-        ArchivedOrder.objects.create(
-            original_order_id=order.pk, order_number=order.order_number, customer_email=order.id_user.email,
-            order_total=order.total, order_created_at=order.created_at, archive_payload=_order_snapshot(order),
-            archived_by=actor,
-        )
-        order.stock_movements.update(id_order=None)
-        for ret in order.returns.all():
-            ret.items.all().delete()
-        order.returns.all().delete()
-        order.reviews.update(id_order=None)
-        order.items.all().delete()
-        order.delete()
-        count += 1
+    for order_id in ids:
+        try:
+            with transaction.atomic():
+                order = (Order.objects.select_related('id_user')
+                         .prefetch_related('payments', 'returns__items', 'items__id_product').get(pk=order_id))
+                ArchivedOrder.objects.create(
+                    original_order_id=order.pk, order_number=order.order_number,
+                    customer_email=order.id_user.email, order_total=order.total,
+                    order_created_at=order.created_at, archive_payload=_order_snapshot(order),
+                    archived_by=actor,
+                )
+                # платежи не трогаем (id_order станет NULL каскадом SET_NULL) —
+                # это финансовые документы, они обязаны пережить архивацию
+                for ret in order.returns.all():
+                    ret.items.all().delete()
+                order.returns.all().delete()
+                order.reviews.update(id_order=None)
+                order.items.all().delete()
+                order.delete()
+            count += 1
+        except Order.DoesNotExist:
+            continue
+        except Exception:
+            logger.exception('archive_old_orders: пропущен заказ %s', order_id)
     write_audit(user=actor, object_type='archive', object_id=None, action='archive_orders',
                 after={'archived': count, 'older_than_days': days}, request=request)
     return count
@@ -389,6 +427,9 @@ def _cron_field_matches(expr: str, value: int, low: int, high: int) -> bool:
         if '/' in part:
             part, step_s = part.split('/')
             step = int(step_s)
+            if step <= 0:
+                # */0 иначе роняет проверку ZeroDivisionError на %
+                raise ValueError('Шаг cron-выражения должен быть положительным.')
         if part == '*':
             start, end = low, high
         elif '-' in part:
@@ -401,7 +442,10 @@ def _cron_field_matches(expr: str, value: int, low: int, high: int) -> bool:
 
 
 def cron_matches(expr: str, moment: datetime) -> bool:
-    minute, hour, dom, month, dow = expr.split()
+    fields = expr.split()
+    if len(fields) != 5:
+        raise ValueError('Ожидается 5 полей: мин час день месяц день_недели.')
+    minute, hour, dom, month, dow = fields
     return (
         _cron_field_matches(minute, moment.minute, 0, 59)
         and _cron_field_matches(hour, moment.hour, 0, 23)

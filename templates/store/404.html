@@ -1,0 +1,9 @@
+{% extends 'store/base.html' %}
+{% block title %}Страница не найдена{% endblock %}
+{% block content %}
+<h1 class="reveal">404 — страница не найдена</h1>
+<section class="card reveal">
+  <p>Возможно, товар снят с продажи или ссылка устарела.</p>
+  <div class="card-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}">В каталог</a></div>
+</section>
+{% endblock %}

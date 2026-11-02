@@ -65,6 +65,12 @@ class ReviewForm(forms.Form):
     text = forms.CharField(label='Отзыв', widget=forms.Textarea(attrs={'rows': 3}), max_length=5000)
     photo = forms.ImageField(label='Фото (необязательно)', required=False)
 
+    def clean_photo(self):
+        from shop.validators import validate_image
+
+        file = self.cleaned_data.get('photo')
+        return validate_image(file) if file else file
+
 
 class QuestionForm(forms.Form):
     text = forms.CharField(label='Вопрос о товаре', widget=forms.Textarea(attrs={'rows': 2}), max_length=2000)

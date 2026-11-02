@@ -135,9 +135,7 @@ def db_job_action_view(request, pk):
         schedule = request.POST.get('schedule', '').strip()
         try:
             dbadmin.cron_matches(schedule, timezone.localtime())
-            if len(schedule.split()) != 5:
-                raise ValueError
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, ZeroDivisionError):
             messages.error(request, 'Некорректное cron-выражение (5 полей: мин час день месяц день_недели).')
             return redirect('panel:db_jobs')
         before = job.job_schedule
@@ -214,9 +212,15 @@ def archive_view(request):
         if not has_permission(role, 'db', 'archive') or not request.POST.get('confirm'):
             messages.error(request, 'Недостаточно прав или нет подтверждения.')
         else:
-            days = int(request.POST.get('days') or 365)
-            count = dbadmin.archive_old_orders(max(days, 30), actor=actor, request=request)
-            messages.success(request, f'Заархивировано заказов: {count}.')
+            try:
+                days = int(request.POST.get('days') or 365)
+            except ValueError:
+                days = 0
+            if not 30 <= days <= 3650:
+                messages.error(request, 'Глубина архивации — целое число от 30 до 3650 дней.')
+            else:
+                count = dbadmin.archive_old_orders(days, actor=actor, request=request)
+                messages.success(request, f'Заархивировано заказов: {count}.')
         return redirect('panel:archive')
     return render(request, 'panel/db/archive.html', {
         'page_obj': paginate(request, qs, actor), 'q': q, 'grant_form': grant_form,

@@ -23,7 +23,7 @@ for _env_var in ('DJANGO_SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'YOOK
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
 _ALLOWED_HOSTS_RAW = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
 ALLOWED_HOSTS = [h.strip() for h in _ALLOWED_HOSTS_RAW.split(',') if h.strip()] if _ALLOWED_HOSTS_RAW else (['127.0.0.1'] if DEBUG else [])
@@ -142,14 +142,41 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# Загружаемое изображение товара/аватара: без лимита один файл на 200 МБ
+# кладётся в MEDIA_ROOT и тянет за собой квоту диска
+MAGTECH_MAX_IMAGE_MB = int(os.environ.get('MAGTECH_MAX_IMAGE_MB', 5))
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# ---------------------------------------------------------------- безопасность
+# HTTP-заголовки — только когда за приложением стоит HTTPS-ингress (nginx/cloud LB)
+MAGTECH_HTTPS = os.environ.get('MAGTECH_HTTPS', '0') == '1'
+if MAGTECH_HTTPS:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Почта: console-бэкенд годится только для разработки. В бою задаются
+# EMAIL_BACKEND/SMTP-параметры через окружение, иначе письма о заказах
+# просто печатаются в лог.
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 25))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', '0') == '1'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@magictech.local')
 
 MAGTECH_PANEL_LOGIN_URL = '/panel/login/'
 
 # Бизнес-параметры
 MAGTECH_CART_RESERVATION_MINUTES = 20
 MAGTECH_ORDER_PAYMENT_TIMEOUT_MINUTES = 30
+# Резерв под заказ «при получении» тоже конечён: иначе не выкупленный заказ
+# держал бы товар на складе неограниченно долго (по умолчанию — 3 дня)
+MAGTECH_COD_RESERVE_MINUTES = int(os.environ.get('MAGTECH_COD_RESERVE_MINUTES', 4320))
 MAGTECH_MIN_ORDER_TOTAL = 300
 MAGTECH_CATALOG_PAGE_SIZE = 50
 MAGTECH_CATALOG_CACHE_TTL = 300
@@ -168,6 +195,16 @@ MAGTECH_LOGIN_FAIL_WINDOW_SECONDS = 900
 MAGTECH_LOGIN_MAX_IP = int(os.environ.get('MAGTECH_LOGIN_MAX_IP', 20))
 MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS', 5))
 MAGTECH_STORE_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_STORE_LOGIN_MAX_ATTEMPTS', 10))
+
+# X-Forwarded-For доверять только за своим прокси (nginx/ELB), который его
+# перезаписывает. Без этого заголовок подделывается и ломает аудит (inet) и
+# лимиты перебора по IP.
+MAGTECH_TRUST_XFF = os.environ.get('MAGTECH_TRUST_XFF', '0') == '1'
+
+# Аудит ошибок API: только содержательные коды (403/409/422/500) для
+# авторизованных вызовов и не чаще раза в минуту на пару «пользователь+код».
+# 401/404 от ботов в журнал больше не попадают.
+MAGTECH_API_ERROR_AUDIT = os.environ.get('MAGTECH_API_ERROR_AUDIT', '1') == '1'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['api.auth.ApiTokenAuthentication'],

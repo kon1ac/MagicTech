@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from urllib.parse import urlencode
 
 from django.core.paginator import Paginator
@@ -11,6 +12,20 @@ from django.shortcuts import redirect
 from users.models import SavedFilter, UserSettings
 
 FILTER_IGNORED = {'page', 'per_page'}
+
+
+def parse_date_param(raw: str | None):
+    """ISO-дата из query-параметра или None.
+
+    Фильтры вида created_at__date__gte падают ValidationError уже на рендере
+    шаблона (queryset ленивый), поэтому мусорное значение отсекаем сразу.
+    """
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw.strip())
+    except ValueError:
+        return None
 
 
 def apply_sorting(request, qs, allowed: dict[str, str], default: str):

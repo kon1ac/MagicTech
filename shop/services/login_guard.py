@@ -15,10 +15,12 @@ import time
 from django.conf import settings
 from django.core.cache import cache
 
+from shop.services.net import client_ip
+
 
 def _client_ip(request) -> str:
-    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    return (xff.split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')) or 'unknown'
+    """Валидный IP либо 'unknown' — ключ счётчика не должен зависеть от XFF-мусора."""
+    return client_ip(request) or 'unknown'
 
 
 class LoginGuard:
@@ -56,9 +58,11 @@ class LoginGuard:
             if fails >= self.max_attempts:
                 cache.set(f'login:{self.scope}:lock:{ident}', time.time() + self.window, self.window)
 
-    def lockout_for(self, request, email: str = '') -> int | None:
+    def lockout_for(self, request, email: str) -> int | None:
         """Секунд до разблокировки; None, если вход не заблокирован."""
-        for ident in self._identifiers(email, request):
+        email = (email or '').strip().lower()
+        idents = self._identifiers(email, request)
+        for ident in idents:
             until = cache.get(f'login:{self.scope}:lock:{ident}')
             if until:
                 left = int(until - time.time())

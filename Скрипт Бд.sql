@@ -141,7 +141,7 @@ CREATE TABLE orders (
     order_number            VARCHAR(50) NOT NULL UNIQUE,
     id_user                 BIGINT NOT NULL,
     order_status            VARCHAR(20) NOT NULL DEFAULT 'NEW',
-    total_items             NUMERIC(12,2) NOT NULL DEFAULT 0,
+    subtotal              NUMERIC(12,2) NOT NULL DEFAULT 0,
     discount_total          NUMERIC(12,2) NOT NULL DEFAULT 0,
     total                   NUMERIC(12,2) NOT NULL DEFAULT 0,
     order_payment_method    VARCHAR(30),
@@ -400,7 +400,7 @@ INSERT INTO carts (id_cart, id_user, cart_session_id, cart_status, created_at, u
 (5, 4, 'sess_customer_004', 'saved',     '2026-10-15 12:00:00', '2026-10-15 12:30:00');
 
 -- 10. orders (Заказы) — все id_user = 4 (Покупатель)
-INSERT INTO orders (id_order, order_number, id_user, order_status, total_items, discount_total, total, order_payment_method, order_payment_status, created_at, updated_at) VALUES
+INSERT INTO orders (id_order, order_number, id_user, order_status, subtotal, discount_total, total, order_payment_method, order_payment_status, created_at, updated_at) VALUES
 (1, 'MT-2026-0001', 4, 'COMPLETED', 13980.00, 0.00,    13980.00, 'online_yookassa', 'SUCCESS',  '2026-10-01 10:00:00', '2026-10-05 12:00:00'),
 (2, 'MT-2026-0002', 4, 'PAID',      8990.00,  899.00,  8091.00,  'online_yookassa', 'SUCCESS',  '2026-10-10 14:00:00', '2026-10-10 14:05:00'),
 (3, 'MT-2026-0003', 4, 'ASSEMBLY',  2490.00,  500.00,  1990.00,  'online_yookassa', 'SUCCESS',  '2026-10-18 16:00:00', '2026-10-19 09:00:00'),

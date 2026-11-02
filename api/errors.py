@@ -1,11 +1,23 @@
 """Единый формат ошибок API + запись ошибок в аудит."""
 
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from shop.services.audit import write_audit
+
+# Аудит нужен для разбора инцидентов, а не как лог доступа. 401/404 от
+# сканеров и ботов писались на каждый запрос и забивали журнал, поэтому
+# аудитируются только «содержательные» ошибки авторизованных вызовов.
+AUDITED_STATUSES = {403, 409, 422, 500}
+
+
+def _should_audit(response, user) -> bool:
+    if not getattr(settings, 'MAGTECH_API_ERROR_AUDIT', False):
+        return False
+    return response.status_code in AUDITED_STATUSES and bool(getattr(user, 'pk', None))
 
 
 def audited_exception_handler(exc, context):
@@ -30,12 +42,13 @@ def audited_exception_handler(exc, context):
         }
     }
     user = getattr(request, 'user', None) if request else None
-    write_audit(
-        user=user if getattr(user, 'pk', None) else None,
-        object_type='api', object_id=None, action=f'error_{response.status_code}',
-        after={'path': request.path if request else '', 'method': request.method if request else '',
-               'error': str(payload['error']['message'])[:300]},
-        request=request,
-    )
+    if _should_audit(response, user):
+        write_audit(
+            user=user,
+            object_type='api', object_id=None, action=f'error_{response.status_code}',
+            after={'path': request.path if request else '', 'method': request.method if request else '',
+                   'error': str(payload['error']['message'])[:300]},
+            request=request,
+        )
     response.data = payload
     return response

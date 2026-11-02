@@ -9,15 +9,15 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpRequest
 
 from shop.models import AuditLog
+from shop.services.net import client_ip
 from users.models import AuthCredentials
 
 
 def client_meta(request: HttpRequest | None) -> tuple[str | None, str | None]:
+    """Возвращает (ip, ua). IP берётся безопасно через shop.services.net.client_ip."""
     if not request:
         return None, None
-    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get(
-        'REMOTE_ADDR'
-    )
+    ip = client_ip(request)
     ua = request.META.get('HTTP_USER_AGENT', '')[:500]
     return ip or None, ua or None
 
@@ -45,9 +45,9 @@ def write_audit(
     ip, ua = client_meta(request)
     return AuditLog.objects.create(
         id_user=user if isinstance(user, AuthCredentials) else None,
-        audit_object_type=object_type,
+        audit_object_type=object_type[:50],
         object_id=object_id,
-        audit_action=action,
+        audit_action=action[:50],
         audit_before=_dump(before),
         audit_after=_dump(after),
         audit_reason=(reason or None) and reason[:500],

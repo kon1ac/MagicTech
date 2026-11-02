@@ -2,9 +2,10 @@
 
 import secrets
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema
@@ -73,9 +74,15 @@ class MarketplaceProductsView(MarketplaceView):
         since = request.query_params.get('updated_since')
         if since:
             try:
-                qs = qs.filter(updated_at__gte=timezone.datetime.fromisoformat(since))
+                parsed = timezone.datetime.fromisoformat(since)
             except ValueError as exc:
                 raise ValidationError('updated_since: ожидается ISO-дата') from exc
+            if timezone.is_naive(parsed):
+                # USE_TZ=True: naive-дата даёт RuntimeWarning и сравнение в
+                # локальной зоне — трактуем как UTC явно, чтобы фильтр был верным.
+                # timezone.utc из django.utils.timezone удалён в Django 6.
+                parsed = timezone.make_aware(parsed, dt_timezone.utc)
+            qs = qs.filter(updated_at__gte=parsed)
         paginator = Pagination()
         page = paginator.paginate_queryset(qs, request, view=self)
         return paginator.get_paginated_response(s.ProductSerializer(page, many=True).data)
@@ -128,29 +135,38 @@ class MarketplaceOrdersView(MarketplaceView):
         ser = s.MarketplaceOrderSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        if Order.objects.filter(order_channel='marketplace', external_order_id=data['external_order_id']).exists():
+
+        def conflict():
             return Response({'error': {'code': 'conflict', 'status': 409, 'message': 'Заказ уже загружен'}},
                             status=status.HTTP_409_CONFLICT)
-        with transaction.atomic():
-            customer, created = AuthCredentials.objects.get_or_create(
-                email=data['customer_email'].lower(), defaults={'user_role': ROLE_CUSTOMER})
-            if created:
-                customer.set_password(secrets.token_urlsafe(16))
-                customer.save()
-                UserProfiles.objects.create(id_user=customer, profile_phone=data['contact_phone'])
-            cart = Cart.objects.create(id_user=None, cart_session_id=f'mp-{data["external_order_id"]}'[:100])
-            for item in data['items']:
-                product = Product.objects.filter(product_sku=item['sku'], is_active=True).first()
-                if not product:
-                    raise ValidationError(f'Товар {item["sku"]} не найден')
-                cart_service.add_item(cart, product, item['quantity'])
-            order, _ = order_service.checkout(
-                cart, user=customer, payment_method='marketplace', offer_accepted=True,
-                delivery_address=data['delivery_address'], contact_phone=data['contact_phone'],
-                comment=f'Маркетплейс {data["marketplace"]}', channel='marketplace',
-                external_order_id=data['external_order_id'], request=request)
-            payment_service.register_marketplace_payment(order, marketplace=data['marketplace'], actor=request.user,
-                                                         request=request)
+
+        if Order.objects.filter(order_channel='marketplace', external_order_id=data['external_order_id']).exists():
+            return conflict()
+        try:
+            with transaction.atomic():
+                customer, created = AuthCredentials.objects.get_or_create(
+                    email=data['customer_email'].lower(), defaults={'user_role': ROLE_CUSTOMER})
+                if created:
+                    customer.set_password(secrets.token_urlsafe(16))
+                    customer.save()
+                    UserProfiles.objects.create(id_user=customer, profile_phone=data['contact_phone'])
+                cart = Cart.objects.create(id_user=None, cart_session_id=f'mp-{data["external_order_id"]}'[:100])
+                for item in data['items']:
+                    product = Product.objects.filter(product_sku=item['sku'], is_active=True).first()
+                    if not product:
+                        raise ValidationError(f'Товар {item["sku"]} не найден')
+                    cart_service.add_item(cart, product, item['quantity'])
+                order, _ = order_service.checkout(
+                    cart, user=customer, payment_method='marketplace', offer_accepted=True,
+                    delivery_address=data['delivery_address'], contact_phone=data['contact_phone'],
+                    comment=f'Маркетплейс {data["marketplace"]}', channel='marketplace',
+                    external_order_id=data['external_order_id'], request=request)
+                payment_service.register_marketplace_payment(order, marketplace=data['marketplace'],
+                                                             actor=request.user, request=request)
+        except IntegrityError:
+            # гонка двух выгрузок с одним external_order_id: побеждает первая,
+            # частичный unique orders_channel_external_id_uniq гасит вторую
+            return conflict()
         order.refresh_from_db()
         return Response(s.OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 

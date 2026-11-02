@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from shop.models import Cart, CartItem, Product, Reservation
@@ -25,7 +25,15 @@ def get_cart(*, user=None, session_key: str | None = None, create: bool = True) 
     elif session_key:
         cart = qs.filter(cart_session_id=session_key, id_user__isnull=True).first()
     if cart is None and create:
-        cart = Cart.objects.create(id_user=user, cart_session_id=None if user else session_key)
+        try:
+            cart = Cart.objects.create(id_user=user, cart_session_id=None if user else session_key)
+        except IntegrityError:
+            # параллельный запрос уже создал активную корзину — берём её
+            if user is not None:
+                cart = Cart.objects.filter(cart_status='active', id_user=user).order_by('-updated_at').first()
+            elif session_key:
+                cart = Cart.objects.filter(cart_status='active', cart_session_id=session_key,
+                                           id_user__isnull=True).first()
     return cart
 
 

@@ -188,6 +188,11 @@ def facets(scope, filters) -> dict:
     )
     chars = defaultdict(dict)
     if raw:
+        # {sql} — SQL, сгенерированный Django ORM (sql_with_params), а не строка
+        # из запроса пользователя; значения по-прежнему уходят плейсхолдерами %s.
+        # Подзапрос держим внутри СУБД: вытаскивать id товаров в Python и
+        # разворачивать их в IN (…) нельзя — на каталоге в десятки тысяч
+        # позиций запрос деградирует и упирается в лимиты параметров.
         sql, params = raw
         with connection.cursor() as cursor:
             cursor.execute(

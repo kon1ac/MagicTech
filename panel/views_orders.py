@@ -10,7 +10,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from panel.decorators import panel_login_required, permission_required
 from panel.forms import BulkStatusForm, OrderStatusForm, StockAdjustForm, StockReceiptForm
-from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate
+from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate, parse_date_param as _parse_date_param
 from shop.models import Order, Product, Stock, StockMovement
 from shop.services import exports, orders as order_service, payments as payment_service
 from shop.services.audit import object_history, write_audit
@@ -34,10 +34,10 @@ def _order_queryset(request):
         qs = qs.filter(order_payment_method=request.GET['payment'])
     if request.GET.get('paid') in ('1', '0'):
         qs = qs.filter(order_payment_status='SUCCESS') if request.GET['paid'] == '1' else qs.exclude(order_payment_status='SUCCESS')
-    if request.GET.get('from'):
-        qs = qs.filter(created_at__date__gte=request.GET['from'])
-    if request.GET.get('to'):
-        qs = qs.filter(created_at__date__lte=request.GET['to'])
+    if (parsed := _parse_date_param(request.GET.get('from'))):
+        qs = qs.filter(created_at__date__gte=parsed)
+    if (parsed := _parse_date_param(request.GET.get('to'))):
+        qs = qs.filter(created_at__date__lte=parsed)
     if request.GET.get('channel'):
         qs = qs.filter(order_channel=request.GET['channel'])
     return qs, q, statuses

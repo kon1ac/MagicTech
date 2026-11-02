@@ -92,7 +92,11 @@ def _pdf_font():
         if path.exists():
             pdfmetrics.registerFont(TTFont('MTSans', str(path)))
             return 'MTSans'
-    return 'Helvetica'  # кириллица не отобразится — положите шрифт в static/fonts/DejaVuSans.ttf
+    # DejaVuSans.ttf лежит в репозитории (static/fonts/, лицензия — там же),
+    # поэтому PDF одинаково читаемы и на Windows, и на Linux без системного
+    # шрифта. Helvetica — последний запасной вариант: кириллицы в нём нет,
+    # вместо букв будут пустые места.
+    return 'Helvetica'
 
 
 def invoice_pdf(order: Order) -> bytes:

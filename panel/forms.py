@@ -1,6 +1,7 @@
 import json
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from shop.models import (
@@ -12,6 +13,7 @@ from shop.models import (
     ReturnReason,
     Unit,
 )
+from shop.validators import validate_image, validate_upload
 from users.constants import API_SCOPES, ROLE_CHOICES, ROLE_CUSTOMER, STAFF_ROLES
 from users.models import AuthCredentials, UserProfiles, UserSettings
 
@@ -237,6 +239,10 @@ class ProductImageForm(forms.Form):
             raise ValidationError('Загрузите файл или укажите URL.')
         return data
 
+    def clean_media_file(self):
+        file = self.cleaned_data.get('media_file')
+        return validate_image(file) if file else file
+
 
 class PromotionForm(forms.ModelForm):
     products = forms.ModelMultipleChoiceField(
@@ -412,23 +418,25 @@ class UserSettingsForm(forms.ModelForm):
                   'hotkeys_enabled': 'Горячие клавиши включены'}
 
 
+MAX_UPLOAD_BYTES = 30 * 1024 * 1024
+ALLOWED_UPLOAD_SUFFIXES = ('.csv', '.txt', '.xlsx', '.xlsm')
+
+
 class ImportUploadForm(forms.Form):
     KINDS = [('products', 'Товары'), ('stock', 'Остатки'), ('prices', 'Цены')]
     kind = forms.ChoiceField(label='Что импортируем', choices=KINDS)
     file = forms.FileField(label='Файл CSV (UTF-8 / Windows-1251, разделитель ; или ,) или XLSX')
 
     def clean_file(self):
-        f = self.cleaned_data['file']
-        if f.size > 30 * 1024 * 1024:
-            raise ValidationError('Файл больше 30 МБ.')
-        if not f.name.lower().endswith(('.csv', '.txt', '.xlsx')):
-            raise ValidationError('Допустимы файлы .csv или .xlsx.')
-        return f
+        return validate_upload(self.cleaned_data['file'])
 
 
 class StatementUploadForm(forms.Form):
     source = forms.ChoiceField(label='Источник', choices=[('bank', 'Банковская выписка'), ('acquiring', 'Реестр эквайринга')])
     file = forms.FileField(label='Файл CSV или XLSX (номер заказа/назначение, сумма, дата)')
+
+    def clean_file(self):
+        return validate_upload(self.cleaned_data['file'])
 
 
 class ApiTokenForm(forms.Form):

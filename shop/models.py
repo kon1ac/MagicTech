@@ -108,13 +108,22 @@ class Category(models.Model):
         return list(reversed(chain))
 
     def descendant_ids(self):
-        ids, frontier = [self.pk], [self.pk]
+        """Возвращает все id дочерних категорий (рекурсия через BFS).
+
+        Защита от бесконечного цикла при наличии циклических ссылок
+        в графе категорий (id_parent → parent → id_parent).
+        """
+        ids, frontier, visited = set(), {self.pk}, {self.pk}
         while frontier:
-            frontier = list(
-                Category.objects.filter(id_parent__in=frontier).values_list('pk', flat=True)
-            )
-            ids.extend(frontier)
-        return ids
+            next_frontier = set()
+            for pid in frontier:
+                for child_id in Category.objects.filter(id_parent__in=frontier).values_list('pk', flat=True):
+                    if child_id not in visited:
+                        visited.add(child_id)
+                        next_frontier.add(child_id)
+                        ids.add(child_id)
+            frontier = next_frontier
+        return list(ids)
 
 
 class Characteristic(models.Model):
@@ -359,6 +368,9 @@ class Stock(models.Model):
             models.UniqueConstraint(fields=['id_product'], name='stock_one_per_product'),
             models.CheckConstraint(condition=models.Q(stock_quantity__gte=0), name='stock_quantity_non_negative'),
             models.CheckConstraint(condition=models.Q(stock_reserved__gte=0), name='stock_reserved_non_negative'),
+            # остаток не может быть меньше резерва — защита от расхождений
+            models.CheckConstraint(condition=models.Q(stock_reserved__lte=models.F('stock_quantity')),
+                                   name='stock_reserved_le_quantity'),
         ]
         verbose_name = 'Остаток'
         verbose_name_plural = 'Остатки'
@@ -393,6 +405,23 @@ class Cart(models.Model):
         db_table = 'carts'
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзины'
+        constraints = [
+            # активная корзина одна на покупателя и одна на гостевую сессию:
+            # без этого параллельные запросы рождали по второй корзине у одного
+            # пользователя, и резервы/суммы расходились
+            models.UniqueConstraint(
+                fields=['id_user'],
+                condition=models.Q(cart_status='active') & ~models.Q(id_user__isnull=True),
+                name='carts_one_active_per_user',
+            ),
+            models.UniqueConstraint(
+                fields=['cart_session_id'],
+                condition=(models.Q(cart_status='active')
+                           & ~models.Q(cart_session_id__isnull=True)
+                           & ~models.Q(cart_session_id='')),
+                name='carts_one_active_per_session',
+            ),
+        ]
 
     def __str__(self):
         owner = self.id_user.email if self.id_user else self.cart_session_id
@@ -436,6 +465,15 @@ class Order(models.Model):
             models.Index(fields=['order_status', '-created_at'], name='orders_status_created_idx'),
             models.Index(fields=['id_user', '-created_at'], name='orders_user_created_idx'),
         ]
+        constraints = [
+            # заказ с маркетплейса обязан быть один на внешний id: без этого
+            # повторная выгрузка площадки рождала дубль при гонке двух запросов
+            models.UniqueConstraint(
+                fields=['order_channel', 'external_order_id'],
+                condition=~models.Q(external_order_id__isnull=True) & ~models.Q(external_order_id=''),
+                name='orders_channel_external_id_uniq',
+            ),
+        ]
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
 
@@ -449,7 +487,9 @@ class Payment(models.Model):
     id_payment = models.BigAutoField(primary_key=True)
     id_order = models.ForeignKey(
         Order,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         db_column='id_order',
         related_name='payments',
     )
@@ -670,7 +710,10 @@ class CartItem(models.Model):
     class Meta:
         db_table = 'cart_items'
         verbose_name = 'Позиция корзины'
-        verbose_name_plural = 'Позиции корзин'
+        verbose_name_plural = 'Позиции корзины'
+        constraints = [
+            models.UniqueConstraint(fields=['id_cart', 'id_product'], name='cart_items_one_row_per_product'),
+        ]
 
     def __str__(self):
         return f'Корзина {self.id_cart} — {self.id_product} x{self.cart_item_quantity}'
@@ -878,6 +921,17 @@ class Reservation(models.Model):
     class Meta:
         db_table = 'reservations'
         indexes = [models.Index(fields=['reservation_status', 'expires_at'], name='reservations_expiry_idx')]
+        constraints = [
+            # у корзины не может быть двух активных резервов на один товар —
+            # иначе stock_reserved расходится с суммой резервов
+            models.UniqueConstraint(
+                fields=['id_cart', 'id_product'],
+                condition=(models.Q(reservation_status='active')
+                           & models.Q(id_order__isnull=True)
+                           & ~models.Q(id_cart__isnull=True)),
+                name='reservations_one_active_per_cart_product',
+            ),
+        ]
         verbose_name = 'Резерв'
         verbose_name_plural = 'Резервы'
 

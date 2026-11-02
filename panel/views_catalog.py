@@ -2,8 +2,7 @@
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import ProtectedError, Q
-from django.db.models.deletion import RestrictedError
+from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
@@ -35,6 +34,7 @@ from shop.models import (
 from shop.services import pricing
 from shop.services.audit import object_history, write_audit
 from shop.services.catalog import available_subquery, invalidate_catalog_cache
+from shop.services.errors import PROTECTED_ERRORS
 
 
 def _snapshot(obj, exclude=()):
@@ -68,7 +68,7 @@ def _crud_delete(request, obj, *, object_type, back, title):
         snapshot, obj_pk = _snapshot(obj), obj.pk
         try:
             obj.delete()
-        except (ProtectedError, RestrictedError):
+        except PROTECTED_ERRORS:
             messages.error(request, 'Объект используется в других документах — удаление запрещено. '
                                     'Сделайте его неактивным.')
             return redirect(back)
@@ -381,7 +381,7 @@ def product_bulk_view(request):
                 return redirect(back)
             try:
                 Product.objects.filter(pk__in=ids).delete()
-            except ProtectedError:
+            except PROTECTED_ERRORS:
                 transaction.set_rollback(True)
                 messages.error(request, 'Часть товаров есть в заказах — удалить нельзя. Используйте архивацию.')
                 return redirect(back)

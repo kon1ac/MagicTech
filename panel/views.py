@@ -2,8 +2,7 @@
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, ProtectedError, Q
-from django.db.models.deletion import RestrictedError
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -14,6 +13,7 @@ from panel.forms import LoginForm, UserForm, UserSettingsForm
 from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate
 from shop.models import Order, Product, Review, Stock
 from shop.services.audit import object_history, write_audit
+from shop.services.errors import PROTECTED_ERRORS
 from shop.services.login_guard import login_guard
 from shop.services.reports import net_revenue
 from users.auth_session import authenticate_credentials, get_panel_user, login_user, logout_user
@@ -26,11 +26,14 @@ from users.permissions import ACTION_LABELS, PERMISSION_MATRIX
 def login_view(request):
     if get_panel_user(request):
         return redirect('panel:dashboard')
-    blocked_for = login_guard.lockout_for(request)
+    form = LoginForm(request.POST or None)
+    email = ''
+    if request.method == 'POST' and form.is_valid():
+        email = form.cleaned_data['email']
+    blocked_for = login_guard.lockout_for(request, email)
     if blocked_for:
         messages.error(request, f'Слишком много неудачных попыток входа. Повторите через {blocked_for} сек.')
-        return render(request, 'panel/login.html', {'form': LoginForm()}, status=429)
-    form = LoginForm(request.POST or None)
+        return render(request, 'panel/login.html', {'form': form}, status=429)
     if request.method == 'POST' and form.is_valid():
         email = form.cleaned_data['email']
         user = authenticate_credentials(email, form.cleaned_data['password'])
@@ -163,7 +166,7 @@ def user_delete_view(request, pk):
                 user.delete()
             action, text = 'delete', 'Пользователь удалён.'
             after = {'moved_to_ghost': moved} if moved else None
-        except (RestrictedError, ProtectedError) as exc:
+        except PROTECTED_ERRORS as exc:
             # Что-то не учтено в переносе — не ломаем историю, просто деактивируем
             user.is_active = False
             user.save(update_fields=['is_active', 'updated_at'])
@@ -308,4 +311,10 @@ def command_search_view(request):
 
 
 def permission_denied_view(request, exception=None):
-    return render(request, 'panel/403.html', {'message': str(exception or '')}, status=403)
+    """403 в стиле того контура, куда пришёл запрос.
+
+    Раньше шаблон был один — панельный, и покупатель витрины получал
+    админский экран с чужим меню.
+    """
+    template = 'panel/403.html' if request.path.startswith('/panel/') else 'store/403.html'
+    return render(request, template, {'message': str(exception or '')}, status=403)

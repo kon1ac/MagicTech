@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import F
+from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from shop.models import Cart, Order, OrderItem, OrderPromotion, Product, Promotion, Reservation
@@ -75,6 +76,8 @@ def change_order_status(
             stock_service.restore_written_off(order, actor=actor, reason=reason)
         stock_service.release_order_reservations(order, actor=actor, reason='Отмена заказа')
         _cancel_pending_payments(order)
+    if new_status in {'CANCELLED', 'RETURNED'}:
+        _release_promotion_usage(order)
     order.order_status = new_status
     order.save(update_fields=['order_status', 'updated_at'])
     write_audit(
@@ -85,10 +88,31 @@ def change_order_status(
     return order
 
 
+def _release_promotion_usage(order: Order) -> None:
+    """Возврат использования промокодов при отмене/возврате заказа.
+
+    Без этого usage_count растёт и на отменённых заказах, и лимит
+    (usage_limit) промоакции расходовался впустую.
+    """
+    promo_ids = OrderPromotion.objects.filter(
+        id_order=order, id_promotion__promotion_promo_code__gt='',
+    ).values_list('id_promotion', flat=True)
+    for promo_id in promo_ids:
+        Promotion.objects.filter(pk=promo_id).update(
+            usage_count=Greatest(F('usage_count') - 1, 0)
+        )
+
+
 def _cancel_pending_payments(order: Order) -> None:
-    order.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
+    """Помечает неоплаченные платежи отменёнными вместе с заказом.
+
+    Статус именно CANCELLED, а не FAILED: веб-хук об успешной оплате может
+    прийти уже после отмены, и обработчик должен суметь это распознать,
+    зафиксировать поступление и вернуть деньги.
+    """
+    order.payments.filter(payment_status='PENDING').update(payment_status='CANCELLED')
     if order.order_payment_status == 'PENDING':
-        order.order_payment_status = 'FAILED'
+        order.order_payment_status = 'CANCELLED'
         order.save(update_fields=['order_payment_status'])
 
 
@@ -159,7 +183,14 @@ def checkout(
         raise ValidationError(f'Минимальная сумма заказа — {settings.MAGTECH_MIN_ORDER_TOTAL} ₽.')
 
     online = payment_method == 'card_online'
-    due = timezone.now() + timedelta(minutes=settings.MAGTECH_ORDER_PAYMENT_TIMEOUT_MINUTES) if online else None
+    # Для оплаты при получении тоже ставится срок: без него резерв под такой
+    # заказ оставался бы бессрочным и вымирал бы со склада
+    if online:
+        due = timezone.now() + timedelta(minutes=settings.MAGTECH_ORDER_PAYMENT_TIMEOUT_MINUTES)
+    elif payment_method == 'cash_on_delivery':
+        due = timezone.now() + timedelta(minutes=settings.MAGTECH_COD_RESERVE_MINUTES)
+    else:
+        due = None
     order = Order.objects.create(
         order_number=f'TMP-{cart.pk}-{timezone.now().timestamp()}',
         id_user=user,
@@ -227,29 +258,49 @@ def checkout(
     return order, payment
 
 
-@transaction.atomic
 def expire_unpaid_orders(now=None) -> int:
-    """Cron: отменяет онлайн-заказы, не оплаченные за отведённое время, и снимает их резерв."""
+    """Cron: отменяет онлайн-заказы, не оплаченные за отведённое время, и снимает их резерв.
+
+    Каждый заказ — в своей транзакции: ошибка на одном (например, снятие
+    резерва при уже удалённом товаре) не должна откатывать уже отменённые
+    заказы и обрывать батч.
+    """
     now = now or timezone.now()
     count = 0
-    for order in Order.objects.filter(
-        order_status='NEW', order_payment_method='card_online', payment_due_at__lt=now
-    ):
-        change_order_status(order, 'CANCELLED', actor=None, reason='Истёк срок оплаты', system=True)
-        count += 1
+    for order_id in list(Order.objects.filter(
+        order_status='NEW', order_payment_method__in=('card_online', 'cash_on_delivery'),
+        payment_due_at__lt=now,
+    ).values_list('pk', flat=True)):
+        try:
+            with transaction.atomic():
+                change_order_status(Order.objects.get(pk=order_id), 'CANCELLED', actor=None,
+                                    reason='Истёк срок оплаты', system=True)
+            count += 1
+        except (Order.DoesNotExist, ValidationError):
+            logger.warning('expire_unpaid_orders: пропущен заказ %s', order_id, exc_info=True)
     return count
 
 
-@transaction.atomic
 def release_expired_cart_reservations(now=None) -> int:
-    """Cron: снимает просроченные резервы корзин."""
+    """Cron: снимает просроченные резервы корзин. По одному резерву на транзакцию."""
     now = now or timezone.now()
     count = 0
-    for reservation in Reservation.objects.filter(
+    for reservation_id in list(Reservation.objects.filter(
         reservation_status='active', id_cart__isnull=False, expires_at__lt=now
-    ):
-        stock_service.release(reservation, status='expired', reason='Истёк таймаут резерва корзины')
-        count += 1
+    ).values_list('pk', flat=True)):
+        try:
+            with transaction.atomic():
+                reservation = Reservation.objects.get(pk=reservation_id)
+                if reservation.reservation_status != 'active':
+                    continue  # сняли параллельной операцией
+                stock_service.release(reservation, status='expired',
+                                      reason='Истёк таймаут резерва корзины')
+            count += 1
+        except Reservation.DoesNotExist:
+            continue
+        except ValidationError:
+            logger.warning('release_expired_cart_reservations: пропущен резерв %s',
+                           reservation_id, exc_info=True)
     return count
 
 

@@ -12,7 +12,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from panel.decorators import panel_login_required, permission_required
 from panel.forms import ImportUploadForm, ReviewModerationForm
-from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate
+from panel.listing import (
+    apply_sorting,
+    default_filter_redirect,
+    list_context,
+    paginate,
+    parse_date_param as _parse_date,
+)
 from shop.models import AuditLog, ImportJob, Review
 from shop.services import exports, imports, reports, reviews as review_service
 from shop.services.audit import write_audit
@@ -78,10 +84,17 @@ REPORT_EXPORTS = {
 }
 
 
+TOP_BY_CHOICES = ('revenue', 'qty', 'margin', 'returns')
+CATALOG_EXPORT_FORMATS = ('csv', 'xml')
+
+
 def _report_data(request):
     date_from, date_to = reports.period_bounds(request.GET)
     group = request.GET.get('group', 'day') if request.GET.get('group') in ('day', 'week', 'month') else 'day'
+    # whitelist: произвольное значение уронило бы charts['top'] KeyError'ем на r[top_by]
     top_by = request.GET.get('top_by', 'revenue')
+    if top_by not in TOP_BY_CHOICES:
+        top_by = 'revenue'
     return {
         'date_from': date_from, 'date_to': date_to, 'group': group, 'top_by': top_by,
         'sales': reports.sales_by_period(date_from, date_to, group),
@@ -159,12 +172,26 @@ def io_index_view(request):
     return render(request, 'panel/io/index.html', {'form': form, 'page_obj': paginate(request, jobs, request.panel_user)})
 
 
+def _check_kind_permission(request, kind: str) -> bool:
+    """Права проверяются по виду импорта: вид хранится в сессии и подменяется вручную."""
+    from users.permissions import has_permission
+
+    perm = PERMS.get(kind)
+    return bool(perm and has_permission(request.panel_user.user_role, *perm))
+
+
 @panel_login_required
 @permission_required('products', 'import')
 def io_mapping_view(request):
     """Шаг 2: предпросмотр и сопоставление колонок. Шаг 3 (POST): валидация и транзакционная запись."""
     upload = request.session.get('import_upload')
     if not upload:
+        return redirect('panel:io_index')
+    if not _check_kind_permission(request, upload['kind']):
+        # декор permissions пропускает по products/import, а stock и prices
+        # требуют своих прав — вид берётся из сессии, поэтому проверяем снова
+        messages.error(request, 'Недостаточно прав для этого вида импорта.')
+        request.session.pop('import_upload', None)
         return redirect('panel:io_index')
     path = _upload_dir() / f'{upload["token"]}{upload["suffix"]}'
     if not path.exists():
@@ -218,6 +245,10 @@ def io_job_view(request, pk):
 @panel_login_required
 @permission_required('products', 'export')
 def export_catalog_view(request, fmt):
+    # fmt приходит из URL (str:) — без whitelist action='catalog_<мусор>' пробивал
+    # varchar(50) у audit_action и валил экспорт в DataError
+    if fmt not in CATALOG_EXPORT_FORMATS:
+        raise Http404
     write_audit(user=request.panel_user, object_type='export', object_id=None, action=f'catalog_{fmt}', request=request)
     if fmt == 'xml':
         response = HttpResponse(exports.catalog_xml(request.build_absolute_uri('/').rstrip('/')),
@@ -261,10 +292,10 @@ def _audit_queryset(request):
         qs = qs.filter(id_user__email__icontains=request.GET['user'])
     if request.GET.get('ip'):
         qs = qs.filter(audit_ip=request.GET['ip'])
-    if request.GET.get('from'):
-        qs = qs.filter(created_at__date__gte=request.GET['from'])
-    if request.GET.get('to'):
-        qs = qs.filter(created_at__date__lte=request.GET['to'])
+    if (parsed := _parse_date(request.GET.get('from'))):
+        qs = qs.filter(created_at__date__gte=parsed)
+    if (parsed := _parse_date(request.GET.get('to'))):
+        qs = qs.filter(created_at__date__lte=parsed)
     return qs
 
 

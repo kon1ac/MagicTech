@@ -18,7 +18,6 @@ ROLE_CHOICES = [
     (ROLE_CUSTOMER, 'Покупатель'),
 ]
 
-# Служебные роли показываются в интерфейсе, но недоступны для назначения.
 ROLE_LABELS = dict(ROLE_CHOICES)
 ROLE_LABELS[ROLE_GHOST] = 'Удалённый пользователь'
 
@@ -29,8 +28,6 @@ STAFF_ROLES = {
     ROLE_ACCOUNTANT,
     ROLE_PICKER,
 }
-
-ROLE_LABELS = dict(ROLE_CHOICES)
 
 ORDER_STATUS_FLOW = {
     'NEW': {'PAID', 'CONFIRMED', 'CANCELLED'},
@@ -62,6 +59,7 @@ PAYMENT_STATUS_LABELS = {
     'PENDING': 'Ожидает',
     'SUCCESS': 'Успешно',
     'FAILED': 'Ошибка',
+    'CANCELLED': 'Отменён вместе с заказом',
     'REFUNDED': 'Возвращён',
     'PARTIALLY_REFUNDED': 'Частичный возврат',
 }

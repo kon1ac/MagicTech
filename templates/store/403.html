@@ -1,0 +1,9 @@
+{% extends 'store/base.html' %}
+{% block title %}Нет доступа{% endblock %}
+{% block content %}
+<h1 class="reveal">403 — нет доступа</h1>
+<section class="card reveal">
+  <p>{{ message|default:'У вас нет прав на эту страницу.' }}</p>
+  <div class="card-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}">В каталог</a></div>
+</section>
+{% endblock %}

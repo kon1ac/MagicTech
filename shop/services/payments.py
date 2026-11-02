@@ -124,7 +124,7 @@ def process_webhook(body: bytes, signature: str | None, *, request=None) -> Paym
     if not payment:
         raise ValidationError('Платёж не найден.')
     log(payment, 'callback', data, 200)
-    if payment.payment_status != 'PENDING':
+    if payment.payment_status not in {'PENDING', 'CANCELLED'}:
         return payment  # идемпотентность
     if Decimal(str(obj.get('amount', {}).get('value', '0'))) != payment.payment_amount:
         raise ValidationError('Сумма уведомления не совпадает с суммой платежа.')
@@ -142,13 +142,17 @@ def _mark_success(payment: Payment, *, requisites=None, actor=None, request=None
     from shop.services.orders import change_order_status
 
     order = Order.objects.select_for_update().get(pk=payment.id_order_id)
-    if order.order_status == 'CANCELLED':
-        raise ValidationError('Заказ уже отменён — оплату нужно вернуть покупателю.')
     payment.payment_status = 'SUCCESS'
     payment.paid_at = timezone.now()
     payment.payment_commission = commission_for(payment.payment_amount) if payment.payment_provider == 'yookassa' else 0
     payment.payment_requisites = requisites
     payment.save()
+    if order.order_status in {'CANCELLED', 'RETURNED'}:
+        # Деньги уже списаны, а заказа больше нет: молча отклонять веб-хук нельзя —
+        # покупатель остался бы без товара и без денег. Фиксируем поступление и
+        # сразу оформляем полный возврат.
+        _auto_refund_cancelled(payment, order, reason=reason, request=request)
+        return
     order.order_payment_status = 'SUCCESS'
     order.paid_at = payment.paid_at
     order.save(update_fields=['order_payment_status', 'paid_at', 'updated_at'])
@@ -159,6 +163,20 @@ def _mark_success(payment: Payment, *, requisites=None, actor=None, request=None
     write_audit(user=actor, object_type='payment', object_id=payment.id_payment, action='success',
                 after={'amount': payment.payment_amount, 'order': order.order_number}, reason=reason,
                 request=request)
+
+
+def _auto_refund_cancelled(payment: Payment, order: Order, *, reason='', request=None) -> None:
+    """Оплата поступила после отмены заказа — сразу возвращаем деньги."""
+    payment.payment_refund_amount = payment.payment_amount
+    payment.payment_status = 'REFUNDED'
+    payment.save(update_fields=['payment_refund_amount', 'payment_status', 'updated_at'])
+    log(payment, 'request', {'refund': {'amount': str(payment.payment_amount),
+                                        'reason': 'Автовозврат: заказ отменён'}})
+    log(payment, 'response', {'status': 'succeeded'}, 200)
+    write_audit(user=None, object_type='payment', object_id=payment.id_payment, action='auto_refund',
+                after={'amount': payment.payment_amount, 'order': order.order_number,
+                       'order_status': order.order_status},
+                reason=f'Оплата отменённого заказа: {reason}'.strip(': '), request=request)
 
 
 def _mark_failed(payment: Payment, *, request=None) -> None:
@@ -228,6 +246,9 @@ def refund(payment: Payment, amount, *, actor, reason: str, request=None) -> Pay
     amount = money(amount)
     if payment.payment_status not in {'SUCCESS', 'PARTIALLY_REFUNDED'}:
         raise ValidationError('Возврат возможен только по успешному платежу.')
+    if payment.payment_amount <= 0:
+        # ниже идёт расчёт потерянной комиссии с делением на сумму платежа
+        raise ValidationError('Сумма платежа нулевая — возврат невозможен, проверьте платёж вручную.')
     already = payment.payment_refund_amount or Decimal('0')
     if amount <= 0 or amount > payment.payment_amount - already:
         raise ValidationError(f'Сумма возврата должна быть от 0,01 до {payment.payment_amount - already} ₽.')

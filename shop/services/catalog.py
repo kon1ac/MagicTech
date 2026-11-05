@@ -175,7 +175,13 @@ def search(filters: dict):
 
 def facets(scope, filters) -> dict:
     """Динамические фильтры: показываются только значения, реально встречающиеся в выборке."""
-    raw = scope.values('pk').query.sql_with_params() if is_postgres() else None
+    raw = None
+    if is_postgres():
+        try:
+            raw = scope.values('pk').query.sql_with_params()
+        except Exception:
+            # пустая выборка (например, несуществующая категория) → фасеты пустые
+            raw = None
     key_src = f"{filters['category']}|{filters['q']}|{cache.get('catalog:facet_version', 0)}"
     key = 'catalog:facets:' + hashlib.md5(key_src.encode()).hexdigest()
     data = cache.get(key)

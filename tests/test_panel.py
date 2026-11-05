@@ -1,7 +1,7 @@
 from shop.models import Order
 from shop.services import exports
 from tests.base import MagicTestCase
-from users.models import SavedFilter, UserSettings
+from users.models import AuthCredentials, SavedFilter, UserSettings
 
 
 class PanelTests(MagicTestCase):
@@ -81,6 +81,15 @@ class PanelTests(MagicTestCase):
         with self.assertNumQueries(1):
             catalog = exports.catalog_csv().decode('utf-8')
         self.assertIn('MS-001', catalog)
+
+    def test_cannot_delete_own_account(self):
+        """panel/views.py::user_delete_view: ветка 'нельзя удалить себя' покрыта."""
+        self.login_panel(self.admin)
+        r = self.client.post(f'/panel/users/{self.admin.pk}/delete/', {'confirm': '1'})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(AuthCredentials.objects.filter(pk=self.admin.pk).exists())
+        messages = list(r.wsgi_request._messages)
+        self.assertTrue(any('собственную' in str(m.message) for m in messages))
 
 
 class StoreTests(MagicTestCase):

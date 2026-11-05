@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods, require_POST
 
-from shop.models import Order, Product, Return, ReturnReason, Review, Wishlist
+from shop.models import Category, Characteristic, Order, Product, Return, ReturnReason, Review, Wishlist
 from shop.services import (
     cart as cart_service,
     catalog,

@@ -108,12 +108,16 @@ class Category(models.Model):
         return list(reversed(chain))
 
     def descendant_ids(self):
-        """Возвращает все id дочерних категорий (рекурсия через BFS).
+        """Возвращает id самой категории и всех её потомков (BFS).
+
+        Сама категория включена намеренно: фильтр каталога по листовой
+        категории (без детей) иначе отдавал бы пустой список, а
+        CategoryForm без себя мог бы выбрать родителя-самого себя.
 
         Защита от бесконечного цикла при наличии циклических ссылок
         в графе категорий (id_parent → parent → id_parent).
         """
-        ids, frontier, visited = set(), {self.pk}, {self.pk}
+        ids, frontier, visited = {self.pk}, {self.pk}, {self.pk}
         while frontier:
             next_frontier = set()
             for pid in frontier:

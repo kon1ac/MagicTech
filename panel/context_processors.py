@@ -43,10 +43,10 @@ NAV = [
 # Хоткеи, порождающие переход: клавиша -> URL. Единый источник истины для
 # panel.js и страницы справки — чтобы нигде не расходился список клавиш.
 HOTKEY_ROUTES = {
-    'alt+o': '/panel/orders/',
-    'alt+n': '/panel/products/new/',
-    'alt+g': '/panel/',
-    'alt+e': '/panel/products/',        # префикс: конкретный id подставляет JS
+    'ctrl+alt+o': '/panel/orders/',
+    'ctrl+alt+n': '/panel/products/new/',
+    'ctrl+alt+g': '/panel/',
+    'ctrl+alt+e': '/panel/products/',  # префикс: конкретный id подставляет JS
     'i': '/panel/stock/receipt/',
     'w': '/panel/picking/',
 }
@@ -75,7 +75,7 @@ def url_guards_for(role: str) -> list[list]:
 def hotkeys_for(role: str) -> dict:
     """Клавиша -> bool: какие переходы разрешены этой роли (для страницы справки).
 
-    Ключи с модификатором приводятся к виду 'alt_o': Django-шаблон не умеет
+    Ключи с модификатором приводятся к виду 'ctrl_alt_o': Django-шаблон не умеет
     доставать из словаря ключи с '+'.
     """
     result = {}

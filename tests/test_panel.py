@@ -117,8 +117,10 @@ class StoreTests(MagicTestCase):
         self.assertContains(self.client.get(f'/account/orders/{order.order_number}/'), order.order_number)
 
     def test_register_and_wishlist(self):
-        r = self.client.post('/account/register/', {'email': 'new@t.local', 'first_name': 'Новый', 'password': 'Secret123',
-                                                    'password2': 'Secret123'})
+        r = self.client.post('/account/register/', {
+            'email': 'new@t.local', 'first_name': 'Новый', 'password': 'Secret123',
+            'password2': 'Secret123', 'pdn_consent': 'on',
+        })
         self.assertEqual(r.status_code, 302)
         self.client.post(f'/product/{self.mouse.product_sku}/wishlist/')
         self.assertContains(self.client.get('/account/wishlist/'), self.mouse.product_name)

@@ -8,23 +8,25 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
-from django.http import Http404
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from shop.models import Category, Characteristic, Order, Product, Return, ReturnReason, Review, Wishlist
 from shop.services import (
     cart as cart_service,
     catalog,
+    invoice_pdf,
     orders as order_service,
     payments as payment_service,
+    recently_viewed,
     returns as return_service,
     reviews as review_service,
 )
 from shop.services.audit import write_audit
 from shop.services.login_guard import store_login_guard
-from store.forms import CheckoutForm, LoginForm, ProfileForm, QuestionForm, RegisterForm, ReviewForm
+from store.forms import CheckoutForm, LoginForm, ProfileForm, RegisterForm, ReviewForm
 from users.auth_session import authenticate_credentials, get_current_user, login_user, logout_user
 from users.constants import (
     ORDER_STATUS_LABELS,
@@ -81,18 +83,29 @@ def catalog_view(request, slug=None):
     wishlist = set(Wishlist.objects.filter(id_user=user).values_list('id_product', flat=True)) if user else set()
     query = request.GET.copy()
     query.pop('page', None)
+    chips = catalog.active_filter_chips(filters, params, category=category, facets_data=facets)
+    clear_href = (
+        f"/catalog/{category.category_slug}/" if category else '/'
+    )
     return render(request, 'store/catalog.html', {
         'page_obj': page, 'filters': filters, 'facets': facets, 'category': category,
         'breadcrumbs': category.ancestors() if category else [], 'tree': catalog.category_tree(),
         'sort_labels': catalog.SORT_LABELS, 'wishlist': wishlist, 'query': query.urlencode(),
         'selected_brands': set(int(b) for b in filters['brands']),
+        'filter_chips': chips, 'filters_clear_href': clear_href,
     })
+
+
+@require_GET
+def search_suggest_view(request):
+    return JsonResponse(catalog.suggest_search(request.GET.get('q', '')))
 
 
 def product_view(request, sku):
     product = get_object_or_404(
         catalog.base_queryset().select_related('id_category__id_parent__id_parent', 'id_unit')
         .prefetch_related('media'), product_sku=sku)
+    recently_viewed.track(request, product.product_sku)
     user = get_current_user(request)
     reviews = (Review.objects.filter(id_product=product, review_status='approved')
                .select_related('id_user__profile').order_by('-created_at'))
@@ -102,14 +115,15 @@ def product_view(request, sku):
     char_names = {**catalog.filterable_characteristics(),
                   **{c.char_code: c.char_name for c in Characteristic.objects.all()}}
     return render(request, 'store/product.html', {
-        'product': product, 'images': product.media.all(),
+        'product': product, 'images': product.gallery_images,
         'characteristics': [(char_names.get(k, k), v) for k, v in (product.product_characteristics or {}).items()],
-        'reviews': reviews.filter(review_type='review'), 'questions': reviews.filter(review_type='question'),
+        'reviews': reviews.filter(review_type='review'),
         'recommendations': catalog.also_bought(product),
+        'recently_viewed': recently_viewed.products(request, exclude=product.product_sku, limit=6),
         'can_review': bool(user and review_service.purchased_order(user, product)
                            and not Review.objects.filter(id_user=user, id_product=product, review_type='review').exists()),
         'in_wishlist': bool(user and Wishlist.objects.filter(id_user=user, id_product=product).exists()),
-        'review_form': ReviewForm(), 'question_form': QuestionForm(),
+        'review_form': ReviewForm(),
         'breadcrumbs': product.id_category.ancestors() if product.id_category else [],
     })
 
@@ -120,18 +134,21 @@ def product_review_view(request, sku):
     if not user:
         return redirect(f'/account/login/?next=/product/{sku}/')
     product = get_object_or_404(Product, product_sku=sku, is_active=True)
-    is_question = request.POST.get('kind') == 'question'
-    form = QuestionForm(request.POST) if is_question else ReviewForm(request.POST, request.FILES)
+    if request.POST.get('kind') == 'question':
+        messages.error(request, 'Вопросы к товару отключены.')
+        return redirect('store:product', sku=sku)
+    form = ReviewForm(request.POST, request.FILES)
     if form.is_valid():
         try:
             review_service.create_review(user, product, rating=form.cleaned_data.get('rating'),
                                          text=form.cleaned_data['text'], photo=form.cleaned_data.get('photo'),
-                                         is_question=is_question, request=request)
+                                         request=request)
             messages.success(request, 'Спасибо! Публикация — после модерации.')
         except ValidationError as exc:
             messages.error(request, exc.messages[0])
     else:
-        messages.error(request, 'Проверьте заполнение формы.')
+        err = next(iter(form.errors.values()))[0] if form.errors else 'Проверьте заполнение формы.'
+        messages.error(request, err)
     return redirect('store:product', sku=sku)
 
 
@@ -316,14 +333,22 @@ def register_view(request):
     form = RegisterForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         guest_key = request.session.session_key
+        from django.conf import settings as dj_settings
+        from django.utils import timezone
+
         user = AuthCredentials(email=form.cleaned_data['email'], user_role=ROLE_CUSTOMER)
         user.set_password(form.cleaned_data['password'])
         user.save()
-        UserProfiles.objects.create(id_user=user, profile_first_name=form.cleaned_data['first_name'],
-                                    profile_phone=form.cleaned_data['phone'] or None)
+        profile = UserProfiles(id_user=user)
+        profile.set_plain('profile_first_name', form.cleaned_data['first_name'])
+        profile.set_plain('profile_phone', form.cleaned_data['phone'] or None)
+        profile.pdn_consent_at = timezone.now()
+        profile.pdn_consent_version = getattr(dj_settings, 'MAGTECH_PDN_CONSENT_VERSION', '1.0')
+        profile.save()
         login_user(request, user)
         cart_service.merge_session_cart(guest_key, user)
-        write_audit(user=user, object_type='user', object_id=user.pk, action='register', request=request)
+        write_audit(user=user, object_type='user', object_id=user.pk, action='register',
+                    after={'pdn_consent': profile.pdn_consent_version}, request=request)
         messages.success(request, 'Добро пожаловать в MagicTech!')
         return redirect(_safe_next(request, '/account/'))
     return render(request, 'store/register.html', {'form': form})
@@ -340,18 +365,24 @@ def account_view(request):
     user = request.store_user
     profile, _ = UserProfiles.objects.get_or_create(id_user=user)
     form = ProfileForm(request.POST or None, initial={
-        'first_name': profile.profile_first_name, 'last_name': profile.profile_last_name,
-        'phone': profile.profile_phone, 'address': profile.profile_address})
+        'first_name': profile.get_plain('profile_first_name'),
+        'last_name': profile.get_plain('profile_last_name'),
+        'phone': profile.get_plain('profile_phone'),
+        'address': profile.get_plain('profile_address')})
     if request.method == 'POST' and form.is_valid():
-        profile.profile_first_name = form.cleaned_data['first_name'] or None
-        profile.profile_last_name = form.cleaned_data['last_name'] or None
-        profile.profile_phone = form.cleaned_data['phone'] or None
-        profile.profile_address = form.cleaned_data['address'] or None
+        profile.set_plain('profile_first_name', form.cleaned_data['first_name'] or None)
+        profile.set_plain('profile_last_name', form.cleaned_data['last_name'] or None)
+        profile.set_plain('profile_phone', form.cleaned_data['phone'] or None)
+        profile.set_plain('profile_address', form.cleaned_data['address'] or None)
         profile.save()
         messages.success(request, 'Профиль сохранён.')
         return redirect('store:account')
     return render(request, 'store/account/profile.html', {
-        'form': form, 'orders': user.orders.order_by('-created_at')[:5], 'status_labels': ORDER_STATUS_LABELS})
+        'form': form, 'orders': user.orders.order_by('-created_at')[:5],
+        'status_labels': ORDER_STATUS_LABELS,
+        'recently_viewed': recently_viewed.products(request, limit=8),
+        'wishlist': set(Wishlist.objects.filter(id_user=user).values_list('id_product', flat=True)),
+    })
 
 
 @login_required_store
@@ -377,7 +408,22 @@ def account_order_view(request, number):
         'payment_status_labels': PAYMENT_STATUS_LABELS, 'steps': [(s, ORDER_STATUS_LABELS[s], i <= current) for i, s in enumerate(steps)],
         'pending_payment': pending, 'returns': order.returns.all(), 'return_labels': RETURN_STATUS_LABELS,
         'can_return': order.order_status == 'COMPLETED',
+        'can_invoice': order.order_status == 'COMPLETED',
     })
+
+
+@login_required_store
+@require_GET
+def account_order_invoice_view(request, number):
+    order = get_object_or_404(
+        Order.objects.select_related('id_user').prefetch_related('items__id_product'),
+        order_number=number, id_user=request.store_user)
+    if order.order_status != 'COMPLETED':
+        raise Http404('Счёт доступен только для завершённых заказов')
+    pdf = invoice_pdf.build_order_invoice(order)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="invoice-{order.order_number}.pdf"'
+    return response
 
 
 @login_required_store

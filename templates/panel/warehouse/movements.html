@@ -9,7 +9,10 @@
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>{% sort_header 'created' 'Дата' %}</th><th>{% sort_header 'type' 'Тип' %}</th><th>{% sort_header 'sku' 'Товар' %}</th><th class="num">Изменение</th><th class="num">Остаток после</th><th class="num">Резерв после</th><th>Документ / заказ</th><th>Кто</th><th>Причина</th></tr></thead>
   <tbody>{% for m in page_obj %}<tr><td>{% udate m.created_at %}</td><td>{{ m.get_movement_type_display }}</td><td><code>{{ m.id_product.product_sku }}</code></td><td class="num">{{ m.movement_quantity }}</td><td class="num">{{ m.quantity_after }}</td><td class="num">{{ m.reserved_after }}</td>
-    <td>{{ m.document_number|default:'' }}{% if m.id_order %}<a href="{% url 'panel:order_detail' m.id_order_id %}">{{ m.id_order.order_number }}</a>{% endif %}</td><td>{{ m.id_user.email|default:'система' }}</td><td class="hint">{{ m.movement_reason|default:'' }}</td></tr>
+    <td>{{ m.document_number|default:'' }}{% if m.id_order %}<a href="{% url 'panel:order_detail' m.id_order_id %}">{{ m.id_order.order_number }}</a>{% endif %}</td><td>{{ m.id_user.email|default:'система' }}</td><td class="hint">{{ m.movement_reason|default:'' }}
+      {% can 'stock' 'receipt' as can_receipt %}{% if can_receipt and m.movement_quantity %}
+      <form method="post" action="{% url 'panel:stock_repeat_purchase' m.pk %}" style="display:inline">{% csrf_token %}<button class="btn btn-sm" type="submit" title="Повторить как закупку">↻ Закупка</button></form>{% endif %}
+    </td></tr>
   {% empty %}<tr><td colspan="9" class="muted">Нет движений</td></tr>{% endfor %}</tbody>
 </table></div>
 {% include 'panel/partials/pagination.html' %}

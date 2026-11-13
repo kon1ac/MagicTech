@@ -61,9 +61,13 @@ PERMISSION_MATRIX = {
     },
     'promotions': {
         'view': ADMINS | {ROLE_MERCHANDISER},
-        'create': ADMINS,
-        'update': ADMINS,
+        'create': ADMINS | {ROLE_MERCHANDISER},
+        'update': ADMINS | {ROLE_MERCHANDISER},
         'delete': ADMINS,
+    },
+    'pii': {
+        # расшифровка ПДн — только администратор БД
+        'decrypt': {ROLE_DB_ADMIN},
     },
     'orders': {
         'view': ADMINS | {ROLE_ACCOUNTANT, ROLE_PICKER},
@@ -160,6 +164,7 @@ ACTION_LABELS = {
     'order': 'оформление заказа',
     'review': 'отзыв',
     'return': 'возврат',
+    'decrypt': 'расшифровка ПДн',
 }
 
 

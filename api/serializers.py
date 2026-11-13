@@ -112,6 +112,21 @@ class ReviewInSerializer(serializers.Serializer):
     text = serializers.CharField(max_length=5000)
     is_question = serializers.BooleanField(default=False)
 
+    def validate_is_question(self, value):
+        if value:
+            raise serializers.ValidationError('Вопросы к товару отключены.')
+        return False
+
+    def validate_text(self, value):
+        from shop.services.banwords import validate_no_banwords
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        try:
+            validate_no_banwords(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages[0]) from exc
+        return value
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
@@ -122,7 +137,9 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def get_author(self, obj) -> str:
         profile = getattr(obj.id_user, 'profile', None)
-        return (profile.profile_first_name if profile and profile.profile_first_name else 'Покупатель')
+        if profile:
+            return profile.first_name_display or 'Покупатель'
+        return 'Покупатель'
 
 
 class StatusChangeSerializer(serializers.Serializer):

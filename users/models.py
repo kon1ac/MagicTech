@@ -1,16 +1,22 @@
 from django.contrib.auth.hashers import check_password as auth_check_password
 from django.contrib.auth.hashers import make_password
 from django.db import models
+from django.utils import timezone
 
 
 class AuthCredentials(models.Model):
-    """Учётные данные пользователя (таблица auth_credentials)."""
+    """Учётные данные пользователя (таблица auth_credentials).
+
+    Пароль хранится только как хеш (Argon2/bcrypt) в password_hash — никогда plaintext.
+    """
 
     id_user = models.BigAutoField(primary_key=True)
     email = models.EmailField(max_length=255, unique=True)
     password_hash = models.CharField(max_length=255)
     user_role = models.CharField(max_length=30)
     is_active = models.BooleanField(default=True)
+    deactivation_reason = models.CharField(max_length=500, blank=True, default='')
+    deactivated_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -77,9 +83,37 @@ class AuthCredentials(models.Model):
 
         return auth_check_password(raw_password, self.password_hash, setter=upgrade)
 
+    def deactivate(self, reason: str, *, save: bool = True) -> None:
+        reason = (reason or '').strip()
+        if not reason:
+            raise ValueError('Укажите основание деактивации.')
+        self.is_active = False
+        self.deactivation_reason = reason[:500]
+        self.deactivated_at = timezone.now()
+        if save:
+            self.save(update_fields=['is_active', 'deactivation_reason', 'deactivated_at', 'updated_at'])
+
+    def activate(self, *, save: bool = True) -> None:
+        self.is_active = True
+        self.deactivation_reason = ''
+        self.deactivated_at = None
+        if save:
+            self.save(update_fields=['is_active', 'deactivation_reason', 'deactivated_at', 'updated_at'])
+
 
 class UserProfiles(models.Model):
-    """Профиль пользователя, связь 1:1 с auth_credentials (таблица user_profiles)."""
+    """Профиль пользователя, связь 1:1 с auth_credentials (таблица user_profiles).
+
+    Имя, фамилия, телефон и адрес хранятся в зашифрованном виде (Fernet, prefix enc:v1:).
+    Пароль здесь не хранится — только в AuthCredentials.password_hash.
+    """
+
+    PII_FIELDS = (
+        'profile_first_name',
+        'profile_last_name',
+        'profile_phone',
+        'profile_address',
+    )
 
     id_user = models.OneToOneField(
         AuthCredentials,
@@ -88,9 +122,10 @@ class UserProfiles(models.Model):
         db_column='id_user',
         related_name='profile',
     )
-    profile_first_name = models.CharField(max_length=100, blank=True, null=True)
-    profile_last_name = models.CharField(max_length=100, blank=True, null=True)
-    profile_phone = models.CharField(max_length=30, blank=True, null=True)
+    # max_length увеличен под ciphertext Fernet
+    profile_first_name = models.CharField(max_length=512, blank=True, null=True)
+    profile_last_name = models.CharField(max_length=512, blank=True, null=True)
+    profile_phone = models.CharField(max_length=512, blank=True, null=True)
     profile_address = models.TextField(blank=True, null=True)
     profile_avatar_url = models.ImageField(
         upload_to='avatars/',
@@ -98,6 +133,8 @@ class UserProfiles(models.Model):
         blank=True,
         null=True,
     )
+    pdn_consent_at = models.DateTimeField(blank=True, null=True)
+    pdn_consent_version = models.CharField(max_length=20, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -107,8 +144,46 @@ class UserProfiles(models.Model):
         verbose_name_plural = 'Профили пользователей'
 
     def __str__(self):
-        name = f'{self.profile_first_name or ""} {self.profile_last_name or ""}'.strip()
+        name = f'{self.get_plain("profile_first_name") or ""} {self.get_plain("profile_last_name") or ""}'.strip()
         return name or str(self.id_user)
+
+    def get_plain(self, field: str) -> str | None:
+        from shop.services.crypto import decrypt_text
+
+        return decrypt_text(getattr(self, field))
+
+    def set_plain(self, field: str, value: str | None) -> None:
+        from shop.services.crypto import encrypt_text
+
+        setattr(self, field, encrypt_text(value) if value else None)
+
+    @property
+    def first_name_display(self) -> str:
+        """Только для витрины (покупатель видит своё имя). В панели — cipher_preview."""
+        return self.get_plain('profile_first_name') or ''
+
+    @property
+    def last_name_display(self) -> str:
+        return self.get_plain('profile_last_name') or ''
+
+    @property
+    def phone_display(self) -> str:
+        return self.get_plain('profile_phone') or ''
+
+    def pii_preview(self, field: str) -> str:
+        from shop.services.crypto import cipher_preview
+
+        return cipher_preview(getattr(self, field, None))
+
+    def plain_dict(self) -> dict:
+        return {f: self.get_plain(f) for f in self.PII_FIELDS}
+
+    def save(self, *args, **kwargs):
+        from shop.services.crypto import ensure_encrypted
+
+        for field in self.PII_FIELDS:
+            setattr(self, field, ensure_encrypted(getattr(self, field)))
+        super().save(*args, **kwargs)
 
 
 class UserSettings(models.Model):

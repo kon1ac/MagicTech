@@ -4,6 +4,7 @@
 {% block content %}
 <header class="page-header"><div><h1>{% tr 'Заказы' %}</h1><p class="muted">Статусы ведёт администратор по регламенту; переход через этапы запрещён</p></div>
   {% can 'orders' 'export' as can_export %}{% if can_export %}<a class="btn" href="{% url 'panel:order_export' %}?{{ current_query }}">Экспорт CSV для бухгалтерии</a>{% endif %}</header>
+{% include 'panel/partials/page_stats.html' %}
 <div class="quick-filters">{% for title, query in quick_filters %}<a class="chip {% if current_query == query %}active{% endif %}" href="?{{ query }}">{{ title }}</a>{% endfor %}</div>
 <div class="toolbar"><form method="get">
   <input type="search" name="q" value="{{ q }}" placeholder="Номер / email / телефон" data-hotkey="/">

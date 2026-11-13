@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from shop.models import Order, Product, Review
 from shop.services.audit import write_audit
+from shop.services.banwords import validate_no_banwords
 
 
 def purchased_order(user, product: Product) -> Order | None:
@@ -27,24 +28,25 @@ def purchased_order(user, product: Product) -> Order | None:
 @transaction.atomic
 def create_review(user, product: Product, *, rating: int | None, text: str, photo=None,
                   is_question: bool = False, request=None) -> Review:
+    if is_question:
+        raise ValidationError('Вопросы к товару отключены. Оставьте отзыв после покупки.')
     text = (text or '').strip()
     if not text:
         raise ValidationError('Текст не может быть пустым.')
     if len(text) > 5000:
         raise ValidationError('Слишком длинный текст.')
-    order = None
-    if not is_question:
-        order = purchased_order(user, product)
-        if order is None:
-            raise ValidationError('Оставить отзыв может только покупатель, получивший этот товар.')
-        if Review.objects.filter(id_user=user, id_product=product, review_type='review').exists():
-            raise ValidationError('Вы уже оставили отзыв на этот товар.')
-        if rating is None or not 1 <= int(rating) <= 5:
-            raise ValidationError('Оценка — от 1 до 5.')
+    validate_no_banwords(text)
+    order = purchased_order(user, product)
+    if order is None:
+        raise ValidationError('Оставить отзыв может только покупатель, получивший этот товар.')
+    if Review.objects.filter(id_user=user, id_product=product, review_type='review').exists():
+        raise ValidationError('Вы уже оставили отзыв на этот товар.')
+    if rating is None or not 1 <= int(rating) <= 5:
+        raise ValidationError('Оценка — от 1 до 5.')
     review = Review.objects.create(
         id_product=product, id_user=user, id_order=order,
-        review_type='question' if is_question else 'review',
-        review_rating=None if is_question else int(rating),
+        review_type='review',
+        review_rating=int(rating),
         review_text=text, review_photo=photo, review_status='pending',
     )
     write_audit(user=user, object_type='review', object_id=review.id_review, action='create',

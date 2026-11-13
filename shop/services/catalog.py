@@ -52,6 +52,7 @@ def base_queryset():
     return (
         Product.objects.filter(is_active=True)
         .select_related('id_brand', 'id_category')
+        .prefetch_related('media')
         .annotate(price_now=current_price_subquery(), available=available_subquery())
     )
 
@@ -249,3 +250,169 @@ def brands_cached():
         data = list(Brand.objects.filter(is_active=True).order_by('brand_name').values('id_brand', 'brand_name'))
         cache.set(key, data, settings.MAGTECH_CATALOG_CACHE_TTL)
     return data
+
+
+def _query_without(params, *, drop_keys=None, drop_values=None) -> str:
+    """Собирает querystring без указанных ключей/значений (для чипов сброса)."""
+    from urllib.parse import urlencode
+
+    drop_keys = set(drop_keys or ())
+    drop_values = drop_values or {}  # {key: set(values)}
+    pairs = []
+    for key in params.keys():
+        if key in drop_keys or key == 'page':
+            continue
+        banned = set(drop_values.get(key, ()))
+        for val in params.getlist(key):
+            if val in banned or val in ('', None):
+                continue
+            pairs.append((key, val))
+    return urlencode(pairs)
+
+
+def active_filter_chips(filters: dict, params, *, category=None, facets_data=None) -> list[dict]:
+    """Чипы активных фильтров: label + href без этого фильтра."""
+    facets_data = facets_data or {}
+    brand_names = {str(b['id']): b['name'] for b in facets_data.get('brands', [])}
+    if not brand_names and filters.get('brands'):
+        for row in Brand.objects.filter(pk__in=filters['brands']).values('id_brand', 'brand_name'):
+            brand_names[str(row['id_brand'])] = row['brand_name']
+    char_names = filterable_characteristics()
+    chips = []
+
+    if filters.get('q'):
+        qs = _query_without(params, drop_keys={'q'})
+        chips.append({'key': 'q', 'label': f'Поиск: «{filters["q"]}»', 'href': qs})
+    if filters.get('in_stock'):
+        chips.append({
+            'key': 'in_stock', 'label': 'В наличии',
+            'href': _query_without(params, drop_keys={'in_stock'}),
+        })
+    if filters.get('price_min') is not None:
+        chips.append({
+            'key': 'price_min', 'label': f'от {int(filters["price_min"])} ₽',
+            'href': _query_without(params, drop_keys={'price_min'}),
+        })
+    if filters.get('price_max') is not None:
+        chips.append({
+            'key': 'price_max', 'label': f'до {int(filters["price_max"])} ₽',
+            'href': _query_without(params, drop_keys={'price_max'}),
+        })
+    for bid in filters.get('brands') or []:
+        chips.append({
+            'key': f'brand:{bid}',
+            'label': brand_names.get(str(bid), f'Бренд #{bid}'),
+            'href': _query_without(params, drop_values={'brand': {str(bid)}}),
+        })
+    for code, values in (filters.get('chars') or {}).items():
+        title = char_names.get(code, code)
+        for value in values:
+            chips.append({
+                'key': f'f_{code}:{value}',
+                'label': f'{title}: {value}',
+                'href': _query_without(params, drop_values={f'f_{code}': {value}}),
+            })
+    # сортировка не-дефолтная — тоже чип
+    if filters.get('sort') and filters['sort'] != 'popular':
+        chips.append({
+            'key': 'sort',
+            'label': SORT_LABELS.get(filters['sort'], filters['sort']),
+            'href': _query_without(params, drop_keys={'sort'}),
+        })
+    return chips
+
+
+def suggest_search(q: str, limit: int = 8) -> dict:
+    """Подсказки поиска: товары, бренды, «возможно, вы имели в виду»."""
+    import difflib
+    from urllib.parse import quote
+
+    q = (q or '').strip()[:80]
+    if len(q) < 1:
+        return {'products': [], 'brands': [], 'did_you_mean': None}
+
+    q_lower = q.lower()
+    products_out = []
+    qs = base_queryset()
+
+    # точный SKU / префикс артикула
+    sku_hits = list(qs.filter(product_sku__istartswith=q).order_by('product_sku')[:3])
+    # название / бренд
+    name_hits = list(
+        qs.filter(
+            Q(product_name__icontains=q) | Q(id_brand__brand_name__icontains=q)
+        ).exclude(pk__in=[p.pk for p in sku_hits]).order_by('-sales_count')[: limit]
+    )
+    seen = set()
+    for p in sku_hits + name_hits:
+        if p.pk in seen:
+            continue
+        seen.add(p.pk)
+        products_out.append({
+            'sku': p.product_sku,
+            'name': p.product_name,
+            'brand': p.id_brand.brand_name if p.id_brand_id else '',
+            'price': float(p.price_now) if p.price_now is not None else None,
+            'image': p.main_image or '',
+            'url': f'/product/{p.product_sku}/',
+        })
+        if len(products_out) >= limit:
+            break
+
+    brands_out = []
+    for row in brands_cached():
+        name = row['brand_name']
+        if q_lower in name.lower():
+            brands_out.append({
+                'name': name,
+                'url': f'/?q={quote(name)}',
+            })
+        if len(brands_out) >= 5:
+            break
+
+    did_you_mean = None
+    if not products_out and not brands_out and len(q) >= 3:
+        brand_names = [r['brand_name'] for r in brands_cached()]
+        brand_map = {n.lower(): n for n in brand_names}
+        close = difflib.get_close_matches(q_lower, list(brand_map.keys()), n=1, cutoff=0.55)
+        if close:
+            did_you_mean = brand_map[close[0]]
+            fixed = list(
+                qs.filter(id_brand__brand_name__iexact=did_you_mean).order_by('-sales_count')[:limit]
+            )
+            for p in fixed:
+                products_out.append({
+                    'sku': p.product_sku,
+                    'name': p.product_name,
+                    'brand': p.id_brand.brand_name if p.id_brand_id else '',
+                    'price': float(p.price_now) if p.price_now is not None else None,
+                    'image': p.main_image or '',
+                    'url': f'/product/{p.product_sku}/',
+                })
+            brands_out.append({'name': did_you_mean, 'url': f'/?q={quote(did_you_mean)}'})
+        else:
+            names = list(
+                Product.objects.filter(is_active=True)
+                .order_by('-sales_count')
+                .values_list('product_name', flat=True)[:300]
+            )
+            name_map = {n.lower(): n for n in names if n}
+            close_n = difflib.get_close_matches(q_lower, list(name_map.keys()), n=1, cutoff=0.5)
+            if close_n:
+                did_you_mean = name_map[close_n[0]]
+                for p in qs.filter(product_name=did_you_mean)[:limit]:
+                    products_out.append({
+                        'sku': p.product_sku,
+                        'name': p.product_name,
+                        'brand': p.id_brand.brand_name if p.id_brand_id else '',
+                        'price': float(p.price_now) if p.price_now is not None else None,
+                        'image': p.main_image or '',
+                        'url': f'/product/{p.product_sku}/',
+                    })
+
+    return {
+        'products': products_out,
+        'brands': brands_out,
+        'did_you_mean': did_you_mean,
+        'q': q,
+    }

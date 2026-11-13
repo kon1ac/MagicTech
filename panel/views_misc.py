@@ -7,6 +7,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -44,9 +45,12 @@ def review_list_view(request):
         qs = qs.filter(seller_answer__isnull=True)
     qs, keys = apply_sorting(request, qs, {'created': 'created_at', 'rating': 'review_rating',
                                            'product': 'id_product__product_name', 'status': 'review_status'}, '-created')
+    from panel.stats import reviews_stats
+
     return render(request, 'panel/reviews/list.html', {
         'page_obj': paginate(request, qs, actor), 'status': status, 'type': rtype,
-        'status_labels': REVIEW_STATUS_LABELS, **list_context(request, actor, 'reviews', keys)})
+        'status_labels': REVIEW_STATUS_LABELS, 'page_stats': reviews_stats(actor),
+        **list_context(request, actor, 'reviews', keys)})
 
 
 @panel_login_required
@@ -291,7 +295,15 @@ def _audit_queryset(request):
     if request.GET.get('user'):
         qs = qs.filter(id_user__email__icontains=request.GET['user'])
     if request.GET.get('ip'):
-        qs = qs.filter(audit_ip=request.GET['ip'])
+        qs = qs.filter(audit_ip__icontains=request.GET['ip'])
+    if request.GET.get('reason'):
+        qs = qs.filter(audit_reason__icontains=request.GET['reason'])
+    if request.GET.get('q'):
+        q = request.GET['q']
+        qs = qs.filter(
+            Q(audit_reason__icontains=q) | Q(audit_before__icontains=q) | Q(audit_after__icontains=q)
+            | Q(id_user__email__icontains=q) | Q(audit_action__icontains=q)
+        )
     if (parsed := _parse_date(request.GET.get('from'))):
         qs = qs.filter(created_at__date__gte=parsed)
     if (parsed := _parse_date(request.GET.get('to'))):
@@ -306,8 +318,13 @@ def audit_list_view(request):
     qs, keys = apply_sorting(request, _audit_queryset(request), {
         'created': 'created_at', 'type': 'audit_object_type', 'action': 'audit_action', 'user': 'id_user__email'}, '-created')
     types = AuditLog.objects.order_by().values_list('audit_object_type', flat=True).distinct()
+    actions = AuditLog.objects.order_by().values_list('audit_action', flat=True).distinct()
+    from panel.stats import audit_stats
+
     return render(request, 'panel/audit/list.html', {
-        'page_obj': paginate(request, qs, actor), 'types': sorted(set(types)), 'params': request.GET,
+        'page_obj': paginate(request, qs, actor), 'types': sorted(set(types)),
+        'actions': sorted(set(actions)), 'params': request.GET,
+        'page_stats': audit_stats(actor),
         **list_context(request, actor, 'audit', keys)})
 
 

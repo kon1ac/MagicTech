@@ -84,6 +84,14 @@
         </div>
       </div>
     </div>
+    <div class="filter-chips" data-active-filters {% if not filter_chips %}hidden{% endif %}>
+      {% for chip in filter_chips %}
+      <a class="filter-chip" href="{% if category %}{% url 'store:category' category.category_slug %}{% else %}{% url 'store:catalog' %}{% endif %}{% if chip.href %}?{{ chip.href }}{% endif %}" data-filter-chip title="Убрать фильтр">{{ chip.label }} <span aria-hidden="true">×</span></a>
+      {% endfor %}
+      {% if filter_chips %}
+      <a class="filter-chip filter-chip-clear" href="{{ filters_clear_href }}" data-filter-clear>Сбросить все</a>
+      {% endif %}
+    </div>
     <div class="grid reveal-stagger" data-catalog-grid>{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
     {% if page_obj.has_other_pages %}<nav class="pagination" data-catalog-pager>{% if page_obj.has_previous %}<a class="btn" href="?{{ query }}&page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}<span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn" href="?{{ query }}&page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}</nav>{% endif %}
   </section>

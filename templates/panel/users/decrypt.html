@@ -1,0 +1,37 @@
+{% extends 'panel/base.html' %}
+{% block title %}Расшифровка ПДн{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Расшифровка ПДн</h1><p class="muted">{{ target.email }} · только Администратор БД · операция пишется в аудит</p></div>
+  <a class="btn" href="{% url 'panel:user_edit' target.pk %}">← К карточке</a></header>
+
+<section class="card">
+  <h2>Статус хранения</h2>
+  <dl class="props">
+    <dt>Пароль</dt><dd>{% if password_is_hash %}Хеш (Argon2/bcrypt/PBKDF2) — plaintext отсутствует{% else %}Пустой или нестандартный хеш{% endif %}</dd>
+    <dt>ПДн в БД</dt><dd>Имя, фамилия, телефон, адрес — Fernet (<code>enc:v1:</code>)</dd>
+    <dt>Согласие ПДн</dt><dd>{% if profile and profile.pdn_consent_at %}{{ profile.pdn_consent_at }} · v{{ profile.pdn_consent_version }}{% else %}—{% endif %}</dd>
+    <dt>Деактивация</dt><dd>{% if target.is_active %}активен{% else %}{{ target.deactivation_reason|default:'без причины' }} · {{ target.deactivated_at }}{% endif %}</dd>
+  </dl>
+</section>
+
+{% if revealed %}
+<section class="card critical-box" style="margin-top:1rem">
+  <h2>Расшифрованные значения</h2>
+  <dl class="props">
+    <dt>Имя</dt><dd>{{ revealed.profile_first_name|default:'—' }}</dd>
+    <dt>Фамилия</dt><dd>{{ revealed.profile_last_name|default:'—' }}</dd>
+    <dt>Телефон</dt><dd>{{ revealed.profile_phone|default:'—' }}</dd>
+    <dt>Адрес</dt><dd>{{ revealed.profile_address|default:'—' }}</dd>
+  </dl>
+</section>
+{% else %}
+<section class="card critical-box" style="margin-top:1rem">
+  <h2>Показать расшифровку</h2>
+  <form method="post" class="form-stack" data-confirm="Расшифровка ПДн будет записана в журнал аудита. Продолжить?">{% csrf_token %}
+    <p><label>Основание (для аудита)</label><input name="reason" required maxlength="500" placeholder="Например: сверка заявки на возврат №…"></p>
+    <label><input type="checkbox" name="confirm" value="1" required> Подтверждаю правомерность доступа к ПДн</label>
+    <button class="btn btn-danger">Расшифровать</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -25,6 +25,7 @@ urlpatterns = [
     path('users/bulk/', views.user_bulk_view, name='user_bulk'),
     path('users/rbac/', views.rbac_matrix_view, name='rbac'),
     path('users/<int:pk>/edit/', views.user_edit_view, name='user_edit'),
+    path('users/<int:pk>/decrypt/', views.user_decrypt_view, name='user_decrypt'),
     path('users/<int:pk>/delete/', views.user_delete_view, name='user_delete'),
     # справочники и каталог
     path('categories/', cat.category_list_view, name='category_list'),
@@ -63,7 +64,9 @@ urlpatterns = [
     path('orders/<int:order_id>/return/', fin.return_create_view, name='return_create'),
     path('picking/', ords.pick_tasks_view, name='pick_tasks'),
     path('stock/', ords.stock_list_view, name='stock_list'),
+    path('stock/export.csv', ords.stock_export_view, name='stock_export'),
     path('stock/movements/', ords.movement_list_view, name='movement_list'),
+    path('stock/movements/<int:pk>/repeat-purchase/', ords.stock_repeat_purchase_view, name='stock_repeat_purchase'),
     path('stock/receipt/', ords.stock_receipt_view, name='stock_receipt'),
     path('stock/<int:product_id>/adjust/', ords.stock_adjust_view, name='stock_adjust'),
     # финансы
@@ -93,6 +96,7 @@ urlpatterns = [
     path('db/schema/', db.db_schema_view, name='db_schema'),
     path('db/backups/', db.db_backups_view, name='db_backups'),
     path('db/backups/create/', db.db_backup_create_view, name='db_backup_create'),
+    path('db/backups/import/', db.db_backup_import_view, name='db_backup_import'),
     path('db/backups/<int:pk>/verify/', db.db_backup_verify_view, name='db_backup_verify'),
     path('db/backups/<int:pk>/restore/', db.db_backup_restore_view, name='db_backup_restore'),
     path('db/jobs/', db.db_jobs_view, name='db_jobs'),

@@ -2,8 +2,9 @@
 {% load panel_extras %}
 {% block title %}Отзывы{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>{% tr 'Отзывы' %} и вопросы</h1><p class="muted">Премодерация; рейтинг товара пересчитывается атомарно</p></div></header>
-<div class="quick-filters"><a class="chip {% if status == 'pending' %}active{% endif %}" href="?status=pending">На модерации</a><a class="chip {% if type == 'question' %}active{% endif %}" href="?type=question&unanswered=1">Вопросы без ответа</a><a class="chip {% if status == 'approved' %}active{% endif %}" href="?status=approved">Опубликованные</a><a class="chip {% if status == 'rejected' %}active{% endif %}" href="?status=rejected">Отклонённые</a><a class="chip" href="?">Все</a></div>
+<header class="page-header"><div><h1>{% tr 'Отзывы' %}</h1><p class="muted">Премодерация; рейтинг товара пересчитывается атомарно. Вопросы к товару отключены.</p></div></header>
+{% include 'panel/partials/page_stats.html' %}
+<div class="quick-filters"><a class="chip {% if status == 'pending' %}active{% endif %}" href="?status=pending">На модерации</a><a class="chip {% if status == 'approved' %}active{% endif %}" href="?status=approved">Опубликованные</a><a class="chip {% if status == 'rejected' %}active{% endif %}" href="?status=rejected">Отклонённые</a><a class="chip" href="?">Все</a></div>
 {% include 'panel/partials/list_tools.html' %}
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>{% sort_header 'created' 'Дата' %}</th><th>Тип</th><th>{% sort_header 'product' 'Товар' %}</th><th>Автор</th><th class="num">{% sort_header 'rating' 'Оценка' %}</th><th>Текст</th><th>{% sort_header 'status' 'Статус' %}</th><th></th></tr></thead>

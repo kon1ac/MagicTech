@@ -167,8 +167,14 @@ def label_pdf(order: Order) -> bytes:
     c.drawString(6 * mm, height - 28 * mm, address[:60])
     c.drawString(6 * mm, height - 32 * mm, address[60:120])
     c.drawString(6 * mm, height - 37 * mm, f'Мест: 1 · Позиций: {order.items.count()}')
-    barcode = code128.Code128(order.order_number, barHeight=16 * mm, barWidth=0.33 * mm)
-    barcode.drawOn(c, 4 * mm, 6 * mm)
+    barcode = code128.Code128(
+        order.order_number,
+        barHeight=14 * mm,
+        barWidth=0.33 * mm,
+        humanReadable=1,
+        fontSize=9,
+    )
+    barcode.drawOn(c, 4 * mm, 10 * mm)
     c.showPage()
     c.save()
     return buf.getvalue()

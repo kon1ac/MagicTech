@@ -18,6 +18,14 @@ def get_item(mapping, key):
     return key
 
 
+@register.filter
+def pii_cipher(profile, field):
+    """Превью зашифрованного поля профиля без расшифровки."""
+    if profile is None:
+        return '—'
+    return profile.pii_preview(field)
+
+
 @register.simple_tag(takes_context=True)
 def udate(context, value):
     """Дата в формате из настроек пользователя."""

@@ -1,11 +1,14 @@
 """Панель: заказы (статусы по регламенту, массовые операции), склад, сборка, печать."""
 
+import csv
+
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from panel.decorators import panel_login_required, permission_required
@@ -56,10 +59,13 @@ def order_list_view(request):
         ('Собраны', 'status=PACKED'), ('Не оплачены', 'paid=0&status=NEW&status=CONFIRMED'),
         ('Отменённые', 'status=CANCELLED'),
     ]
+    from panel.stats import orders_stats
+
     return render(request, 'panel/orders/list.html', {
         'page_obj': paginate(request, qs, actor), 'q': q, 'statuses': statuses, 'status_labels': ORDER_STATUS_LABELS,
         'payment_labels': PAYMENT_METHOD_LABELS, 'quick_filters': quick, 'channels': ['site', 'mobile', 'marketplace'],
         'bulk_statuses': [(c, l) for c, l in ORDER_STATUS_LABELS.items() if c not in ('PAID', 'RETURNED', 'NEW')],
+        'page_stats': orders_stats(actor),
         **list_context(request, actor, 'orders', keys),
     })
 
@@ -247,9 +253,48 @@ def stock_list_view(request):
     qs, keys = apply_sorting(request, qs, {'sku': 'id_product__product_sku', 'name': 'id_product__product_name',
                                            'qty': 'stock_quantity', 'reserved': 'stock_reserved',
                                            'updated': 'updated_at'}, '-updated')
+    from panel.stats import stock_stats
+
     return render(request, 'panel/warehouse/stock_list.html', {
         'page_obj': paginate(request, qs, actor), 'q': q, 'level': level,
+        'page_stats': stock_stats(actor), 'popular': _popular_skus(30),
         **list_context(request, actor, 'stock', keys)})
+
+
+def _popular_skus(days=30, limit=8):
+    from datetime import timedelta
+
+    from django.db.models import Sum
+    from django.utils import timezone
+
+    since = timezone.now() - timedelta(days=days)
+    rows = (
+        StockMovement.objects.filter(movement_type='write_off', created_at__gte=since)
+        .values('id_product__product_sku', 'id_product__product_name')
+        .annotate(sold=Sum('movement_quantity'))
+        .order_by('sold')[:limit]  # write_off quantities negative → ascending = most sold
+    )
+    return [{'sku': r['id_product__product_sku'], 'name': r['id_product__product_name'],
+             'sold': abs(r['sold'] or 0)} for r in rows]
+
+
+@panel_login_required
+@permission_required('stock', 'view')
+def stock_export_view(request):
+    from shop.services.reports import stock_turnover
+
+    data = stock_turnover(int(request.GET.get('days') or 30))
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="stock_report.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['SKU', 'Товар', 'Остаток', 'Резерв', 'Доступно', 'Продано', 'Оборачиваемость_дн', 'Неликвид'])
+    for r in data['rows']:
+        writer.writerow([r['sku'], r['name'], r['quantity'], r['reserved'], r['available'],
+                         r['sold'], r['turnover_days'] or '', 'да' if r['illiquid'] else 'нет'])
+    write_audit(user=request.panel_user, object_type='export', object_id=None, action='stock_csv',
+                request=request)
+    return response
 
 
 @panel_login_required
@@ -271,10 +316,32 @@ def movement_list_view(request):
 
 @panel_login_required
 @permission_required('stock', 'receipt')
+@require_POST
+def stock_repeat_purchase_view(request, pk):
+    """Повторить движение как закупку (приход) — по абсолютному количеству исходной записи."""
+    movement = get_object_or_404(StockMovement.objects.select_related('id_product'), pk=pk)
+    qty = abs(movement.movement_quantity)
+    if qty <= 0:
+        messages.error(request, 'Нечего повторять: количество 0.')
+        return redirect('panel:movement_list')
+    return redirect(
+        f"{reverse('panel:stock_receipt')}?product={movement.id_product_id}&quantity={qty}"
+        f"&document=REPEAT-{movement.pk}&reason=Повтор закупки по движению #{movement.pk}"
+    )
+
+
+@panel_login_required
+@permission_required('stock', 'receipt')
 def stock_receipt_view(request):
     initial = {}
     if request.GET.get('product', '').isdigit():
         initial['product'] = request.GET['product']
+    if request.GET.get('quantity', '').isdigit():
+        initial['quantity'] = int(request.GET['quantity'])
+    if request.GET.get('document'):
+        initial['document_number'] = request.GET['document'][:50]
+    if request.GET.get('reason'):
+        initial['reason'] = request.GET['reason'][:500]
     form = StockReceiptForm(request.POST or None, initial=initial)
     if request.method == 'POST' and form.is_valid():
         data = form.cleaned_data

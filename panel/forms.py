@@ -40,26 +40,41 @@ class UserForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
         help_text='Для нового пользователя обязателен; при редактировании — оставьте пустым, чтобы не менять.',
     )
-    profile_first_name = forms.CharField(label='Имя', required=False, max_length=100)
-    profile_last_name = forms.CharField(label='Фамилия', required=False, max_length=100)
-    profile_phone = forms.CharField(label='Телефон', required=False, max_length=30)
+    profile_first_name = forms.CharField(
+        label='Имя (новое)', required=False, max_length=100,
+        help_text='Пусто = не менять. Текущие ПДн в БД зашифрованы и здесь не показываются.',
+    )
+    profile_last_name = forms.CharField(
+        label='Фамилия (новая)', required=False, max_length=100,
+        help_text='Пусто = не менять.',
+    )
+    profile_phone = forms.CharField(
+        label='Телефон (новый)', required=False, max_length=30,
+        help_text='Пусто = не менять. Расшифровка — только у Администратора БД (кнопка «ПДн»).',
+    )
 
     class Meta:
         model = AuthCredentials
-        fields = ('email', 'user_role', 'is_active')
-        labels = {'email': 'Email', 'user_role': 'Роль', 'is_active': 'Активен'}
+        fields = ('email', 'user_role', 'is_active', 'deactivation_reason')
+        labels = {
+            'email': 'Email', 'user_role': 'Роль', 'is_active': 'Активен',
+            'deactivation_reason': 'Основание деактивации',
+        }
+        help_texts = {
+            'deactivation_reason': 'Обязательно при блокировке: причина для аудита и пользователя.',
+        }
+        widgets = {
+            'deactivation_reason': forms.Textarea(attrs={'rows': 2}),
+        }
 
     def __init__(self, *args, actor=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.actor = actor
         self.fields['user_role'] = forms.ChoiceField(label='Роль', choices=ROLE_CHOICES)
+        self.fields['deactivation_reason'].required = False
         if self.instance.pk:
             self.fields['user_role'].initial = self.instance.user_role
-            profile = getattr(self.instance, 'profile', None)
-            if profile:
-                self.fields['profile_first_name'].initial = profile.profile_first_name
-                self.fields['profile_last_name'].initial = profile.profile_last_name
-                self.fields['profile_phone'].initial = profile.profile_phone
+            # ПДн НЕ подставляем в форму — только ciphertext на списке / decrypt-странице
 
     def clean_user_role(self):
         role = self.cleaned_data['user_role']
@@ -83,17 +98,45 @@ class UserForm(forms.ModelForm):
             raise ValidationError('Нельзя деактивировать собственную учётную запись.')
         return active
 
+    def clean(self):
+        data = super().clean()
+        active = data.get('is_active', True)
+        reason = (data.get('deactivation_reason') or '').strip()
+        was_active = True if not self.instance.pk else self.instance.is_active
+        if not active and was_active and not reason:
+            self.add_error('deactivation_reason', 'Укажите основание деактивации учётной записи.')
+        return data
+
     def save(self, commit=True):
+        from django.utils import timezone
+
         user = super().save(commit=False)
         password = self.cleaned_data.get('password')
         if password:
             user.set_password(password)
+        if user.is_active:
+            user.deactivation_reason = ''
+            user.deactivated_at = None
+        else:
+            reason = (self.cleaned_data.get('deactivation_reason') or '').strip()
+            if reason:
+                user.deactivation_reason = reason[:500]
+            if not user.deactivated_at:
+                user.deactivated_at = timezone.now()
         if commit:
             user.save()
             profile, _ = UserProfiles.objects.get_or_create(id_user=user)
-            profile.profile_first_name = self.cleaned_data.get('profile_first_name') or None
-            profile.profile_last_name = self.cleaned_data.get('profile_last_name') or None
-            profile.profile_phone = self.cleaned_data.get('profile_phone') or None
+            # пустые поля не затирают уже зашифрованные ПДн
+            if self.cleaned_data.get('profile_first_name'):
+                profile.set_plain('profile_first_name', self.cleaned_data['profile_first_name'])
+            if self.cleaned_data.get('profile_last_name'):
+                profile.set_plain('profile_last_name', self.cleaned_data['profile_last_name'])
+            if self.cleaned_data.get('profile_phone'):
+                profile.set_plain('profile_phone', self.cleaned_data['profile_phone'])
+            if not self.instance.pk:
+                # новый пользователь: можно сохранить пустые
+                if not self.cleaned_data.get('profile_first_name'):
+                    profile.set_plain('profile_first_name', None)
             profile.save()
         return user
 
@@ -206,7 +249,7 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product_name'].widget.attrs['data-hotkey'] = 'alt+e'
+        self.fields['product_name'].widget.attrs['data-hotkey'] = 'ctrl+alt+e'
         if self.instance.pk:
             self.fields['price'].initial = self.instance.current_price
         else:
@@ -456,3 +499,15 @@ class ArchiveGrantForm(forms.Form):
 class RestoreForm(forms.Form):
     confirm_name = forms.CharField(label='Введите имя базы данных для подтверждения')
     confirm = forms.BooleanField(label='Понимаю, что текущие данные будут заменены данными из копии', required=True)
+
+
+class BackupImportForm(forms.Form):
+    file = forms.FileField(
+        label='Файл дампа PostgreSQL',
+        help_text='Формат pg_dump -Fc (.dump). После импорта появится в списке копий — оттуда можно восстановить БД.',
+    )
+    kind = forms.ChoiceField(
+        label='Тип',
+        choices=[('full', 'Полный'), ('incremental', 'Инкрементальный'), ('schema', 'Схема')],
+        initial='full',
+    )

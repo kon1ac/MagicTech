@@ -41,38 +41,6 @@ body::before {
   background-position: 0 0, 0 0, 0 0, 24px 24px, 0 24px, 24px 0, 0 0;
 }
 
-/* ---------- 2. Кастомный курсор ---------- */
-.cursor-dot, .cursor-ring {
-  position: fixed;
-  top: 0; left: 0;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.2s var(--ease), width 0.25s var(--ease), height 0.25s var(--ease),
-              border-color 0.25s var(--ease), background-color 0.25s var(--ease);
-}
-.cursor-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-.cursor-ring {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
-}
-/* при наведении на интерактивные элементы — кольцо увеличивается */
-body.cursor-hover .cursor-ring {
-  width: 50px; height: 50px;
-  border-color: color-mix(in srgb, var(--accent) 80%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-/* скрываем кастомный курсор на тач-устройствах */
-@media (hover: none) {
-  .cursor-dot, .cursor-ring { display: none !important; }
-}
-
 /* ---------- 3. Прогресс-бар скролла ---------- */
 .scroll-progress {
   position: fixed;
@@ -336,23 +304,7 @@ body.cursor-hover .cursor-ring {
   border-radius: var(--radius-sm);
   will-change: transform, opacity;
 }
-.sticky-buy {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 150;
-  transform: translateY(100%);
-  transition: transform 0.35s var(--ease);
-  background: var(--surface-solid);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
-  padding: 0.75rem 0;
-}
-.sticky-buy.is-on { transform: none; }
-.sticky-buy .wrap {
-  display: flex; align-items: center; gap: 1rem; justify-content: space-between;
-}
-.sticky-buy .title { font-weight: 700; font-size: 0.92rem; }
-.sticky-buy .sum { font-family: var(--font-head); font-size: 1.15rem; }
+/* sticky-buy убран — «В корзину» только в основном buybox */
 
 /* ---------- 10. Карусель ---------- */
 .carousel { position: relative; overflow: hidden; }
@@ -477,5 +429,4 @@ body.cursor-hover .cursor-ring {
     opacity: 1;
     transform: none;
   }
-  .cursor-dot, .cursor-ring { display: none !important; }
 }

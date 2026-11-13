@@ -1,0 +1,39 @@
+{% if page_charts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  const el = document.getElementById('pageChartsData');
+  if (!el) return;
+  const charts = JSON.parse(el.textContent);
+  const css = getComputedStyle(document.documentElement);
+  const c = (v) => css.getPropertyValue(v).trim();
+  const palette = [c('--primary') || '#4F46E5', c('--accent-2') || '#06B6D4', c('--warn') || '#F59E0B',
+                   c('--danger') || '#EF4444', c('--ok') || '#10B981', '#8b5cf6', '#64748b', '#0ea5e9'];
+  Chart.defaults.color = c('--muted') || '#64748b';
+  Chart.defaults.borderColor = c('--border') || '#e2e8f0';
+  Chart.defaults.font.family = 'Manrope, sans-serif';
+  charts.forEach((ch, idx) => {
+    const canvas = document.getElementById(ch.id);
+    if (!canvas) return;
+    const colors = ch.datasets[0].data.map((_, i) => palette[i % palette.length]);
+    const ds = ch.datasets.map((d, di) => ({
+      ...d,
+      backgroundColor: ch.type === 'line' ? (palette[di] + '33') : (ch.type === 'doughnut' || ch.datasets[0].data.length > 1 ? colors : palette[di]),
+      borderColor: palette[di % palette.length],
+      tension: 0.25,
+    }));
+    new Chart(canvas, {
+      type: ch.type || 'bar',
+      data: { labels: ch.labels, datasets: ds },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        indexAxis: ch.horizontal ? 'y' : 'x',
+        plugins: { legend: { display: ch.type === 'doughnut' || (ch.datasets && ch.datasets.length > 1), position: 'bottom' } },
+      },
+    });
+  });
+})();
+</script>
+{% endif %}

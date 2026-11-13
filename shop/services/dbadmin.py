@@ -155,15 +155,58 @@ def migrations_state() -> list[dict]:
 
 # ---------------------------------------------------------------- бэкапы
 
+def _pg_client_dirs() -> list[Path]:
+    """Каталоги с pg_dump/pg_restore: PG_BIN → типичные пути Windows/Linux → PATH."""
+    dirs: list[Path] = []
+    env_bin = (os.environ.get('PG_BIN') or '').strip().strip('"')
+    if env_bin:
+        dirs.append(Path(env_bin))
+    if os.name == 'nt':
+        for base in (
+            Path(r'C:\Program Files\PostgreSQL'),
+            Path(r'C:\Program Files (x86)\PostgreSQL'),
+        ):
+            if not base.is_dir():
+                continue
+            # Новые версии первыми (18, 17, …)
+            versions = sorted(
+                (p for p in base.iterdir() if p.is_dir() and (p / 'bin').is_dir()),
+                key=lambda p: p.name,
+                reverse=True,
+            )
+            dirs.extend(p / 'bin' for p in versions)
+    else:
+        for p in (
+            Path('/usr/lib/postgresql'),
+            Path('/usr/pgsql-18/bin'),
+            Path('/usr/pgsql-17/bin'),
+            Path('/usr/pgsql-16/bin'),
+            Path('/usr/local/pgsql/bin'),
+        ):
+            if p.is_dir() and p.name.startswith('postgresql'):
+                versions = sorted(
+                    (c for c in p.iterdir() if (c / 'bin').is_dir()),
+                    key=lambda c: c.name,
+                    reverse=True,
+                )
+                dirs.extend(c / 'bin' for c in versions)
+            elif (p / 'pg_dump').exists() or p.name.endswith('bin'):
+                dirs.append(p if p.name == 'bin' or (p / 'pg_dump').exists() else p)
+    return dirs
+
+
 def _pg_bin(name: str) -> str:
-    pg_bin = os.environ.get('PG_BIN')
-    if pg_bin:
-        candidate = Path(pg_bin) / (name + ('.exe' if os.name == 'nt' else ''))
-        if candidate.exists():
+    exe = name + ('.exe' if os.name == 'nt' else '')
+    for directory in _pg_client_dirs():
+        candidate = directory / exe
+        if candidate.is_file():
             return str(candidate)
-    found = shutil.which(name)
+    found = shutil.which(name) or shutil.which(exe)
     if not found:
-        raise ValidationError(f'Не найдена утилита {name}. Установите клиент PostgreSQL или задайте PG_BIN.')
+        raise ValidationError(
+            f'Не найдена утилита {name}. Установите клиент PostgreSQL '
+            f'или задайте PG_BIN (сейчас: {os.environ.get("PG_BIN") or "не задан"}).'
+        )
     return found
 
 
@@ -275,6 +318,64 @@ def verify_backup(record: BackupRecord, *, actor=None, full_restore: bool = True
     record.save()
     write_audit(user=actor, object_type='backup', object_id=record.pk, action='verify',
                 after={'status': record.verify_status, 'notes': notes}, request=request)
+    return record
+
+
+def import_backup_file(
+    uploaded,
+    *,
+    kind: str = 'full',
+    actor=None,
+    request=None,
+) -> BackupRecord:
+    """Импорт файла дампа (.dump / pg_dump -Fc) в каталог бэкапов и запись BackupRecord.
+
+    После импорта восстановление — через restore_backup (как для локально созданных копий).
+    """
+    if not is_postgres():
+        raise ValidationError('Импорт бэкапа доступен только для PostgreSQL.')
+    if kind not in {'full', 'incremental', 'schema'}:
+        raise ValidationError('Неизвестный тип копии.')
+    name = getattr(uploaded, 'name', '') or 'import.dump'
+    if not name.lower().endswith(('.dump', '.backup', '.bak')):
+        raise ValidationError('Ожидается файл .dump / .backup (формат pg_dump -Fc).')
+    backup_dir = Path(settings.MAGTECH_BACKUP_DIR)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    db = settings.DATABASES['default']
+    stamp = timezone.localtime().strftime('%Y%m%d_%H%M%S')
+    safe = ''.join(ch if ch.isalnum() or ch in '._-' else '_' for ch in Path(name).stem)[:80]
+    path = backup_dir / f'{db["NAME"]}_import_{kind}_{safe}_{stamp}.dump'
+    size = 0
+    with path.open('wb') as out:
+        for chunk in uploaded.chunks():
+            out.write(chunk)
+            size += len(chunk)
+            if size > 10 * 1024 * 1024 * 1024:  # 10 GiB safety
+                path.unlink(missing_ok=True)
+                raise ValidationError('Файл бэкапа слишком большой.')
+    if size < 64:
+        path.unlink(missing_ok=True)
+        raise ValidationError('Файл пустой или повреждён.')
+    # быстрая проверка: custom-format dump начинается с "PGDMP"
+    with path.open('rb') as fh:
+        magic = fh.read(5)
+    if magic != b'PGDMP':
+        path.unlink(missing_ok=True)
+        raise ValidationError('Файл не похож на дамп PostgreSQL (pg_dump -Fc).')
+    record = BackupRecord(
+        backup_kind=kind,
+        file_path=str(path),
+        file_size=size,
+        checksum=_sha256(path),
+        backup_status='success',
+        backup_output=f'imported from {name}',
+        id_user=actor,
+    )
+    record.save()
+    write_audit(
+        user=actor, object_type='backup', object_id=record.pk, action='import',
+        after={'file': path.name, 'size': size, 'kind': kind, 'source': name}, request=request,
+    )
     return record
 
 

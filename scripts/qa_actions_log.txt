@@ -1,0 +1,50 @@
+OK login -> http://127.0.0.1:8000/panel/
+category fields: ['category_attributes', 'category_name', 'category_slug', 'csrfmiddlewaretoken', 'id_parent', 'is_active', 'viewport']
+OK category create -> http://127.0.0.1:8000/panel/categories/
+OK category id=28
+brand fields: ['brand_description', 'brand_logo_url', 'brand_name', 'brand_slug', 'csrfmiddlewaretoken', 'is_active', 'viewport']
+OK brand create -> http://127.0.0.1:8000/panel/brands/
+OK brand id=16
+product fields: ['cost_price', 'csrfmiddlewaretoken', 'id_brand', 'id_category', 'id_unit', 'is_active', 'price', 'price_reason', 'product_characteristics', 'product_description', 'product_ean', 'product_name', 'product_sku', 'seo_description', 'seo_keywords', 'seo_title', 'viewport']
+FAIL product create -> http://127.0.0.1:8000/panel/products/new/
+  li: Обязательное поле.
+  li: Обязательное поле.
+OK stock list 200
+adjust fields: ['confirm', 'csrfmiddlewaretoken', 'delta', 'reason', 'viewport']
+OK stock adjust -> http://127.0.0.1:8000/panel/stock/265/adjust/
+OK stock receipt page 200
+receipt fields: ['csrfmiddlewaretoken', 'document_number', 'expected_quantity', 'product', 'quantity', 'reason', 'viewport']
+OK orders 200
+OK order detail 92 200
+order actions: []
+OK picking 200
+promo fields: ['brands', 'categories', 'csrfmiddlewaretoken', 'end_at', 'is_active', 'is_stackable', 'products', 'promotion_description', 'promotion_min_qty', 'promotion_min_sum', 'promotion_name', 'promotion_promo_code', 'promotion_type', 'promotion_value', 'start_at', 'usage_limit', 'viewport']
+FAIL promo -> http://127.0.0.1:8000/panel/promotions/new/
+OK users list shows enc:v1: ciphertext
+OK decrypt user 12 status=200 revealed=True
+OK backups page 200 import_ui=True restore_ui=True
+backup forms actions: ['/panel/logout/', '/panel/db/backups/create/', '/panel/db/backups/import/']
+backup POST / -> 200 http://127.0.0.1:8000/panel/db/backups/
+backup POST /create/ -> 200 http://127.0.0.1:8000/panel/db/backups/
+restore links: [] download: []
+OK GET /panel/reviews/ 200
+OK GET /panel/payments/ 200
+OK GET /panel/statements/ 200
+OK GET /panel/returns/ 200
+OK GET /panel/io/ 200
+OK GET /panel/audit/ 200
+OK GET /panel/settings/ 200
+OK GET /panel/db/ 200
+OK GET /panel/db/schema/ 200
+OK GET /panel/db/jobs/ 200
+OK GET /panel/archive/ 200
+OK GET /panel/references/ 200
+OK GET /panel/reports/ 200
+OK GET /panel/users/rbac/ 200
+OK GET /panel/characteristics/ 200
+OK GET /panel/products/?chart_period=7d 200
+OK GET /panel/promotions/?chart_period=90d 200
+OK theme toggle 400
+=== FINDINGS ===
+  - product create failed
+total findings: 1

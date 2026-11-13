@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'users',
-    'shop',
+    'shop.apps.ShopConfig',
     'panel',
     'store',
     'api',
@@ -195,6 +195,13 @@ MAGTECH_LOGIN_FAIL_WINDOW_SECONDS = 900
 MAGTECH_LOGIN_MAX_IP = int(os.environ.get('MAGTECH_LOGIN_MAX_IP', 20))
 MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_PANEL_LOGIN_MAX_ATTEMPTS', 5))
 MAGTECH_STORE_LOGIN_MAX_ATTEMPTS = int(os.environ.get('MAGTECH_STORE_LOGIN_MAX_ATTEMPTS', 10))
+# После N неудачных попыток по email — деактивация учётки (постоянный бан до админа)
+MAGTECH_LOGIN_AUTO_BAN_AFTER = int(os.environ.get('MAGTECH_LOGIN_AUTO_BAN_AFTER', 20))
+# Fernet-ключ для ПДн (urlsafe base64 32 bytes). Пусто → производный от DJANGO_SECRET_KEY.
+MAGTECH_PII_ENCRYPTION_KEY = os.environ.get('MAGTECH_PII_ENCRYPTION_KEY', '').strip()
+MAGTECH_PDN_CONSENT_VERSION = os.environ.get('MAGTECH_PDN_CONSENT_VERSION', '1.0')
+MAGTECH_BANWORDS_FILE = os.environ.get('MAGTECH_BANWORDS_FILE', '')
+MAGTECH_BANWORDS_EXTRA = os.environ.get('MAGTECH_BANWORDS_EXTRA', '')
 
 # X-Forwarded-For доверять только за своим прокси (nginx/ELB), который его
 # перезаписывает. Без этого заголовок подделывается и ломает аудит (inet) и

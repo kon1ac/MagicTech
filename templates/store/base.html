@@ -25,15 +25,15 @@
 {# ---------- прогресс прокрутки страницы ---------- #}
 <div class="scroll-progress" aria-hidden="true"><div class="bar"></div></div>
 
-{# ---------- кастомный курсор: точка + догоняющее кольцо ---------- #}
-<div class="cursor-dot" aria-hidden="true"></div>
-<div class="cursor-ring" aria-hidden="true"></div>
-
 {# ---------- сюда ядро складывает тосты ---------- #}
 <div class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 <header class="header"><div class="wrap">
-  <a class="logo" href="{% url 'store:catalog' %}"><img src="{% static 'panel/img/logo.svg' %}" width="34" height="34" alt="">MagicTech</a>
+  <a class="logo" href="{% url 'store:catalog' %}">
+    <img class="logo-mark logo-mark--neon" src="{% static 'panel/img/logo.svg' %}" width="34" height="34" alt="">
+    <img class="logo-mark logo-mark--clean" src="{% static 'panel/img/logo-light.svg' %}" width="34" height="34" alt="">
+    MagicTech
+  </a>
 
   {# мега-меню каталога: колонки — категории второго уровня, ссылки — третьего #}
   <nav class="primary-nav" aria-label="Каталог">
@@ -57,16 +57,20 @@
     {% endfor %}
   </nav>
 
-  <form class="search" action="{% url 'store:catalog' %}" method="get" role="search">
-    <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Поиск: название, артикул, бренд…" aria-label="Поиск">
+  <form class="search" action="{% url 'store:catalog' %}" method="get" role="search" data-search-form autocomplete="off">
+    <div class="search-wrap">
+      <input type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Поиск: название, артикул, бренд…" aria-label="Поиск" data-store-search data-search-input title="Ctrl+Alt+K или /" autocomplete="off" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+      <div class="search-suggest" id="search-suggest" data-search-suggest hidden role="listbox"></div>
+    </div>
     <button class="btn btn-primary">Найти</button>
   </form>
 
   <nav class="header-links" aria-label="Профиль">
-    <button class="theme-switch" type="button" aria-label="Переключить тему" aria-pressed="false">
+    <button class="theme-switch" type="button" aria-label="Переключить тему" aria-pressed="false" title="Тема (Ctrl+Alt+T)">
       <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
       <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>
     </button>
+    <button type="button" class="icon-btn hotkeys-btn" data-hotkeys-open title="Горячие клавиши (?)" aria-label="Горячие клавиши">?</button>
     {% if store_user %}
       <a class="icon-btn" href="{% url 'store:account_wishlist' %}" title="Избранное" aria-label="Избранное">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>
@@ -132,6 +136,24 @@
   </div>
   <div class="drawer-body"><p class="muted">Загрузка…</p></div>
 </aside>
+
+{# ---------- справка по горячим клавишам витрины ---------- #}
+<div class="hk-backdrop" id="storeHotkeys" hidden>
+  <div class="hk-dialog" role="dialog" aria-modal="true" aria-labelledby="storeHotkeysTitle">
+    <div class="hk-dialog-head">
+      <h2 id="storeHotkeysTitle">Горячие клавиши</h2>
+      <button type="button" class="drawer-close" data-hotkeys-close aria-label="Закрыть">✕</button>
+    </div>
+    <p class="muted hk-hint">Работают для всех посетителей. Сочетания с Ctrl+Alt не пересекаются с вкладками браузера. При вводе текста — только Ctrl+Alt.</p>
+    <ul class="hk-list">
+      <li><span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd></span><span>Сменить тему</span></li>
+      <li><span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd></span><span>Фокус в поиск</span></li>
+      <li><span><kbd>/</kbd></span><span>Фокус в поиск (вне поля ввода)</span></li>
+      <li><span><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>H</kbd> или <kbd>?</kbd></span><span>Эта справка</span></li>
+      <li><span><kbd>Esc</kbd></span><span>Закрыть справку</span></li>
+    </ul>
+  </div>
+</div>
 
 <script src="{% static 'store/store.js' %}"></script>
 <script src="{% static 'store/store-ui.js' %}"></script>

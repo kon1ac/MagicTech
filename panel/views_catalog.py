@@ -81,7 +81,9 @@ def _crud_delete(request, obj, *, object_type, back, title):
                                                   'text': 'Удаление необратимо и будет записано в журнал аудита.'})
 
 
-def _simple_list(request, model, template, search_fields, sort_map, default_sort, section):
+def _simple_list(request, model, template, search_fields, sort_map, default_sort, section, *, charts_section=None):
+    from panel.charts import charts_for
+
     actor = request.panel_user
     if (resp := default_filter_redirect(request, actor, section)):
         return resp
@@ -93,8 +95,11 @@ def _simple_list(request, model, template, search_fields, sort_map, default_sort
             flt |= Q(**{f'{field}__icontains': q})
         qs = qs.filter(flt)
     qs, keys = apply_sorting(request, qs, sort_map, default_sort)
+    extra = charts_for(charts_section or section, request) if charts_section or section in (
+        'categories', 'brands', 'characteristics', 'promotions', 'products',
+    ) else {}
     return render(request, template, {'page_obj': paginate(request, qs, actor), 'q': q,
-                                      **list_context(request, actor, section, keys)})
+                                      **extra, **list_context(request, actor, section, keys)})
 
 
 # ---------------------------------------------------------------- категории
@@ -105,7 +110,7 @@ def category_list_view(request):
     return _simple_list(request, Category.objects.select_related('id_parent').model,
                         'panel/catalog/category_list.html', ['category_name', 'category_slug'],
                         {'name': 'category_name', 'level': 'category_level', 'id': 'id_category'},
-                        'level,name', 'categories')
+                        'level,name', 'categories', charts_section='categories')
 
 
 @panel_login_required
@@ -138,7 +143,8 @@ def category_delete_view(request, pk):
 @permission_required('brands', 'view')
 def brand_list_view(request):
     return _simple_list(request, Brand, 'panel/catalog/brand_list.html', ['brand_name', 'brand_slug'],
-                        {'name': 'brand_name', 'id': 'id_brand', 'active': 'is_active'}, 'name', 'brands')
+                        {'name': 'brand_name', 'id': 'id_brand', 'active': 'is_active'}, 'name', 'brands',
+                        charts_section='brands')
 
 
 @panel_login_required
@@ -172,7 +178,7 @@ def brand_delete_view(request, pk):
 def characteristic_list_view(request):
     return _simple_list(request, Characteristic, 'panel/catalog/characteristic_list.html',
                         ['char_code', 'char_name'], {'name': 'char_name', 'code': 'char_code', 'order': 'sort_order'},
-                        'order,name', 'characteristics')
+                        'order,name', 'characteristics', charts_section='characteristics')
 
 
 @panel_login_required
@@ -256,9 +262,14 @@ def product_list_view(request):
     elif filters['stock'] == 'low':
         qs = qs.filter(available__gt=0, available__lte=5)
     qs, keys = apply_sorting(request, qs, PRODUCT_SORT, '-created')
+    from panel.charts import charts_for
+    from panel.stats import products_stats
+
     return render(request, 'panel/catalog/product_list.html', {
         'page_obj': paginate(request, qs, actor), 'q': q, 'filters': filters,
         'categories': Category.objects.order_by('category_name'), 'brands': Brand.objects.order_by('brand_name'),
+        'page_stats': products_stats(actor),
+        **charts_for('products', request),
         **list_context(request, actor, 'products', keys),
     })
 
@@ -401,10 +412,24 @@ def product_bulk_view(request):
 @panel_login_required
 @permission_required('promotions', 'view')
 def promotion_list_view(request):
-    return _simple_list(request, Promotion, 'panel/promotions/list.html',
-                        ['promotion_name', 'promotion_promo_code'],
-                        {'name': 'promotion_name', 'start': 'start_at', 'end': 'end_at', 'value': 'promotion_value',
-                         'active': 'is_active', 'used': 'usage_count'}, '-start', 'promotions')
+    from panel.charts import charts_for
+    from panel.stats import promotions_stats
+
+    actor = request.panel_user
+    if (resp := default_filter_redirect(request, actor, 'promotions')):
+        return resp
+    q = request.GET.get('q', '').strip()
+    qs = Promotion.objects.all()
+    if q:
+        qs = qs.filter(Q(promotion_name__icontains=q) | Q(promotion_promo_code__icontains=q))
+    sort_map = {'name': 'promotion_name', 'start': 'start_at', 'end': 'end_at', 'value': 'promotion_value',
+                'active': 'is_active', 'used': 'usage_count'}
+    qs, keys = apply_sorting(request, qs, sort_map, '-start')
+    return render(request, 'panel/promotions/list.html', {
+        'page_obj': paginate(request, qs, actor), 'q': q, 'page_stats': promotions_stats(actor),
+        **charts_for('promotions', request),
+        **list_context(request, actor, 'promotions', keys),
+    })
 
 
 @panel_login_required

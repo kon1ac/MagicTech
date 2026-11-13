@@ -134,47 +134,6 @@
   }
 
   /* ======================================================================
-     3. Кастомный курсор: точка + догоняющее кольцо
-     ====================================================================== */
-  function initCursor() {
-    if (window.matchMedia('(hover: none)').matches || reduceQuery.matches) return;
-    if (!document.querySelector('.cursor-dot')) return;
-    root.classList.add('has-cursor');     // прячем штатный курсор ОС
-
-    var dot = document.querySelector('.cursor-dot');
-    var ring = document.querySelector('.cursor-ring');
-    var mx = window.innerWidth / 2, my = window.innerHeight / 2;
-    var rx = mx, ry = my;
-
-    document.addEventListener('mousemove', function (e) {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = 'translate(' + mx + 'px,' + my + 'px) translate(-50%,-50%)';
-    }, { passive: true });
-
-    // кольцо плавно догоняет курсор — даёт ощущение «тяжести»
-    (function follow() {
-      rx += (mx - rx) * 0.16;
-      ry += (my - ry) * 0.16;
-      ring.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
-      requestAnimationFrame(follow);
-    })();
-
-    var hoverSel = 'a, button, input, select, textarea, label, .product-card, [role="button"]';
-    document.addEventListener('mouseover', function (e) {
-      if (e.target.closest(hoverSel)) document.body.classList.add('cursor-hover');
-    });
-    document.addEventListener('mouseout', function (e) {
-      if (e.target.closest(hoverSel)) document.body.classList.remove('cursor-hover');
-    });
-    document.addEventListener('mouseleave', function () {
-      dot.style.opacity = '0'; ring.style.opacity = '0';
-    });
-    document.addEventListener('mouseenter', function () {
-      dot.style.opacity = '1'; ring.style.opacity = '1';
-    });
-  }
-
-  /* ======================================================================
      4. Ripple — волна от точки клика по кнопке
      ====================================================================== */
   function initRipple() {
@@ -449,11 +408,124 @@
     setTimeout(hide, 3000);               // страховка: не держать дольше 3 с
   }
 
+  /* ======================================================================
+     10. Горячие клавиши витрины (Ctrl+Alt — без конфликтов с браузером)
+     ====================================================================== */
+  function initHotkeys() {
+    var panel = document.getElementById('storeHotkeys');
+
+    function typing() {
+      var el = document.activeElement;
+      if (!el) return false;
+      var tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    }
+
+    function comboOf(e) {
+      var code = e.code || '';
+      var base;
+      if (/^Key[A-Z]$/.test(code)) base = code.slice(3).toLowerCase();
+      else if (code === 'Slash') base = '/';
+      else if (code === 'Escape') base = 'escape';
+      else base = (e.key || '').toLowerCase();
+      var mods = [];
+      if (e.ctrlKey) mods.push('ctrl');
+      if (e.metaKey) mods.push('meta');
+      if (e.altKey) mods.push('alt');
+      if (e.shiftKey) mods.push('shift');
+      return mods.length ? mods.join('+') + '+' + base : base;
+    }
+
+    function focusSearch() {
+      var input = document.querySelector('[data-store-search], .search input[type="search"]');
+      if (!input) return;
+      input.focus();
+      if (typeof input.select === 'function') input.select();
+    }
+
+    function toggleThemeHotkey() {
+      applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true);
+    }
+
+    function openHelp() {
+      if (!panel) return;
+      panel.hidden = false;
+      document.body.classList.add('hk-open');
+      var closeBtn = panel.querySelector('[data-hotkeys-close]');
+      if (closeBtn) closeBtn.focus();
+    }
+
+    function closeHelp() {
+      if (!panel || panel.hidden) return;
+      panel.hidden = true;
+      document.body.classList.remove('hk-open');
+    }
+
+    function isHelpOpen() {
+      return panel && !panel.hidden;
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-hotkeys-open]')) {
+        e.preventDefault();
+        openHelp();
+        return;
+      }
+      if (e.target.closest('[data-hotkeys-close]')) {
+        e.preventDefault();
+        closeHelp();
+        return;
+      }
+      if (isHelpOpen() && e.target === panel) closeHelp();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.isComposing) return;
+      var combo = comboOf(e);
+
+      if (combo === 'escape' && isHelpOpen()) {
+        e.preventDefault();
+        closeHelp();
+        return;
+      }
+
+      if (combo === 'ctrl+alt+t') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleThemeHotkey();
+        return;
+      }
+      if (combo === 'ctrl+alt+k' || combo === 'ctrl+alt+/') {
+        e.preventDefault();
+        e.stopPropagation();
+        focusSearch();
+        return;
+      }
+      if (combo === 'ctrl+alt+h') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isHelpOpen()) closeHelp(); else openHelp();
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey || typing()) return;
+
+      if (combo === '/' ) {
+        e.preventDefault();
+        focusSearch();
+        return;
+      }
+      if (combo === 'shift+/') {
+        e.preventDefault();
+        if (isHelpOpen()) closeHelp(); else openHelp();
+      }
+    }, true);
+  }
+
   /* ---------- инициализация ---------- */
   function boot() {
     initTheme();
     initLoader();
-    initCursor();
     initRipple();
     initHeader();
     initReveal();
@@ -461,6 +533,7 @@
     promoteDjangoMessages();
     initPageTransitions();
     initSkeleton();
+    initHotkeys();
   }
 
   if (document.readyState === 'loading') {

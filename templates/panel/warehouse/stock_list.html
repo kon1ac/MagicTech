@@ -2,9 +2,16 @@
 {% load panel_extras %}
 {% block title %}Склад{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>{% tr 'Склад' %}</h1><p class="muted">Остатки и резервы в реальном времени (без кеша)</p></div>
+<header class="page-header"><div><h1>{% tr 'Склад' %}</h1><p class="muted">Остатки, популярность, оборачиваемость</p></div>
   <div class="toolbar"><a class="btn" href="{% url 'panel:movement_list' %}">Журнал движений</a>
+  <a class="btn" href="{% url 'panel:stock_export' %}">Экспорт отчёта CSV</a>
   {% can 'stock' 'receipt' as can_receipt %}{% if can_receipt %}<a class="btn btn-primary" data-hotkey="i" href="{% url 'panel:stock_receipt' %}">Приход <kbd>I</kbd></a>{% endif %}</div></header>
+{% include 'panel/partials/page_stats.html' %}
+{% if popular %}
+<section class="card" style="margin-bottom:1rem"><h2>Популярные за 30 дней</h2>
+  <div class="toolbar">{% for p in popular %}<span class="chip"><code>{{ p.sku }}</code> · {{ p.sold }} шт.</span>{% endfor %}</div>
+</section>
+{% endif %}
 <div class="quick-filters">
   <a class="chip {% if not level %}active{% endif %}" href="?">Все</a><a class="chip {% if level == 'low' %}active{% endif %}" href="?level=low">≤ 5 шт.</a>
   <a class="chip {% if level == 'out' %}active{% endif %}" href="?level=out">Нет на складе</a><a class="chip {% if level == 'reserved' %}active{% endif %}" href="?level=reserved">Есть резерв</a></div>

@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from panel.decorators import panel_login_required, permission_required, secure_channel_required
-from panel.forms import ApiTokenForm, ArchiveGrantForm, RestoreForm
+from panel.forms import ApiTokenForm, ArchiveGrantForm, BackupImportForm, RestoreForm
 from panel.listing import paginate
 from shop.models import ArchiveAccessGrant, ArchivedOrder, AuditLog, BackupRecord, ScheduledJob
 from shop.services import dbadmin
@@ -58,11 +58,14 @@ def db_schema_view(request):
 def db_backups_view(request):
     backups = BackupRecord.objects.select_related('id_user').order_by('-created_at')
     return render(request, 'panel/db/backups.html', {
-        'page_obj': paginate(request, backups, request.panel_user), 'restore_form': RestoreForm(),
+        'page_obj': paginate(request, backups, request.panel_user),
+        'restore_form': RestoreForm(),
+        'import_form': BackupImportForm(),
         'policy': [
             ('Полный бэкап БД', 'ежедневно, 02:00 (ночное окно), задание backup-full'),
             ('Инкрементальный', 'каждые 4 часа (транзакционные таблицы) + непрерывный архив WAL'),
             ('Справочники и конфигурации', 'при каждом релизе / изменении схемы, задание backup-schema'),
+            ('Импорт дампа', 'загрузка .dump (pg_dump -Fc) → запись в список → restore рабочей БД'),
             ('Хранение', 'не менее 30 дней, ротация — задание cleanup-backups'),
             ('Проверка restore', 'ежемесячно на тестовом контуре (<БД>_restore_test), задание verify-restore'),
             ('RPO / RTO', '≤ 15 минут (archive_timeout = 900 с) / ≤ 1 часа'),
@@ -79,6 +82,29 @@ def db_backup_create_view(request):
             messages.success(request, f'Резервная копия создана: {record.file_path}')
         else:
             messages.error(request, f'Ошибка бэкапа: {record.backup_output[-300:]}')
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0])
+    return redirect('panel:db_backups')
+
+
+@db_view('backup')
+@require_POST
+def db_backup_import_view(request):
+    form = BackupImportForm(request.POST, request.FILES)
+    if not form.is_valid():
+        messages.error(request, 'Выберите файл дампа (.dump) и тип копии.')
+        return redirect('panel:db_backups')
+    try:
+        record = dbadmin.import_backup_file(
+            form.cleaned_data['file'],
+            kind=form.cleaned_data['kind'],
+            actor=request.panel_user,
+            request=request,
+        )
+        messages.success(
+            request,
+            f'Дамп импортирован (#{record.pk}). Для применения к БД нажмите «Восстановить БД» у этой копии.',
+        )
     except ValidationError as exc:
         messages.error(request, exc.messages[0])
     return redirect('panel:db_backups')

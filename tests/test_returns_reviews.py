@@ -102,9 +102,16 @@ class ReviewTests(CompletedOrderMixin, MagicTestCase):
         with self.assertRaises(ValidationError):
             review_service.create_review(self.buyer, self.mouse, rating=4, text='Ещё раз')
 
-    def test_questions_do_not_require_purchase(self):
-        q = review_service.create_review(self.other_buyer, self.mouse, rating=None, text='Есть подсветка?', is_question=True)
-        self.assertEqual(q.review_type, 'question')
+    def test_questions_disabled(self):
+        with self.assertRaises(ValidationError):
+            review_service.create_review(
+                self.other_buyer, self.mouse, rating=None, text='Есть подсветка?', is_question=True,
+            )
+
+    def test_banwords_rejected(self):
+        self.completed_order()
+        with self.assertRaises(ValidationError):
+            review_service.create_review(self.buyer, self.mouse, rating=1, text='Полный бред хуйня товар')
 
     def test_rating_recalculated_on_moderation_and_delete(self):
         self.completed_order(user=self.buyer)

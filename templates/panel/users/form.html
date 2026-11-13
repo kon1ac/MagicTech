@@ -1,11 +1,31 @@
 {% extends 'panel/base.html' %}
+{% load panel_extras %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<header class="page-header"><h1>{{ title }}</h1></header>
+<header class="page-header"><div><h1>{{ title }}</h1>
+  <p class="muted">ПДн в форме не расшифровываются. Чтобы увидеть значения — «Расшифровать ПДн» (DB_ADMIN).</p></div>
+  <div class="toolbar"><a class="btn" href="{% url 'panel:user_list' %}">← Назад</a>
+    {% can 'pii' 'decrypt' as can_decrypt %}{% if can_decrypt and target %}<a class="btn btn-danger" href="{% url 'panel:user_decrypt' target.pk %}">Расшифровать ПДн</a>{% endif %}
+  </div></header>
+
+{% if pii_cipher %}
+<section class="card" style="margin-bottom:1rem">
+  <h2>ПДн в БД (ciphertext)</h2>
+  <dl class="props">
+    <dt>Имя</dt><dd class="mono">{{ pii_cipher.first_name }}</dd>
+    <dt>Фамилия</dt><dd class="mono">{{ pii_cipher.last_name }}</dd>
+    <dt>Телефон</dt><dd class="mono">{{ pii_cipher.phone }}</dd>
+  </dl>
+</section>
+{% endif %}
+
 <section class="card">
-  <form method="post" class="form-stack">{% csrf_token %}{{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Сохранить</button>
-    <a class="btn btn-ghost" href="{% url 'panel:user_list' %}">Отмена</a>
+  <form method="post" class="form-stack" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.as_p }}
+    <div class="toolbar"><button class="btn btn-primary">Сохранить</button></div>
   </form>
 </section>
+
+{% if history %}{% include 'panel/partials/history.html' %}{% endif %}
+{% if related %}<section class="card" style="margin-top:1rem"><h2>Связанное</h2><ul>{% for title, url in related %}<li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}</ul></section>{% endif %}
 {% endblock %}

@@ -13,6 +13,7 @@
         <tfoot><tr><td colspan="4"><strong>Итого</strong>{% if order.discount_total %} (скидка {{ order.discount_total|floatformat:'2g' }} ₽){% endif %}</td><td class="num"><strong>{{ order.total|floatformat:'2g' }} ₽</strong></td></tr></tfoot></table></div>
       <p>Доставка: {{ order.delivery_address|default:'—' }} · {{ order.contact_phone|default:'' }}{% if order.tracking_number %} · трек {{ order.tracking_number }}{% endif %}</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        {% if can_invoice %}<a class="btn btn-primary" href="{% url 'store:account_order_invoice' order.order_number %}">Скачать счёт / накладную (PDF)</a>{% endif %}
         {% if order.order_status == 'NEW' or order.order_status == 'PAID' %}<form method="post" action="{% url 'store:account_order_cancel' order.order_number %}" id="cancel-order-form">{% csrf_token %}<button class="btn" type="submit" data-modal-open="modal-cancel-order">Отменить заказ</button></form>{% endif %}
         {% if can_return %}<a class="btn" href="{% url 'store:account_return_create' order.order_number %}">Оформить возврат</a>{% endif %}
       </div></section>

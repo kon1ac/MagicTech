@@ -214,6 +214,63 @@
      (остальные спрятаны CSS). Клик по сцене — зум (transform-origin следует
      за мышью), миниатюры и стрелки листают.
      ====================================================================== */
+  function bindSwipe(el, onLeft, onRight, opts) {
+    opts = opts || {};
+    var startX = 0, startY = 0, dx = 0, dy = 0, active = false, dragged = false;
+    var threshold = opts.threshold || 40;
+
+    function point(e) {
+      if (e.touches && e.touches[0]) return e.touches[0];
+      if (e.changedTouches && e.changedTouches[0]) return e.changedTouches[0];
+      return e;
+    }
+
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button != null && e.button !== 0) return;
+      if (opts.ignore && e.target.closest(opts.ignore)) return;
+      active = true;
+      dragged = false;
+      dx = dy = 0;
+      var p = point(e);
+      startX = p.clientX;
+      startY = p.clientY;
+      // иначе браузер уводит на ссылку / native-drag вместо свайпа
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      if (opts.onStart) opts.onStart();
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!active) return;
+      var p = point(e);
+      dx = p.clientX - startX;
+      dy = p.clientY - startY;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) dragged = true;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) e.preventDefault();
+      if (opts.onMove) opts.onMove(dx, dy);
+    });
+    function end(e) {
+      if (!active) return;
+      active = false;
+      try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (opts.onEnd) opts.onEnd(dx, dy, dragged);
+      if (Math.abs(dx) >= threshold && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) onLeft();
+        else onRight();
+      }
+    }
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    // клик по слайду после драга не открывает товар
+    el.addEventListener('click', function (e) {
+      if (dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragged = false;
+      }
+    }, true);
+    return function wasDragged() { return dragged; };
+  }
+
   function initGallery() {
     var root = document.querySelector('[data-gallery]');
     if (!root) return;
@@ -244,9 +301,17 @@
       e.preventDefault(); current = select(current + 1);
     });
 
+    var swipeDragged = bindSwipe(
+      stage,
+      function () { current = select(current + 1); },
+      function () { current = select(current - 1); },
+      { ignore: '.gallery-nav', threshold: 45 }
+    );
+
     // зум: CSS масштабирует img.is-active, мы только ведём точку зума
     stage.addEventListener('click', function (e) {
       if (e.target.closest('.gallery-nav')) return;
+      if (swipeDragged()) return;
       stage.classList.toggle('is-zoomed');
     });
     stage.addEventListener('mousemove', function (e) {
@@ -255,6 +320,68 @@
       imgs[current].style.transformOrigin =
         (((e.clientX - r.left) / r.width) * 100) + '% ' +
         (((e.clientY - r.top) / r.height) * 100) + '%';
+    });
+  }
+
+  function initCardGalleries() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-card-gallery]'), function (root) {
+      if (root.dataset.galleryReady) return;
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.card-gallery-slide'));
+      var dots = Array.prototype.slice.call(root.querySelectorAll('.card-gallery-dot'));
+      var stage = root.querySelector('.card-gallery-stage');
+      if (slides.length < 2 || !stage) return;
+      root.dataset.galleryReady = '1';
+
+      var current = Math.max(0, slides.findIndex(function (s) { return s.classList.contains('is-active'); }));
+
+      var idxEl = root.querySelector('[data-card-gallery-idx]');
+      function select(n) {
+        n = (n + slides.length) % slides.length;
+        slides.forEach(function (s, i) {
+          var on = i === n;
+          s.classList.toggle('is-active', on);
+          s.setAttribute('aria-hidden', on ? 'false' : 'true');
+          s.tabIndex = on ? 0 : -1;
+        });
+        dots.forEach(function (d, i) { d.classList.toggle('is-active', i === n); });
+        if (idxEl) idxEl.textContent = String(n + 1);
+        current = n;
+        return n;
+      }
+      if (!slides[current].classList.contains('is-active')) select(current);
+
+      var prev = root.querySelector('.card-gallery-nav.prev');
+      var next = root.querySelector('.card-gallery-nav.next');
+      if (prev) prev.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation(); select(current - 1);
+      });
+      if (next) next.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation(); select(current + 1);
+      });
+
+      var swipeDragged = bindSwipe(
+        stage,
+        function () { select(current + 1); },
+        function () { select(current - 1); },
+        {
+          threshold: 36,
+          ignore: '.card-gallery-nav',
+          onStart: function () { root.classList.add('is-dragging'); },
+          onEnd: function () { root.classList.remove('is-dragging'); }
+        }
+      );
+
+      // слайды без pointer-events — клик по фото открывает товар (если не было свайпа)
+      stage.addEventListener('click', function (e) {
+        if (e.target.closest('.card-gallery-nav')) return;
+        if (swipeDragged()) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        var link = slides[current];
+        if (link && link.href) window.location.href = link.href;
+      });
     });
   }
 
@@ -352,6 +479,12 @@
         self.apply(a.href);
       });
 
+      // чипы сброса фильтра — тоже live, URL уже «шарится» через pushState
+      on(document, 'click', '[data-active-filters] a', function (e, a) {
+        e.preventDefault();
+        self.apply(a.href);
+      });
+
       // история: «назад» должен вернуть предыдущий набор фильтров
       window.addEventListener('popstate', function () { self.apply(location.href, true); });
 
@@ -390,17 +523,43 @@
           var next = doc.querySelector('[data-catalog-grid]');
           var pager = doc.querySelector('[data-catalog-pager]');
           var count = doc.querySelector('[data-result-count]');
+          var chips = doc.querySelector('[data-active-filters]');
+          var formNext = doc.querySelector('[data-filter-form]');
 
           UI.skeleton(self.grid, 0);
           if (next) {
             self.grid.innerHTML = next.innerHTML;
-            initTilt();                       // навесить наклон на новые карточки
-            MTStore.reveal();                 // пересобрать observer для reveal
+            initTilt();
+            MTStore.reveal();
           }
           var livePager = document.querySelector('[data-catalog-pager]');
           if (livePager && pager) livePager.innerHTML = pager.innerHTML;
+          else if (livePager && !pager) livePager.innerHTML = '';
           var cnt = document.querySelector('[data-result-count]');
           if (cnt && count) cnt.textContent = count.textContent;
+
+          var liveChips = document.querySelector('[data-active-filters]');
+          if (liveChips && chips) {
+            liveChips.innerHTML = chips.innerHTML;
+            liveChips.hidden = chips.hidden || !chips.innerHTML.trim();
+          }
+
+          // синхронизируем чекбоксы формы с URL (после чипа / назад)
+          if (formNext && self.form) {
+            Array.prototype.forEach.call(self.form.querySelectorAll('input[type=checkbox]'), function (inp) {
+              var name = inp.name, val = inp.value;
+              var match = false;
+              Array.prototype.forEach.call(formNext.querySelectorAll('input[type=checkbox]'), function (src) {
+                if (src.name === name && src.value === val) match = src.checked;
+              });
+              inp.checked = match;
+            });
+            ['price_min', 'price_max'].forEach(function (name) {
+              var a = self.form.querySelector('input[name="' + name + '"]');
+              var b = formNext.querySelector('input[name="' + name + '"]');
+              if (a && b) a.value = b.value;
+            });
+          }
 
           if (!silent) history.pushState({}, '', target);
           document.dispatchEvent(new CustomEvent('mt:catalog-updated'));
@@ -696,13 +855,126 @@
   }
 
   /* ======================================================================
-     15. boot
+     15. Живой поиск с подсказками (SKU / бренд / опечатки)
+     ====================================================================== */
+  function initSearchSuggest() {
+    var form = document.querySelector('[data-search-form]');
+    var input = document.querySelector('[data-search-input]');
+    var box = document.querySelector('[data-search-suggest]');
+    if (!form || !input || !box) return;
+
+    var timer = null;
+    var active = -1;
+    var items = [];
+
+    function hide() {
+      box.hidden = true;
+      box.innerHTML = '';
+      active = -1;
+      items = [];
+      input.setAttribute('aria-expanded', 'false');
+    }
+
+    function show(html) {
+      box.innerHTML = html;
+      box.hidden = !html;
+      items = Array.prototype.slice.call(box.querySelectorAll('[data-sg-item]'));
+      active = -1;
+      input.setAttribute('aria-expanded', html ? 'true' : 'false');
+    }
+
+    function mark(i) {
+      items.forEach(function (el, idx) { el.classList.toggle('is-active', idx === i); });
+      active = i;
+      if (items[i]) items[i].scrollIntoView({ block: 'nearest' });
+    }
+
+    function render(data) {
+      var html = '';
+      if (data.did_you_mean) {
+        html += '<div class="sg-hint">Возможно, вы имели в виду: '
+          + '<a href="/?q=' + encodeURIComponent(data.did_you_mean) + '" data-sg-item>'
+          + escapeHtml(data.did_you_mean) + '</a></div>';
+      }
+      if (data.brands && data.brands.length) {
+        html += '<div class="search-suggest-group">Бренды</div>';
+        data.brands.forEach(function (b) {
+          html += '<a class="sg-brand" href="' + escapeAttr(b.url) + '" data-sg-item role="option">'
+            + '<span class="sg-name">' + escapeHtml(b.name) + '</span></a>';
+        });
+      }
+      if (data.products && data.products.length) {
+        html += '<div class="search-suggest-group">Товары</div>';
+        data.products.forEach(function (p) {
+          var price = p.price != null
+            ? (Math.round(p.price).toLocaleString('ru-RU') + ' ₽') : '';
+          html += '<a href="' + escapeAttr(p.url) + '" data-sg-item role="option">'
+            + (p.image ? '<img src="' + escapeAttr(p.image) + '" alt="">' : '<span></span>')
+            + '<span><div class="sg-name">' + escapeHtml(p.name) + '</div>'
+            + '<div class="sg-meta">' + escapeHtml(p.brand || p.sku) + '</div></span>'
+            + '<span class="sg-price">' + escapeHtml(price) + '</span></a>';
+        });
+      }
+      if (!html) {
+        html = '<div class="sg-empty">Ничего не найдено по «' + escapeHtml(data.q || '') + '»</div>';
+      }
+      show(html);
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
+
+    function fetchSuggest(q) {
+      if (!q || q.length < 1) { hide(); return; }
+      fetch('/search/suggest/?q=' + encodeURIComponent(q), {
+        headers: { 'X-Requested-With': 'fetch', 'Accept': 'application/json' }
+      })
+        .then(function (r) { return r.json(); })
+        .then(render)
+        .catch(function () { hide(); });
+    }
+
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = input.value.trim();
+      timer = setTimeout(function () { fetchSuggest(q); }, 180);
+    });
+    input.addEventListener('focus', function () {
+      if (input.value.trim()) fetchSuggest(input.value.trim());
+    });
+    input.addEventListener('keydown', function (e) {
+      if (box.hidden || !items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        mark(active < items.length - 1 ? active + 1 : 0);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        mark(active > 0 ? active - 1 : items.length - 1);
+      } else if (e.key === 'Enter' && active >= 0 && items[active]) {
+        e.preventDefault();
+        window.location.href = items[active].href;
+      } else if (e.key === 'Escape') {
+        hide();
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (!form.contains(e.target)) hide();
+    });
+  }
+
+  /* ======================================================================
+     16. boot
      ====================================================================== */
   function boot() {
     initTilt();
     initFlyToCart();
     drawer.init();
     initGallery();
+    initCardGalleries();
     initTabs();
     initMegaMenu();
     initCustomSelects();
@@ -712,6 +984,10 @@
     initModals();
     initMicroFx();
     initQty();
+    initSearchSuggest();
+    document.addEventListener('mt:catalog-updated', function () {
+      initCardGalleries();
+    });
   }
 
   if (document.readyState === 'loading') {

@@ -242,8 +242,13 @@ class Product(models.Model):
         return price.product_price if price else None
 
     @property
+    def gallery_images(self):
+        """Главное фото первым, затем доп. по sort_order."""
+        return sorted(self.media.all(), key=lambda m: (not m.is_main, m.sort_order, m.id_media))
+
+    @property
     def main_image(self):
-        images = sorted(self.media.all(), key=lambda m: (not m.is_main, m.sort_order))
+        images = self.gallery_images
         return images[0].url if images else None
 
 

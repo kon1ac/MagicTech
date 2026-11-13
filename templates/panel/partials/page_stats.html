@@ -1,0 +1,7 @@
+{% if page_stats %}
+<div class="stats-grid">
+  {% for s in page_stats %}
+  <div class="stat-card {% if s.tone %}{{ s.tone }}{% endif %}"><span class="stat-label">{{ s.label }}</span><span class="stat-value">{{ s.value }}</span></div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -97,17 +97,20 @@ def user_list_view(request):
     active = request.GET.get('active', '')
     qs = AuthCredentials.objects.select_related('profile')
     if q:
-        qs = qs.filter(Q(email__icontains=q) | Q(profile__profile_last_name__icontains=q)
-                       | Q(profile__profile_phone__icontains=q))
+        # ПДн в профиле зашифрованы — поиск только по email
+        qs = qs.filter(email__icontains=q)
     if role:
         qs = qs.filter(user_role=role)
     if active in ('1', '0'):
         qs = qs.filter(is_active=active == '1')
     qs, sort_keys = apply_sorting(request, qs, {
         'email': 'email', 'role': 'user_role', 'active': 'is_active', 'created': 'created_at'}, '-created')
+    from panel.stats import users_stats
+
     return render(request, 'panel/users/list.html', {
         'page_obj': paginate(request, qs, actor), 'q': q, 'role': role, 'active': active,
-        'roles': ROLE_CHOICES, 'role_labels': ROLE_LABELS, **list_context(request, actor, 'users', sort_keys),
+        'roles': ROLE_CHOICES, 'role_labels': ROLE_LABELS, 'page_stats': users_stats(actor),
+        **list_context(request, actor, 'users', sort_keys),
     })
 
 
@@ -121,8 +124,8 @@ def user_create_view(request):
                     after={'email': user.email, 'role': user.user_role}, request=request)
         messages.success(request, 'Пользователь создан.')
         return redirect('panel:user_list')
-    return render(request, 'panel/form.html', {'form': form, 'title': 'Новый пользователь',
-                                               'back': 'panel:user_list'})
+    return render(request, 'panel/users/form.html', {'form': form, 'title': 'Новый пользователь',
+                                                     'back': 'panel:user_list', 'target': None, 'pii_cipher': None})
 
 
 @panel_login_required
@@ -139,9 +142,15 @@ def user_edit_view(request, pk):
                     before=before, after=after, request=request)
         messages.success(request, 'Изменения сохранены.')
         return redirect('panel:user_list')
-    return render(request, 'panel/form.html', {
+    profile = getattr(user, 'profile', None)
+    pii_cipher = {
+        'first_name': profile.pii_preview('profile_first_name') if profile else '—',
+        'last_name': profile.pii_preview('profile_last_name') if profile else '—',
+        'phone': profile.pii_preview('profile_phone') if profile else '—',
+    } if user.pk else None
+    return render(request, 'panel/users/form.html', {
         'form': form, 'title': f'Пользователь {user.email}', 'back': 'panel:user_list',
-        'history': object_history('user', user.pk),
+        'history': object_history('user', user.pk), 'target': user, 'pii_cipher': pii_cipher,
         'related': [('Заказы покупателя', f'/panel/orders/?q={user.email}')],
     })
 
@@ -187,17 +196,46 @@ def user_delete_view(request, pk):
 def user_bulk_view(request):
     ids = [int(i) for i in request.POST.getlist('ids') if i.isdigit()]
     action = request.POST.get('action')
+    reason = (request.POST.get('reason') or '').strip()
     if not request.POST.get('confirm'):
         messages.error(request, 'Подтвердите массовую операцию.')
         return redirect(request.META.get('HTTP_REFERER') or 'panel:user_list')
     ids = [i for i in ids if i != request.panel_user.pk]
+    if action == 'deactivate' and not reason:
+        messages.error(request, 'Укажите основание деактивации.')
+        return redirect(request.META.get('HTTP_REFERER') or 'panel:user_list')
     if action in ('activate', 'deactivate') and ids:
-        AuthCredentials.objects.filter(pk__in=ids).update(is_active=action == 'activate')
-        for pk in ids:
-            write_audit(user=request.panel_user, object_type='user', object_id=pk, action=action,
-                        reason='Массовая операция', request=request)
+        for user in AuthCredentials.objects.filter(pk__in=ids):
+            if action == 'activate':
+                user.activate()
+            else:
+                user.deactivate(reason)
+            write_audit(user=request.panel_user, object_type='user', object_id=user.pk, action=action,
+                        reason=reason or 'Массовая активация', request=request)
         messages.success(request, f'Обработано учётных записей: {len(ids)}.')
     return redirect(request.META.get('HTTP_REFERER') or 'panel:user_list')
+
+
+@panel_login_required
+@permission_required('pii', 'decrypt')
+@require_http_methods(['GET', 'POST'])
+def user_decrypt_view(request, pk):
+    """Расшифровка ПДн профиля — только DB_ADMIN, с аудитом."""
+    user = get_object_or_404(AuthCredentials.objects.select_related('profile'), pk=pk)
+    profile = getattr(user, 'profile', None)
+    revealed = None
+    if request.method == 'POST' and request.POST.get('confirm'):
+        revealed = profile.plain_dict() if profile else {}
+        write_audit(
+            user=request.panel_user, object_type='user', object_id=user.pk, action='pii_decrypt',
+            reason=(request.POST.get('reason') or '').strip() or 'Расшифровка ПДн',
+            after={'fields': list(revealed.keys())}, request=request,
+        )
+        messages.warning(request, 'ПДн расшифрованы. Факт записан в аудит.')
+    return render(request, 'panel/users/decrypt.html', {
+        'target': user, 'profile': profile, 'revealed': revealed,
+        'password_is_hash': bool(user.password_hash and user.password_hash.startswith(('argon2', 'bcrypt', 'pbkdf2'))),
+    })
 
 
 @panel_login_required
@@ -289,7 +327,7 @@ def brandbook_view(request):
 
 @panel_login_required
 def command_search_view(request):
-    """Командная строка Alt+K: быстрый переход к товару/заказу/пользователю."""
+    """Командная строка Ctrl+Alt+K: быстрый переход к товару/заказу/пользователю."""
     from users.permissions import has_permission
 
     q = request.GET.get('q', '').strip()

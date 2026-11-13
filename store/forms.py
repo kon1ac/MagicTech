@@ -12,6 +12,11 @@ class RegisterForm(forms.Form):
     phone = forms.CharField(label='Телефон', max_length=30, required=False)
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}))
     password2 = forms.CharField(label='Повторите пароль', widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}))
+    pdn_consent = forms.BooleanField(
+        label='Согласен на обработку персональных данных',
+        required=True,
+        error_messages={'required': 'Нужно согласие на обработку персональных данных.'},
+    )
 
     def clean_email(self):
         email = self.cleaned_data['email'].lower()
@@ -65,12 +70,15 @@ class ReviewForm(forms.Form):
     text = forms.CharField(label='Отзыв', widget=forms.Textarea(attrs={'rows': 3}), max_length=5000)
     photo = forms.ImageField(label='Фото (необязательно)', required=False)
 
+    def clean_text(self):
+        from shop.services.banwords import validate_no_banwords
+
+        text = self.cleaned_data['text']
+        validate_no_banwords(text)
+        return text
+
     def clean_photo(self):
         from shop.validators import validate_image
 
         file = self.cleaned_data.get('photo')
         return validate_image(file) if file else file
-
-
-class QuestionForm(forms.Form):
-    text = forms.CharField(label='Вопрос о товаре', widget=forms.Textarea(attrs={'rows': 2}), max_length=2000)

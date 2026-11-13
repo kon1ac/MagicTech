@@ -1,8 +1,9 @@
-{% extends 'panel/base.html' %}
+﻿{% extends 'panel/base.html' %}
 {% load panel_extras %}
 {% block title %}Характеристики{% endblock %}
 {% block content %}
 <header class="page-header"><div><h1>{% tr 'Характеристики' %}</h1><p class="muted">Справочник атрибутов товаров; отмеченные «в фильтрах» появляются в динамических фильтрах каталога</p></div><a class="btn btn-primary" href="{% url 'panel:characteristic_create' %}">+ Характеристика</a></header>
+{% include 'panel/partials/page_charts.html' %}
 <div class="toolbar"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Код / название" data-hotkey="/"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
 {% include 'panel/partials/list_tools.html' %}
 <div class="table-wrap"><table class="data-table">
@@ -12,3 +13,4 @@
 </table></div>
 {% include 'panel/partials/pagination.html' %}
 {% endblock %}
+{% block scripts %}{% include 'panel/partials/page_charts_scripts.html' %}{% endblock %}

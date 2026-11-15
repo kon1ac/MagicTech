@@ -54,7 +54,7 @@
   const data = JSON.parse(document.getElementById('chartData').textContent);
   const css = getComputedStyle(document.documentElement);
   const c = (v) => css.getPropertyValue(v).trim();
-  const palette = [c('--primary'), c('--accent'), c('--warn'), c('--danger'), c('--ok'), '#8b5cf6', '#64748b', '#0ea5e9'];
+  const palette = [c('--primary'), c('--accent'), c('--warn'), c('--danger'), c('--ok'), '#2563eb', '#64748b', '#94a3b8'];
   Chart.defaults.color = c('--muted'); Chart.defaults.borderColor = c('--border'); Chart.defaults.font.family = 'Manrope, sans-serif';
   const opts = { responsive: true, maintainAspectRatio: false, animation: false };
   new Chart(chartSales, { type: 'line', data: { labels: data.sales.labels, datasets: [

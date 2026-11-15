@@ -1,13 +1,16 @@
 """Панель: каталог и справочники (категории, бренды, характеристики, товары, акции)."""
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
 from django.forms.models import model_to_dict
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from panel.decorators import panel_login_required, permission_required
+from users.permissions import has_permission
 from panel.forms import (
     BrandForm,
     CategoryForm,
@@ -18,7 +21,7 @@ from panel.forms import (
     ReturnReasonForm,
     UnitForm,
 )
-from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate
+from panel.listing import apply_sorting, default_filter_redirect, list_context, paginate, parse_date_param
 from shop.models import (
     Brand,
     Category,
@@ -33,6 +36,7 @@ from shop.models import (
 )
 from shop.services import pricing
 from shop.services.audit import object_history, write_audit
+from shop.services.identifiers import generate_ean13, generate_sku
 from shop.services.catalog import available_subquery, invalidate_catalog_cache
 from shop.services.errors import PROTECTED_ERRORS
 
@@ -250,7 +254,7 @@ def product_list_view(request):
         price_now=pricing.current_price_subquery(), available=available_subquery())
     if q:
         qs = qs.filter(Q(product_sku__icontains=q) | Q(product_name__icontains=q) | Q(product_ean__icontains=q))
-    filters = {k: request.GET.get(k, '') for k in ('category', 'brand', 'active', 'stock')}
+    filters = {k: request.GET.get(k, '') for k in ('category', 'brand', 'active', 'stock', 'from', 'to')}
     if filters['category'].isdigit():
         qs = qs.filter(id_category__in=get_object_or_404(Category, pk=filters['category']).descendant_ids())
     if filters['brand'].isdigit():
@@ -261,6 +265,10 @@ def product_list_view(request):
         qs = qs.filter(available__lte=0)
     elif filters['stock'] == 'low':
         qs = qs.filter(available__gt=0, available__lte=5)
+    if (parsed := parse_date_param(filters['from'])):
+        qs = qs.filter(created_at__date__gte=parsed)
+    if (parsed := parse_date_param(filters['to'])):
+        qs = qs.filter(created_at__date__lte=parsed)
     qs, keys = apply_sorting(request, qs, PRODUCT_SORT, '-created')
     from panel.charts import charts_for
     from panel.stats import products_stats
@@ -303,6 +311,36 @@ def product_create_view(request):
         return redirect('panel:product_edit', pk=obj.pk)
     return render(request, 'panel/catalog/product_form.html', {'form': form, 'title': 'Новый товар',
                                                                'characteristics': Characteristic.objects.all()})
+
+
+@panel_login_required
+@require_GET
+def product_generate_code_view(request):
+    """AJAX: уникальный SKU или EAN-13 с контрольной цифрой."""
+    role = request.panel_user.user_role
+    if not (has_permission(role, 'products', 'create') or has_permission(role, 'products', 'update')):
+        raise PermissionDenied('Недостаточно прав.')
+    kind = (request.GET.get('kind') or '').strip().lower()
+    exclude_raw = request.GET.get('exclude') or ''
+    exclude_pk = int(exclude_raw) if exclude_raw.isdigit() else None
+    try:
+        if kind == 'sku':
+            category = None
+            brand = None
+            cat_id = request.GET.get('category') or ''
+            brand_id = request.GET.get('brand') or ''
+            if cat_id.isdigit():
+                category = Category.objects.filter(pk=cat_id).select_related('id_parent').first()
+            if brand_id.isdigit():
+                brand = Brand.objects.filter(pk=brand_id).first()
+            value = generate_sku(category=category, brand=brand, exclude_pk=exclude_pk)
+        elif kind == 'ean':
+            value = generate_ean13(exclude_pk=exclude_pk)
+        else:
+            return JsonResponse({'ok': False, 'error': 'kind=sku|ean'}, status=400)
+    except RuntimeError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+    return JsonResponse({'ok': True, 'value': value})
 
 
 @panel_login_required

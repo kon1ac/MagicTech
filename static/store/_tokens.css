@@ -1,156 +1,146 @@
 /* ==========================================================================
    MagicTech — единые токены дизайн-системы.
-   Подключается ПЕРВЫМ и в витрину (store.css), и в панель (magictech.css),
-   поэтому обе части опираются на одну палитру, радиусы, шрифты и переходы.
+   Подключается ПЕРВЫМ и в витрину (store.css), и в панель (magictech.css).
 
-   Здесь ТОЛЬКО CSS-переменные: сброс стилей и компоненты остаются в своих
-   файлах, чтобы ни одна сторона не тянула чужой reset.
-
-   Темы намеренно разные по характеру:
-     [data-theme='dark']  — «Neon Tech»:    стекло, неон, цветные свечения
-     [data-theme='light'] — «Premium Clean»: матовые поверхности, янтарь, острые углы
+   Темы (одна палитра-акцент, разный режим магазина):
+     [data-theme='light'] — «Studio»: холодный алюминий, дневной каталог
+     [data-theme='dark']  — «Bench»:  уголь, ночной шопинг
+   Акцент в обеих — electric blue (без purple/cyan и без cream/amber).
    ========================================================================== */
 
-/* ---------- 1. Базовые токены (общие для обеих тем) ---------- */
 :root {
   --header-h: 72px;
   --wrap: 1280px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur: 0.45s;
+  --dur: 0.2s;
   --font-body: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Manrope', var(--font-body);
   --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display-weight: 750;
+  --display-spacing: -0.025em;
 
-  /* анимация перехода между темами: цвет/тень/рамка плавно «дышат» */
   --theme-transition: background-color var(--dur) var(--ease),
                       color var(--dur) var(--ease),
                       border-color var(--dur) var(--ease),
                       box-shadow var(--dur) var(--ease);
 }
 
-/* ---------- 2. Тёмная тема «Neon Tech» ---------- */
-[data-theme='dark'] {
-  --bg: #070b18;
-  --bg-2: #0d1428;
-  --surface: rgba(20, 28, 52, 0.55);
-  --surface-2: rgba(28, 38, 66, 0.72);
-  --surface-solid: #111a32;
-  --text: #eef2ff;
-  --text-2: #93a2c9;
-  --neon-a: #8b5cf6;
-  --neon-b: #22d3ee;
-  --accent: var(--neon-a);
-  --accent-2: var(--neon-b);
-  --on-accent: #ffffff;
-  --warn: #fbbf24;
-  --danger: #fb7185;
-  --ok: #34d399;
-  --border: rgba(139, 92, 246, 0.22);
-  --border-soft: rgba(148, 163, 220, 0.14);
-
-  /* стекло: крупные скругления, размытие обязательно */
-  --radius: 20px;
-  --radius-sm: 12px;
-  --radius-pill: 999px;
-
-  /* цветные светящиеся тени */
-  --shadow-card: 0 20px 45px rgba(3, 6, 18, 0.65);
-  --shadow-hover: 0 0 0 1px rgba(139, 92, 246, 0.55), 0 20px 60px rgba(139, 92, 246, 0.28);
-  --shadow-neon: 0 0 24px rgba(139, 92, 246, 0.45);
-  --inset-glass: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-
-  --font-display: 'Unbounded', var(--font-body);
-  --display-weight: 600;
-  --display-spacing: -0.02em;
-
-  /* кнопка — градиент фиолетовый → голубой */
-  --btn-bg: linear-gradient(120deg, var(--neon-a), var(--neon-b));
-  --btn-text: #ffffff;
-  --btn-border: transparent;
-  --btn-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
-  --btn-ghost-bg: rgba(255, 255, 255, 0.05);
-  --btn-ghost-border: rgba(148, 163, 220, 0.28);
-
-  --field-bg: rgba(12, 18, 38, 0.6);
-  --field-border: rgba(148, 163, 220, 0.24);
-  --skeleton: linear-gradient(90deg, rgba(139,92,246,0.10) 25%, rgba(34,211,238,0.18) 37%, rgba(139,92,246,0.10) 63%);
-  --backdrop: blur(18px) saturate(160%);
-
-  /* панель: боковое меню и фоновые пятна */
-  --sidebar-bg: linear-gradient(180deg, #12183a 0%, #1a1448 45%, #0f1630 100%);
-  --sidebar-text: #eef2ff;
-  --sidebar-muted: #93a2c9;
-  --sidebar-link: #c7d2fe;
-  --sidebar-edge: color-mix(in srgb, var(--neon-b) 45%, transparent);
-  --sidebar-hover: rgba(255, 255, 255, 0.1);
-  --sidebar-active: rgba(255, 255, 255, 0.15);
-  --bg-spot-a: color-mix(in srgb, var(--neon-a) 18%, transparent);
-  --bg-spot-b: color-mix(in srgb, var(--neon-b) 12%, transparent);
-}
-
-/* ---------- 3. Светлая тема «Premium Clean» ---------- */
+/* ---------- Light «Studio» ---------- */
 [data-theme='light'] {
-  --bg: #f6f1e8;
-  --bg-2: #efe7da;
-  --surface: #fffdfa;
+  --bg: #e8ecf0;
+  --bg-2: #dde3ea;
+  --surface: #f7f9fb;
   --surface-2: #ffffff;
-  --surface-solid: #fffdfa;
-  --text: #17150f;
-  --text-2: #6f6a5e;
-  --ink: #14120d;
-  --amber: #c8860a;
-  --accent: var(--ink);
-  --accent-2: var(--amber);
-  --on-accent: #fffdfa;
+  --surface-solid: #ffffff;
+  --text: #1a1d23;
+  --text-2: #5c6570;
+  --ink: #1a1d23;
+  --blue: #2563eb;
+  --blue-deep: #1d4ed8;
+  --accent: var(--blue);
+  --accent-2: var(--blue-deep);
+  --on-accent: #ffffff;
   --warn: #b45309;
-  --danger: #b0353f;
+  --danger: #c23b3b;
   --ok: #2f7d55;
-  --border: rgba(20, 18, 13, 0.12);
-  --border-soft: rgba(20, 18, 13, 0.08);
+  --border: rgba(26, 29, 35, 0.14);
+  --border-soft: rgba(26, 29, 35, 0.08);
 
-  /* бутик: строгие острые углы */
-  --radius: 4px;
-  --radius-sm: 3px;
-  --radius-pill: 4px;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-pill: 8px;
 
-  /* мягкие серые тени, без свечения */
-  --shadow-card: 0 2px 4px rgba(20, 18, 13, 0.05), 0 12px 28px rgba(20, 18, 13, 0.07);
-  --shadow-hover: 0 4px 10px rgba(20, 18, 13, 0.07), 0 24px 48px rgba(20, 18, 13, 0.10);
-  --shadow-neon: 0 12px 28px rgba(200, 134, 10, 0.18);
+  --shadow-card: 0 1px 2px rgba(26, 29, 35, 0.05), 0 8px 20px rgba(26, 29, 35, 0.06);
+  --shadow-hover: 0 2px 6px rgba(26, 29, 35, 0.07), 0 14px 28px rgba(26, 29, 35, 0.09);
+  --shadow-neon: 0 8px 18px rgba(37, 99, 235, 0.2);
   --inset-glass: none;
 
-  --font-display: 'Manrope', var(--font-body);
-  --display-weight: 800;
-  --display-spacing: -0.03em;
-
-  /* кнопка — сплошной чёрный, без градиента */
-  --btn-bg: var(--ink);
-  --btn-text: #fffdfa;
-  --btn-border: var(--ink);
-  --btn-shadow: 0 10px 24px rgba(20, 18, 13, 0.18);
+  --btn-bg: var(--blue);
+  --btn-text: #ffffff;
+  --btn-border: var(--blue);
+  --btn-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
   --btn-ghost-bg: transparent;
-  --btn-ghost-border: rgba(20, 18, 13, 0.28);
+  --btn-ghost-border: rgba(26, 29, 35, 0.22);
 
-  --field-bg: #fffdfa;
-  --field-border: rgba(20, 18, 13, 0.22);
-  --skeleton: linear-gradient(90deg, rgba(20,18,13,0.05) 25%, rgba(20,18,13,0.12) 37%, rgba(20,18,13,0.05) 63%);
-  --backdrop: blur(10px) saturate(120%);
+  --field-bg: #ffffff;
+  --field-border: rgba(26, 29, 35, 0.2);
+  --skeleton: linear-gradient(90deg, rgba(26,29,35,0.05) 25%, rgba(26,29,35,0.1) 37%, rgba(26,29,35,0.05) 63%);
+  --backdrop: none;
 
-  /* панель: ink-сайдбар с янтарным ребром */
   --sidebar-bg: var(--ink);
-  --sidebar-text: #fffdfa;
-  --sidebar-muted: rgba(255, 253, 250, 0.55);
-  --sidebar-link: rgba(255, 253, 250, 0.78);
-  --sidebar-edge: color-mix(in srgb, var(--amber) 55%, transparent);
-  --sidebar-hover: rgba(255, 253, 250, 0.08);
-  --sidebar-active: rgba(255, 253, 250, 0.14);
-  --bg-spot-a: color-mix(in srgb, var(--amber) 14%, transparent);
-  --bg-spot-b: color-mix(in srgb, var(--ink) 6%, transparent);
+  --sidebar-text: #f7f9fb;
+  --sidebar-muted: rgba(247, 249, 251, 0.55);
+  --sidebar-link: rgba(247, 249, 251, 0.78);
+  --sidebar-edge: color-mix(in srgb, var(--blue) 55%, transparent);
+  --sidebar-hover: rgba(247, 249, 251, 0.08);
+  --sidebar-active: rgba(247, 249, 251, 0.14);
+  --bg-spot-a: color-mix(in srgb, var(--blue) 10%, transparent);
+  --bg-spot-b: color-mix(in srgb, var(--ink) 4%, transparent);
+
+  /* совместимость со старыми селекторами */
+  --neon-a: var(--blue);
+  --neon-b: var(--blue-deep);
+  --amber: var(--blue);
 }
 
-/* ---------- 4. Алиасы имён панели ----------
-   magictech.css исторически обращается к --primary/--muted/--shadow. Держим
-   их производными от общих токенов, чтобы панель наследовала тему витрины
-   без переписывания каждого правила. */
+/* ---------- Dark «Bench» ---------- */
+[data-theme='dark'] {
+  --bg: #12141a;
+  --bg-2: #181b22;
+  --surface: #1c2028;
+  --surface-2: #242933;
+  --surface-solid: #1c2028;
+  --text: #e8ecf0;
+  --text-2: #9aa3b2;
+  --ink: #e8ecf0;
+  --blue: #3b82f6;
+  --blue-deep: #60a5fa;
+  --accent: var(--blue);
+  --accent-2: var(--blue-deep);
+  --on-accent: #ffffff;
+  --warn: #e0a03a;
+  --danger: #f07178;
+  --ok: #3ecf8e;
+  --border: rgba(232, 236, 240, 0.12);
+  --border-soft: rgba(232, 236, 240, 0.07);
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-pill: 8px;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px rgba(0, 0, 0, 0.4);
+  --shadow-neon: 0 8px 20px rgba(59, 130, 246, 0.22);
+  --inset-glass: none;
+
+  --btn-bg: var(--blue);
+  --btn-text: #ffffff;
+  --btn-border: var(--blue);
+  --btn-shadow: 0 8px 20px rgba(59, 130, 246, 0.28);
+  --btn-ghost-bg: rgba(255, 255, 255, 0.04);
+  --btn-ghost-border: rgba(232, 236, 240, 0.18);
+
+  --field-bg: #181b22;
+  --field-border: rgba(232, 236, 240, 0.16);
+  --skeleton: linear-gradient(90deg, rgba(59,130,246,0.08) 25%, rgba(59,130,246,0.14) 37%, rgba(59,130,246,0.08) 63%);
+  --backdrop: none;
+
+  --sidebar-bg: #0e1015;
+  --sidebar-text: #e8ecf0;
+  --sidebar-muted: #9aa3b2;
+  --sidebar-link: #c5ccd8;
+  --sidebar-edge: color-mix(in srgb, var(--blue) 50%, transparent);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(59, 130, 246, 0.18);
+  --bg-spot-a: color-mix(in srgb, var(--blue) 8%, transparent);
+  --bg-spot-b: transparent;
+
+  --neon-a: var(--blue);
+  --neon-b: var(--blue-deep);
+  --amber: var(--blue);
+}
+
+/* ---------- Алиасы панели ---------- */
 :root {
   --primary: var(--accent);
   --primary-hover: var(--accent-2);
@@ -161,7 +151,7 @@
   --shadow-lg: var(--shadow-hover);
   --shadow-glow: var(--shadow-neon);
   --transition: var(--dur) var(--ease);
-  --accent-glow: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --font: var(--font-body);
   --space: 8px;
 }

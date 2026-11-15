@@ -43,6 +43,7 @@ urlpatterns = [
     path('references/', cat.references_view, name='references'),
     path('products/', cat.product_list_view, name='product_list'),
     path('products/new/', cat.product_create_view, name='product_create'),
+    path('products/generate-code/', cat.product_generate_code_view, name='product_generate_code'),
     path('products/bulk/', cat.product_bulk_view, name='product_bulk'),
     path('products/<int:pk>/edit/', cat.product_edit_view, name='product_edit'),
     path('products/<int:pk>/delete/', cat.product_delete_view, name='product_delete'),

@@ -6,7 +6,7 @@
   <title>{% block title %}MagicTech{% endblock %} · Панель управления</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'store/_tokens.css' %}">
   <link rel="stylesheet" href="{% static 'panel/css/magictech.css' %}">
 </head>
@@ -43,7 +43,10 @@
           <span>{% tr 'Поиск по SKU / названию (Ctrl+Alt+K)' %}</span><kbd>Ctrl+Alt+K</kbd>
         </button>
         <div class="topbar-actions">
-          <button type="button" class="btn btn-ghost" id="themeToggle" title="Тема" data-url="{% url 'panel:settings_theme' %}">◐</button>
+          <button type="button" class="btn btn-ghost theme-toggle" id="themeToggle" title="Тема" data-url="{% url 'panel:settings_theme' %}" aria-label="Тема">
+            <span aria-hidden="true">◐</span>
+            <span data-theme-label>{% if panel_settings.theme == 'dark' %}Bench{% else %}Studio{% endif %}</span>
+          </button>
           <a href="{% url 'panel:hotkeys' %}" class="btn btn-ghost" title="{% tr 'Горячие клавиши' %} (?)">?</a>
         </div>
       </header>

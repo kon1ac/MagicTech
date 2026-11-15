@@ -1,12 +1,12 @@
-{% load static %}
-{% with gallery=p.gallery_images %}
-<article class="product-card reveal">
+{% load static store_extras %}
+{% with gallery=p.gallery_images stock=p.available|stock_state badges=p|compat_badges swatch=p|color_swatch %}
+<article class="product-card" data-sku="{{ p.product_sku }}">
   <div class="media{% if gallery|length > 1 %} card-gallery{% endif %}"{% if gallery|length > 1 %} data-card-gallery{% endif %}>
     {% if gallery %}
       <div class="card-gallery-stage">
         {% for img in gallery %}
         <a class="card-gallery-slide{% if forloop.first %} is-active{% endif %}" href="{% url 'store:product' p.product_sku %}" {% if not forloop.first %}tabindex="-1" aria-hidden="true"{% endif %}>
-          <img src="{{ img.url }}" alt="{{ p.product_name }}" loading="lazy" draggable="false">
+          <img src="{{ img.url }}" alt="{{ p.product_name }}" loading="lazy" draggable="false" width="400" height="300">
         </a>
         {% endfor %}
         {% if gallery|length > 1 %}
@@ -19,7 +19,7 @@
         {% endif %}
       </div>
     {% else %}
-      <a href="{% url 'store:product' p.product_sku %}"><img src="{% static 'store/placeholder.svg' %}" alt="{{ p.product_name }}" loading="lazy"></a>
+      <a class="media-link" href="{% url 'store:product' p.product_sku %}"><img src="{% static 'store/placeholder.svg' %}" alt="{{ p.product_name }}" loading="lazy" width="400" height="300"></a>
     {% endif %}
   </div>
   {% if store_user %}
@@ -29,14 +29,24 @@
     </button>
   </form>
   {% endif %}
-  <div class="name"><a href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a></div>
-  <div class="sub">{{ p.id_brand.brand_name|default:'' }}{% if p.rating_count %} · <span class="rating">★ {{ p.rating_avg }}</span> ({{ p.rating_count }}){% endif %}</div>
   <div class="price">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% else %}—{% endif %}</div>
-  {% if p.available > 0 %}<span class="stock-ok">В наличии: {{ p.available }} шт.</span>{% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
-  {% if p.available > 0 and p.price_now is not None %}
-  <div class="card-actions">
-    <form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm btn-block" type="submit">В корзину</button></form>
+  <div class="name"><a href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a></div>
+  <div class="sub">
+    {% if swatch %}<span class="swatch" style="--swatch:{{ swatch.hex }}" title="{{ swatch.label }}" aria-label="Цвет: {{ swatch.label }}"></span>{% endif %}
+    <span>{{ p.id_brand.brand_name|default:'' }}{% if p.rating_count %} · <span class="rating">★ {{ p.rating_avg }}</span> ({{ p.rating_count }}){% endif %}</span>
   </div>
-  {% endif %}
+  {% if badges %}<ul class="compat" aria-label="Совместимость">{% for b in badges %}<li class="compat-badge compat-{{ b.key }}" title="{{ b.label }}"><span class="compat-ico" aria-hidden="true"></span><span>{{ b.label }}</span></li>{% endfor %}</ul>{% else %}<div class="compat compat-empty" aria-hidden="true"></div>{% endif %}
+  <span class="stock stock-{{ stock.kind }}">{{ stock.text }}</span>
+  <label class="compare-pick">
+    <input type="checkbox" data-compare-sku="{{ p.product_sku }}" data-compare-name="{{ p.product_name }}">
+    <span>Сравнить</span>
+  </label>
+  <div class="card-actions">
+    {% if p.available > 0 and p.price_now is not None %}
+    <form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm btn-block" type="submit">В корзину</button></form>
+    {% else %}
+    <a class="btn btn-sm btn-block" href="{% url 'store:product' p.product_sku %}">Подробнее</a>
+    {% endif %}
+  </div>
 </article>
 {% endwith %}

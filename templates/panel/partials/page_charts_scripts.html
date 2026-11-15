@@ -8,7 +8,7 @@
   const css = getComputedStyle(document.documentElement);
   const c = (v) => css.getPropertyValue(v).trim();
   const palette = [c('--primary') || '#4F46E5', c('--accent-2') || '#06B6D4', c('--warn') || '#F59E0B',
-                   c('--danger') || '#EF4444', c('--ok') || '#10B981', '#8b5cf6', '#64748b', '#0ea5e9'];
+                   c('--danger') || '#EF4444', c('--ok') || '#10B981', '#2563eb', '#64748b', '#0ea5e9'];
   Chart.defaults.color = c('--muted') || '#64748b';
   Chart.defaults.borderColor = c('--border') || '#e2e8f0';
   Chart.defaults.font.family = 'Manrope, sans-serif';

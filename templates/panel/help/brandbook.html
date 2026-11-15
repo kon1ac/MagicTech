@@ -6,10 +6,10 @@
 <div class="grid-2">
   <section class="card"><h2>Логотип и фавикон</h2>
     <div class="toolbar"><img src="{% static 'panel/img/logo.svg' %}" width="96" height="96" alt="Логотип"><img src="{% static 'panel/img/favicon.svg' %}" width="32" height="32" alt="Фавикон"><div><strong style="font-size:1.4rem">MagicTech</strong><br><span class="muted">Аксессуары для ПК</span></div></div>
-    <p class="hint">Знак «MT» на градиенте Cyan → Indigo (lockup фиксирован); UI-темы ниже — отдельно.</p></section>
+    <p class="hint">Знак «MT» на electric blue <code>#2563EB</code> (lockup); светлая тема использует тёмный mark.</p></section>
 
   <section class="card"><h2>Текущая тема</h2>
-    <p class="hint" style="margin-top:0">Сэмплы ниже читают CSS-переменные активной темы (<code>data-theme</code>). Переключите тему в шапке (◐), чтобы сравнить Neon Tech / Premium Clean.</p>
+    <p class="hint" style="margin-top:0">Сэмплы ниже читают CSS-переменные активной темы (<code>data-theme</code>). Переключите тему в шапке (◐), чтобы сравнить Bench / Studio.</p>
     <div class="grid-3" style="margin-top:.75rem">
       <div><div class="swatch" style="background:var(--accent)"></div><strong>accent</strong><br><span class="hint">основной</span></div>
       <div><div class="swatch" style="background:var(--accent-2)"></div><strong>accent-2</strong><br><span class="hint">вторичный</span></div>
@@ -30,8 +30,8 @@
     <dl class="props">
       <dt>Базовый шаг</dt><dd>8 px (отступы 8 / 16 / 24 / 32)</dd>
       <dt>Радиусы</dt><dd><code>var(--radius)</code> / <code>--radius-sm</code> / <code>--radius-pill</code> (зависят от темы)</dd>
-      <dt>Dark</dt><dd>«Neon Tech» — violet/cyan, glass, Unbounded, radius 20</dd>
-      <dt>Light</dt><dd>«Premium Clean» — ink/amber, острые углы, Manrope 800</dd>
+      <dt>Dark</dt><dd>«Bench» — уголь, blue <code>#3B82F6</code>, радиус 8</dd>
+      <dt>Light</dt><dd>«Studio» — алюминий, blue <code>#2563EB</code>, радиус 8</dd>
       <dt>Брейкпоинты</dt><dd>мобайл ≤ 640 · планшет 641–1100 · десктоп &gt; 1100</dd>
     </dl></section>
 

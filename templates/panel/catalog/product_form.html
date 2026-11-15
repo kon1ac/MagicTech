@@ -10,11 +10,15 @@
   <a class="btn" href="{% url 'panel:product_list' %}">← К списку</a></div></header>
 <div class="grid-2">
   <section class="card">
-    <form method="post" class="form-stack" novalidate>{% csrf_token %}
+    <form method="post" class="form-stack" novalidate data-product-form>{% csrf_token %}
       {% if form.non_field_errors %}<div class="msg msg-error">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
-      <div class="form-grid">
+      <div class="form-grid" data-generate-url="{% url 'panel:product_generate_code' %}"{% if product %} data-exclude-pk="{{ product.pk }}"{% endif %}>
         {% for field in form %}{% if field.name != 'product_description' and field.name != 'product_characteristics' and field.name|slice:':3' != 'seo' %}
-        <div class="field">{{ field.label_tag }}{{ field }}{% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}{{ field.errors }}</div>
+        <div class="field">{{ field.label_tag }}
+          {% if field.name == 'product_sku' or field.name == 'product_ean' %}
+          <div class="field-row">{{ field }}<button type="button" class="btn btn-sm" data-generate="{% if field.name == 'product_sku' %}sku{% else %}ean{% endif %}" title="Сгенерировать уникальное значение">Сгенерировать</button></div>
+          {% else %}{{ field }}{% endif %}
+          {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}{{ field.errors }}</div>
         {% endif %}{% endfor %}
       </div>
       <div class="field">{{ form.product_description.label_tag }}{{ form.product_description }}{{ form.product_description.errors }}</div>
@@ -28,6 +32,7 @@
   </section>
   <div class="stack">
     {% if product %}
+    {% include 'panel/catalog/_store_preview.html' %}
     <section class="card"><h2>Изображения</h2>
       <div class="thumbs">{% for img in images %}<figure><img src="{{ img.url }}" alt="{{ img.media_alt|default:'' }}">{% if img.is_main %}<span class="badge">главное</span>{% endif %}
         <form method="post" action="{% url 'panel:product_image_delete' product.pk img.pk %}">{% csrf_token %}<button class="btn btn-sm">Удалить</button></form></figure>
@@ -45,4 +50,106 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var form = document.querySelector('[data-product-form]');
+  if (!form) return;
+  var grid = form.querySelector('[data-generate-url]');
+  var genUrl = grid && grid.getAttribute('data-generate-url');
+  var excludePk = grid && grid.getAttribute('data-exclude-pk');
+  if (genUrl) {
+    form.querySelectorAll('[data-generate]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var kind = btn.getAttribute('data-generate');
+        var field = btn.closest('.field');
+        var input = field && field.querySelector('input');
+        if (!input) return;
+        var params = new URLSearchParams({ kind: kind });
+        if (excludePk) params.set('exclude', excludePk);
+        if (kind === 'sku') {
+          var cat = form.querySelector('#id_category');
+          var brand = form.querySelector('#id_brand');
+          if (cat && cat.value) params.set('category', cat.value);
+          if (brand && brand.value) params.set('brand', brand.value);
+        }
+        btn.disabled = true;
+        fetch(genUrl + '?' + params.toString(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (res) {
+            if (!res.ok || !res.data.value) {
+              window.alert((res.data && res.data.error) || 'Не удалось сгенерировать');
+              return;
+            }
+            input.value = res.data.value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          })
+          .catch(function () { window.alert('Ошибка сети при генерации'); })
+          .finally(function () { btn.disabled = false; });
+      });
+    });
+  }
+})();
+</script>
+{% if product %}
+<script>
+(function () {
+  var form = document.querySelector('[data-product-form]');
+  var preview = document.querySelector('[data-live-preview]');
+  if (!form || !preview) return;
+  var nameEl = preview.querySelector('[data-preview-name]');
+  var priceEl = preview.querySelector('[data-preview-price]');
+  var compatEl = preview.querySelector('[data-preview-compat]');
+  var subEl = preview.querySelector('[data-preview-sub]');
+  var nameInput = form.querySelector('#id_product_name');
+  var priceInput = form.querySelector('#id_price');
+  var charsInput = form.querySelector('#id_product_characteristics');
+  var brandSelect = form.querySelector('#id_brand');
+  if (subEl) {
+    var star = subEl.textContent.match(/·\s*★.*/);
+    subEl.setAttribute('data-rating-tail', star ? star[0] : '');
+  }
+
+  function formatPrice(v) {
+    var n = parseFloat(String(v).replace(',', '.'));
+    if (!isFinite(n)) return '—';
+    return Math.round(n).toLocaleString('ru-RU') + ' ₽';
+  }
+
+  function badgesFromChars(raw) {
+    var chars = {};
+    try { chars = JSON.parse(raw || '{}') || {}; } catch (e) { return []; }
+    var conn = String(chars.connection || '').toLowerCase();
+    var out = [];
+    function add(label) { if (out.indexOf(label) < 0) out.push(label); }
+    if (/usb|bluetooth|2\.4|wireless|беспровод/.test(conn)) { add('Windows'); add('macOS'); }
+    if (conn.indexOf('bluetooth') >= 0) add('Bluetooth');
+    if (conn.indexOf('2.4') >= 0) add('2.4 ГГц');
+    if (conn.indexOf('usb') >= 0 && conn.indexOf('bluetooth') < 0) add(conn.indexOf('usb-c') >= 0 ? 'USB-C' : 'USB');
+    return out;
+  }
+
+  function paint() {
+    if (nameEl && nameInput) nameEl.textContent = nameInput.value || 'Без названия';
+    if (priceEl && priceInput) priceEl.textContent = formatPrice(priceInput.value);
+    if (subEl && brandSelect) {
+      var opt = brandSelect.options[brandSelect.selectedIndex];
+      var brand = opt && opt.value ? opt.textContent.trim() : '';
+      subEl.textContent = brand + (subEl.getAttribute('data-rating-tail') || '');
+    }
+    if (compatEl && charsInput) {
+      var badges = badgesFromChars(charsInput.value);
+      compatEl.innerHTML = badges.length
+        ? badges.map(function (b) { return '<li class="compat-badge">' + b + '</li>'; }).join('')
+        : '<li class="muted">Нет данных о подключении</li>';
+    }
+  }
+
+  form.addEventListener('input', paint);
+  form.addEventListener('change', paint);
+  paint();
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -406,7 +406,7 @@ python manage.py test tests --keepdb        # с кэшем миграций (б
 | PDF | ReportLab (накладные, ярлыки) |
 | Excel | openpyxl (импорт/экспорт) |
 | Caching | Redis (production) / LocMem (dev) |
-| Styles | Общие токены `_tokens.css`: Neon Tech (dark) / Premium Clean (light) |
+| Styles | Общие токены `_tokens.css`: Bench (dark) / Studio (light), blue accent |
 
 ---
 

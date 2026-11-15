@@ -514,7 +514,8 @@
     apply: function (href, silent) {
       var self = this;
       var target = this.url(href);
-      UI.skeleton(this.grid, 6);
+      // скелетоны замещают сетку целиком — без дописывания поверх карточек
+      UI.skeleton(this.grid, 8);
 
       fetch(target, { headers: { 'X-Requested-With': 'fetch' } })
         .then(function (r) { return r.text(); })
@@ -526,11 +527,12 @@
           var chips = doc.querySelector('[data-active-filters]');
           var formNext = doc.querySelector('[data-filter-form]');
 
-          UI.skeleton(self.grid, 0);
           if (next) {
             self.grid.innerHTML = next.innerHTML;
             initTilt();
             MTStore.reveal();
+          } else {
+            UI.skeleton(self.grid, 0);
           }
           var livePager = document.querySelector('[data-catalog-pager]');
           if (livePager && pager) livePager.innerHTML = pager.innerHTML;
@@ -565,8 +567,8 @@
           document.dispatchEvent(new CustomEvent('mt:catalog-updated'));
         })
         .catch(function () {
-          UI.skeleton(self.grid, 0);
           MTStore.toast('Фильтры не обновились', 'error');
+          // сетка уже в skeleton — оставляем; пользователь может повторить
         });
     },
 
@@ -695,14 +697,17 @@
     }
     var html = '';
     for (var i = 0; i < count; i++) {
-      html += '<div class="skeleton-card" data-sk>' +
-        '<div class="skeleton skeleton-block"></div>' +
-        '<div class="skeleton skeleton-text" style="width:80%"></div>' +
-        '<div class="skeleton skeleton-text" style="width:45%"></div>' +
-        '<div class="skeleton skeleton-text" style="width:30%"></div>' +
-        '</div>';
+      html += '<article class="product-card skeleton-card" data-sk aria-hidden="true">' +
+        '<div class="media"><div class="skeleton skeleton-block"></div></div>' +
+        '<div class="skeleton skeleton-text name-sk"></div>' +
+        '<div class="skeleton skeleton-text sub-sk"></div>' +
+        '<div class="compat compat-empty"></div>' +
+        '<div class="skeleton skeleton-text price-sk"></div>' +
+        '<div class="skeleton skeleton-text stock-sk"></div>' +
+        '<div class="skeleton skeleton-text action-sk"></div>' +
+        '</article>';
     }
-    container.insertAdjacentHTML('beforeend', html);
+    container.innerHTML = html;
   };
 
   /* ======================================================================
@@ -787,6 +792,75 @@
 
     restart();
   }
+
+  /* ======================================================================
+     11b. Сравнение товаров (до 3 SKU в localStorage)
+     ====================================================================== */
+  var COMPARE_KEY = 'magtech-compare-skus';
+  var MTCompare = {
+    list: function () {
+      try { return JSON.parse(localStorage.getItem(COMPARE_KEY) || '[]'); } catch (e) { return []; }
+    },
+    save: function (arr) {
+      try { localStorage.setItem(COMPARE_KEY, JSON.stringify(arr.slice(0, 3))); } catch (e) { /* noop */ }
+    },
+    sync: function () {
+      var selected = this.list();
+      Array.prototype.forEach.call(document.querySelectorAll('[data-compare-sku]'), function (inp) {
+        inp.checked = selected.indexOf(inp.getAttribute('data-compare-sku')) >= 0;
+      });
+      this.paintBar(selected);
+    },
+    paintBar: function (selected) {
+      var bar = document.querySelector('[data-compare-bar]');
+      if (!bar) return;
+      var label = bar.querySelector('[data-compare-label]');
+      var go = bar.querySelector('[data-compare-go]');
+      if (label) label.textContent = 'Выбрано: ' + selected.length + ' из 3';
+      if (go) {
+        var qs = selected.map(function (s) { return 'sku=' + encodeURIComponent(s); }).join('&');
+        go.href = '/compare/' + (qs ? '?' + qs : '');
+        go.toggleAttribute('aria-disabled', selected.length < 2);
+        go.classList.toggle('is-disabled', selected.length < 2);
+      }
+      var show = selected.length > 0;
+      bar.hidden = !show;
+      document.body.classList.toggle('has-compare-bar', show);
+    },
+    init: function () {
+      var self = this;
+      self.sync();
+      document.addEventListener('change', function (e) {
+        var inp = e.target.closest('[data-compare-sku]');
+        if (!inp) return;
+        var sku = inp.getAttribute('data-compare-sku');
+        var list = self.list();
+        if (inp.checked) {
+          if (list.indexOf(sku) >= 0) return;
+          if (list.length >= 3) {
+            inp.checked = false;
+            MTStore.toast('Можно сравнить максимум 3 товара', 'warning');
+            return;
+          }
+          list.push(sku);
+        } else {
+          list = list.filter(function (s) { return s !== sku; });
+        }
+        self.save(list);
+        self.paintBar(list);
+      });
+      on(document, 'click', '[data-compare-clear]', function (e) {
+        e.preventDefault();
+        self.save([]);
+        self.sync();
+      });
+      on(document, 'click', '[data-compare-go].is-disabled', function (e) {
+        e.preventDefault();
+        MTStore.toast('Выберите ещё товар для сравнения', 'warning');
+      });
+    }
+  };
+  window.MTCompare = MTCompare;
 
   /* ======================================================================
      12. Модалки: .modal-backdrop[id] c .modal внутри.
@@ -987,7 +1061,9 @@
     initSearchSuggest();
     document.addEventListener('mt:catalog-updated', function () {
       initCardGalleries();
+      if (window.MTCompare) window.MTCompare.sync();
     });
+    if (window.MTCompare) window.MTCompare.init();
   }
 
   if (document.readyState === 'loading') {

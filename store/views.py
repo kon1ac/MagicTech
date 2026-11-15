@@ -87,12 +87,42 @@ def catalog_view(request, slug=None):
     clear_href = (
         f"/catalog/{category.category_slug}/" if category else '/'
     )
+    show_hero = (
+        not slug
+        and not filters.get('q')
+        and not filters.get('brands')
+        and not filters.get('chars')
+        and not filters.get('in_stock')
+        and filters.get('price_min') is None
+        and filters.get('price_max') is None
+        and page.number == 1
+    )
     return render(request, 'store/catalog.html', {
         'page_obj': page, 'filters': filters, 'facets': facets, 'category': category,
         'breadcrumbs': category.ancestors() if category else [], 'tree': catalog.category_tree(),
         'sort_labels': catalog.SORT_LABELS, 'wishlist': wishlist, 'query': query.urlencode(),
         'selected_brands': set(int(b) for b in filters['brands']),
         'filter_chips': chips, 'filters_clear_href': clear_href,
+        'hero_products': catalog.hero_products() if show_hero else [],
+        'show_hero': show_hero,
+    })
+
+
+@require_GET
+def compare_view(request):
+    skus = request.GET.getlist('sku')
+    if not skus and request.GET.get('skus'):
+        skus = request.GET.get('skus', '').split(',')
+    products = catalog.products_for_compare(skus)
+    char_names = catalog.filterable_characteristics()
+    rows = []
+    for code in catalog.COMPARE_CHAR_KEYS:
+        if any((p.product_characteristics or {}).get(code) for p in products):
+            rows.append({'code': code, 'name': char_names.get(code, code)})
+    return render(request, 'store/compare.html', {
+        'products': products,
+        'char_rows': rows,
+        'tree': catalog.category_tree(),
     })
 
 

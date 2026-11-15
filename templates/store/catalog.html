@@ -1,37 +1,42 @@
 {% extends 'store/base.html' %}
+{% load static store_extras %}
 {% block title %}{% if category %}{{ category.category_name }}{% elif filters.q %}Поиск «{{ filters.q }}»{% else %}Каталог{% endif %}{% endblock %}
 {% block content %}
 
-{# ---------- карусель баннеров: автопрокрутка + свайп (store-ui.js) ---------- #}
+{% if show_hero and hero_products %}
+{# ---------- hero: реальные товары с фото и ценой ---------- #}
 <div class="carousel" data-carousel>
   <div class="carousel-track">
-    <div class="carousel-slide"><div class="hero-banner">
-      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
-      <div class="wrap hero-content">
-        <h1>Всё для рабочего места</h1>
-        <p>Клавиатуры, мыши и гарнитуры от проверенных брендов. Бесплатная доставка от 5 000 ₽.</p>
-        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}?sort=new">Новинки</a>
-          <a class="btn" href="{% url 'store:catalog' %}?in_stock=1">Только в наличии</a></div>
+    {% for p in hero_products %}
+    <div class="carousel-slide">
+      <div class="hero-banner hero-product">
+        <div class="wrap hero-product-grid">
+          <div class="hero-content">
+            <p class="hero-kicker">{% if p.id_brand %}{{ p.id_brand.brand_name }} · {% endif %}Хит каталога</p>
+            <h1>{{ p.product_name }}</h1>
+            <p class="hero-price">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% endif %}</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="{% url 'store:product' p.product_sku %}">Смотреть товар</a>
+              {% if p.available > 0 and p.price_now is not None %}
+              <form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}
+                <input type="hidden" name="sku" value="{{ p.product_sku }}">
+                <button class="btn" type="submit">В корзину</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          <a class="hero-media" href="{% url 'store:product' p.product_sku %}">
+            {% with gallery=p.gallery_images %}
+            {% if gallery %}<img src="{{ gallery.0.url }}" alt="{{ p.product_name }}" width="640" height="480">{% else %}<img src="{% static 'store/placeholder.svg' %}" alt="{{ p.product_name }}" width="640" height="480">{% endif %}
+            {% endwith %}
+          </a>
+        </div>
       </div>
-    </div></div>
-    <div class="carousel-slide"><div class="hero-banner">
-      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
-      <div class="wrap hero-content">
-        <h1>Игровые сборки</h1>
-        <p>Механические клавиатуры, лёгкие мыши и гарнитуры с объёмным звуком.</p>
-        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:catalog' %}?sort=popular">Хиты продаж</a></div>
-      </div>
-    </div></div>
-    <div class="carousel-slide"><div class="hero-banner">
-      <div class="hero-parallax-layer orb-1"></div><div class="hero-parallax-layer orb-2"></div>
-      <div class="wrap hero-content">
-        <h1>Гарантия и возврат 14 дней</h1>
-        <p>Официальная гарантия, сервисная поддержка и простая замена товара.</p>
-        <div class="hero-actions"><a class="btn btn-primary" href="{% url 'store:offer' %}">Условия оферты</a></div>
-      </div>
-    </div></div>
+    </div>
+    {% endfor %}
   </div>
 </div>
+{% endif %}
 
 <nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a>{% for c in breadcrumbs %} › <a href="{% url 'store:category' c.category_slug %}">{{ c.category_name }}</a>{% endfor %}</nav>
 
@@ -53,7 +58,6 @@
         <input type="number" name="price_min" min="0" placeholder="от" value="{{ filters.price_min|default_if_none:'' }}" aria-label="Цена от">
         <input type="number" name="price_max" min="0" placeholder="до" value="{{ filters.price_max|default_if_none:'' }}" aria-label="Цена до">
       </div>
-      {# двойной ползунок: JS синхронизирует его с полями выше #}
       <div class="range-dual" data-price-range>
         <div class="track"></div><div class="fill"></div>
         <input type="range" data-range-min min="0" max="60000" step="500" value="{{ filters.price_min|default_if_none:0 }}" aria-label="Цена от, ползунок" tabindex="-1">
@@ -71,11 +75,12 @@
 
   <section>
     <div class="toolbar">
-      <div><h1>{% if category %}{{ category.category_name }}{% elif filters.q %}Результаты поиска «{{ filters.q }}»{% else %}Аксессуары для ПК{% endif %}</h1>
-        <span class="hint" data-result-count>Найдено: {{ page_obj.paginator.count }}</span></div>
+      <div>
+        <h1>{% if category %}{{ category.category_name }}{% elif filters.q %}Результаты поиска «{{ filters.q }}»{% else %}Аксессуары для ПК{% endif %}</h1>
+        <p class="result-count" data-result-count>Найдено: <strong>{{ page_obj.paginator.count }}</strong></p>
+      </div>
       <div class="toolbar-right">
         <button class="btn filters-toggle" type="button" data-open-filters>Фильтры</button>
-        {# кастомная сортировка: нативный select спрятан, но именно он хранит значение #}
         <div class="select" data-sort-select>
           <select name="sort" hidden aria-label="Сортировка">{% for code, label in sort_labels.items %}<option value="{{ code }}" {% if filters.sort == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
           <button class="select-btn" type="button" aria-expanded="false"><span class="select-value"></span>
@@ -95,5 +100,16 @@
     <div class="grid reveal-stagger" data-catalog-grid>{% for p in page_obj %}{% include 'store/_card.html' %}{% empty %}<p class="muted">Ничего не найдено. Попробуйте изменить фильтры.</p>{% endfor %}</div>
     {% if page_obj.has_other_pages %}<nav class="pagination" data-catalog-pager>{% if page_obj.has_previous %}<a class="btn" href="?{{ query }}&page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}<span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="btn" href="?{{ query }}&page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}</nav>{% endif %}
   </section>
+</div>
+
+{# липкая панель сравнения #}
+<div class="compare-bar" data-compare-bar hidden>
+  <div class="wrap compare-bar-inner">
+    <span data-compare-label>Выбрано: 0</span>
+    <div class="compare-bar-actions">
+      <button type="button" class="btn btn-sm" data-compare-clear>Сбросить</button>
+      <a class="btn btn-primary btn-sm" data-compare-go href="{% url 'store:compare' %}">Сравнить</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

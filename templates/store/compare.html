@@ -1,0 +1,47 @@
+{% extends 'store/base.html' %}
+{% load static store_extras %}
+{% block title %}Сравнение товаров{% endblock %}
+{% block content %}
+<nav class="breadcrumbs"><a href="{% url 'store:catalog' %}">Каталог</a> › Сравнение</nav>
+<header class="compare-head">
+  <h1>Сравнение</h1>
+  <p class="muted">{% if products %}Выбрано: {{ products|length }} из 3{% else %}Добавьте 2–3 товара галочкой «Сравнить» в каталоге.{% endif %}</p>
+</header>
+
+{% if products|length < 2 %}
+  <div class="card"><p class="muted" style="margin:0">Нужно минимум 2 товара. <a href="{% url 'store:catalog' %}">Вернуться в каталог</a></p></div>
+{% else %}
+<div class="table-wrap compare-wrap">
+  <table class="data-table compare-table">
+    <thead>
+      <tr>
+        <th scope="col">Параметр</th>
+        {% for p in products %}
+        <th scope="col">
+          <div class="compare-product">
+            {% with gallery=p.gallery_images %}
+            <a href="{% url 'store:product' p.product_sku %}" class="compare-thumb">
+              {% if gallery %}<img src="{{ gallery.0.url }}" alt="">{% else %}<img src="{% static 'store/placeholder.svg' %}" alt="">{% endif %}
+            </a>
+            {% endwith %}
+            <a href="{% url 'store:product' p.product_sku %}">{{ p.product_name }}</a>
+            <div class="price">{{ p.price_now|floatformat:'0g' }} ₽</div>
+            <a class="btn btn-sm" href="{% url 'store:compare' %}?{% for x in products %}{% if x.product_sku != p.product_sku %}sku={{ x.product_sku }}&{% endif %}{% endfor %}">Убрать</a>
+          </div>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Бренд</th>{% for p in products %}<td>{{ p.id_brand.brand_name|default:'—' }}</td>{% endfor %}</tr>
+      <tr><th scope="row">Цена</th>{% for p in products %}<td class="num">{% if p.price_now is not None %}{{ p.price_now|floatformat:'0g' }} ₽{% else %}—{% endif %}</td>{% endfor %}</tr>
+      <tr><th scope="row">Наличие</th>{% for p in products %}{% with st=p.available|stock_state %}<td><span class="stock stock-{{ st.kind }}">{{ st.text }}</span></td>{% endwith %}{% endfor %}</tr>
+      {% for row in char_rows %}
+      <tr><th scope="row">{{ row.name }}</th>{% for p in products %}<td>{{ p|char_value:row.code }}</td>{% endfor %}</tr>
+      {% endfor %}
+      <tr><th scope="row"></th>{% for p in products %}<td>{% if p.available > 0 and p.price_now is not None %}<form method="post" action="{% url 'store:cart_add' %}" data-cart-add>{% csrf_token %}<input type="hidden" name="sku" value="{{ p.product_sku }}"><button class="btn btn-primary btn-sm" type="submit">В корзину</button></form>{% else %}<a class="btn btn-sm" href="{% url 'store:product' p.product_sku %}">Подробнее</a>{% endif %}</td>{% endfor %}</tr>
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

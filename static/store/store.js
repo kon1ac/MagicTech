@@ -102,22 +102,28 @@
      ====================================================================== */
   var THEME_KEY = 'magtech-store-theme';
 
+  function themeLabel(theme) {
+    return theme === 'dark' ? 'Bench' : 'Studio';
+  }
+
   function applyTheme(theme, animate) {
     if (animate && !reduceQuery.matches) {
       root.classList.add('theme-animating');
-      // класс снимаем после завершения перехода цветов
       clearTimeout(applyTheme._t);
       applyTheme._t = setTimeout(function () {
         root.classList.remove('theme-animating');
-      }, 600);
+      }, 220);
     }
     root.dataset.theme = theme;
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* приватный режим */ }
+    var label = themeLabel(theme);
     document.querySelectorAll('.theme-switch').forEach(function (btn) {
-      btn.setAttribute('aria-label', theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему');
+      btn.setAttribute('aria-label', 'Тема ' + label);
       btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      btn.title = label + ' · Ctrl+Alt+T';
+      var text = btn.querySelector('[data-theme-label]');
+      if (text) text.textContent = label;
     });
-    // событие нужно карточкам/градиентам, читающим CSS-переменные
     document.dispatchEvent(new CustomEvent('mt:theme', { detail: { theme: theme } }));
   }
 

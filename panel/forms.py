@@ -256,10 +256,19 @@ class ProductForm(forms.ModelForm):
             self.fields['price'].required = True
 
     def clean_product_ean(self):
+        from shop.services.identifiers import is_valid_gtin
+
         ean = self.cleaned_data.get('product_ean') or None
-        if ean and (not ean.isdigit() or len(ean) not in (8, 12, 13, 14)):
+        if not ean:
+            return ean
+        if not ean.isdigit() or len(ean) not in (8, 12, 13, 14):
             raise ValidationError('EAN — 8, 12, 13 или 14 цифр.')
-        return ean
+        # Новый/изменённый код — только с верной контрольной цифрой; старый сидовый можно оставить.
+        if is_valid_gtin(ean):
+            return ean
+        if self.instance.pk and ean == (self.instance.product_ean or None):
+            return ean
+        raise ValidationError('EAN/штрихкод должен содержать верную контрольную цифру (или нажмите «Сгенерировать»).')
 
     def clean_product_characteristics(self):
         data = self.cleaned_data.get('product_characteristics') or {}

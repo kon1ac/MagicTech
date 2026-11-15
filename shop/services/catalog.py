@@ -416,3 +416,40 @@ def suggest_search(q: str, limit: int = 8) -> dict:
         'did_you_mean': did_you_mean,
         'q': q,
     }
+
+
+def hero_products(limit: int = 3):
+    """Товары для hero-карусели: в наличии, с ценой, по популярности."""
+    return list(
+        base_queryset()
+        .filter(available__gt=0)
+        .exclude(price_now__isnull=True)
+        .order_by('-sales_count', '-created_at', '-id_product')[:limit]
+    )
+
+
+COMPARE_CHAR_KEYS = (
+    'connection', 'color', 'dpi', 'switches', 'backlight', 'material',
+    'size', 'resolution', 'ports', 'length',
+)
+
+
+def products_for_compare(skus: list[str], limit: int = 3):
+    """До 3 товаров по SKU для таблицы сравнения (сохраняет порядок запроса)."""
+    clean = []
+    seen = set()
+    for sku in skus:
+        s = (sku or '').strip()[:100]
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        clean.append(s)
+        if len(clean) >= limit:
+            break
+    if not clean:
+        return []
+    found = {
+        p.product_sku: p
+        for p in base_queryset().filter(product_sku__in=clean)
+    }
+    return [found[s] for s in clean if s in found]

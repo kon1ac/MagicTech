@@ -1,0 +1,28 @@
+{% load static store_extras %}
+{% with avail=stock.available_quantity|default:0 %}
+{% with st=avail|stock_state badges=product|compat_badges %}
+<section class="card store-preview-card" data-live-preview>
+  <div class="store-preview-head">
+    <h2>Превью витрины</h2>
+    <p class="muted">Обновляется при правке формы, до сохранения. <a href="{% url 'store:product' product.product_sku %}" target="_blank" rel="noopener">Открыть страницу ↗</a></p>
+  </div>
+  <article class="store-preview" aria-label="Превью карточки товара">
+    <div class="store-preview-media">
+      {% if images.first %}
+        <img src="{{ images.first.url }}" alt="{{ product.product_name }}" data-preview-img>
+      {% else %}
+        <img src="{% static 'store/placeholder.svg' %}" alt="" data-preview-img>
+      {% endif %}
+    </div>
+    <div class="store-preview-body">
+      <div class="store-preview-name" data-preview-name>{{ product.product_name }}</div>
+      <div class="store-preview-sub" data-preview-sub>{{ product.id_brand.brand_name|default:'' }}{% if product.rating_count %} · ★ {{ product.rating_avg }} ({{ product.rating_count }}){% endif %}</div>
+      <ul class="compat" data-preview-compat aria-label="Совместимость">{% for b in badges %}<li class="compat-badge compat-{{ b.key }}">{{ b.label }}</li>{% empty %}<li class="muted" data-preview-compat-empty>Нет данных о подключении</li>{% endfor %}</ul>
+      <div class="store-preview-price" data-preview-price>{% if product.current_price is not None %}{{ product.current_price|floatformat:'0g' }} ₽{% else %}—{% endif %}</div>
+      <span class="stock stock-{{ st.kind }}">{{ st.text }}</span>
+      <button type="button" class="btn btn-primary btn-sm btn-block" disabled>В корзину</button>
+    </div>
+  </article>
+</section>
+{% endwith %}
+{% endwith %}

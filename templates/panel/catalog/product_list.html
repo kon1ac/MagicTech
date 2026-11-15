@@ -18,6 +18,8 @@
   <select name="category"><option value="">Все категории</option>{% for c in categories %}<option value="{{ c.pk }}" {% if filters.category == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.category_name }}</option>{% endfor %}</select>
   <select name="brand"><option value="">Все бренды</option>{% for b in brands %}<option value="{{ b.pk }}" {% if filters.brand == b.pk|stringformat:'s' %}selected{% endif %}>{{ b.brand_name }}</option>{% endfor %}</select>
   <select name="active"><option value="">Любые</option><option value="1" {% if filters.active == '1' %}selected{% endif %}>Продаются</option><option value="0" {% if filters.active == '0' %}selected{% endif %}>Сняты</option></select>
+  <label class="hint">создан с <input type="date" name="from" value="{{ filters.from }}"></label>
+  <label class="hint">по <input type="date" name="to" value="{{ filters.to }}"></label>
   <input type="hidden" name="sort" value="{{ sort_param }}"><button class="btn">{% tr 'Фильтр' %}</button></form></div>
 {% include 'panel/partials/list_tools.html' %}
 <form method="post" action="{% url 'panel:product_bulk' %}" class="bulk-bar" data-confirm="Применить массовую операцию к выбранным товарам?">{% csrf_token %}

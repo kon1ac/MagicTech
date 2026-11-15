@@ -1,5 +1,5 @@
 {% extends 'store/base.html' %}
-{% load static %}
+{% load static store_extras %}
 {% block title %}{{ product.seo_title|default:product.product_name }}{% endblock %}
 {% block meta_description %}{{ product.seo_description|default:product.product_description|truncatechars:160 }}{% endblock %}
 {% block meta_extra %}{% if product.seo_keywords %}<meta name="keywords" content="{{ product.seo_keywords }}">{% endif %}{% endblock %}
@@ -22,12 +22,17 @@
     <p class="hint">Артикул <code>{{ product.product_sku }}</code>{% if product.id_brand %} · <a href="{% url 'store:catalog' %}?q={{ product.id_brand.brand_name }}">{{ product.id_brand.brand_name }}</a>{% endif %}
       {% if product.rating_count %} · <span class="rating">★ {{ product.rating_avg }} ({{ product.rating_count }}{% if product.rating_count == 1 %} отзыв{% elif product.rating_count < 5 %} отзыва{% else %} отзывов{% endif %})</span>{% endif %}</p>
 
+    {% with stock=product.available|stock_state badges=product|compat_badges %}
     <div class="buybox" data-buy-block>
       <div class="price">{% if product.price_now is not None %}{{ product.price_now|floatformat:'2g' }} ₽{% else %}Цена по запросу{% endif %}</div>
       <div class="meta">
-        {% if product.available > 0 %}<span class="stock-ok">В наличии: {{ product.available }} {{ product.id_unit.unit_name|default:'шт.' }}</span>
-        {% else %}<span class="stock-no">Нет в наличии</span>{% endif %}
+        <span class="stock stock-{{ stock.kind }}">{{ stock.text }}</span>
       </div>
+      {% if badges %}
+      <ul class="compat compat-lg" aria-label="Совместимость">
+        {% for b in badges %}<li class="compat-badge compat-{{ b.key }}" title="{{ b.label }}"><span class="compat-ico" aria-hidden="true"></span><span>{{ b.label }}</span></li>{% endfor %}
+      </ul>
+      {% endif %}
       {% if product.available > 0 and product.price_now is not None %}
       <form method="post" action="{% url 'store:cart_add' %}" class="add-row" data-cart-add>{% csrf_token %}
         <input type="hidden" name="sku" value="{{ product.product_sku }}">
@@ -44,6 +49,7 @@
         <button class="btn btn-sm" type="submit" data-beat>{% if in_wishlist %}♥ В избранном{% else %}♡ В избранное{% endif %}</button>
       </form>
     </div>
+    {% endwith %}
   </div>
 </div>
 

@@ -4,22 +4,23 @@
 Живая витрина компонентов — в панели: **/panel/help/brandbook/**.
 
 ## Логотип и фавикон
-- Знак «MT» на градиенте Cyan `#06B6D4` → Indigo `#4F46E5`, скругление 14/64.
-- Файлы: `static/panel/img/logo.svg`, `static/panel/img/favicon.svg`.
-- Минимальный размер — 16 px; охранное поле — ¼ высоты знака; не перекрашивать и не искажать пропорции.
-- Знак логотипа **фиксирован** (Cyan→Indigo); интерфейсные темы ниже — отдельно от lockup.
+- Знак «MT» на solid electric blue `#2563EB`, скругление 8/64.
+- Светлая тема: тёмный mark `#1A1D23` (`logo-light.svg`).
+- Файлы: `static/panel/img/logo.svg`, `logo-light.svg`, `favicon.svg`.
+- Минимальный размер — 16 px; охранное поле — ¼ высоты знака.
 
-## Две темы (характер разный намеренно)
+## Две темы (один акцент, разный режим)
 
-| | Dark «Neon Tech» | Light «Premium Clean» |
-|--|------------------|------------------------|
-| Фон | `#070b18` / `#0d1428` | cream `#f6f1e8` / `#efe7da` |
-| Акцент | Violet `#8B5CF6` → Cyan `#22D3EE` | Ink `#14120D` + Amber `#C8860A` |
-| Радиусы | 20 / 12 / pill 999 | 4 / 3 (острые углы) |
-| Display-шрифт | Unbounded 600 | Manrope 800 |
-| Кнопки | градиент neon-a→neon-b | сплошной ink |
-| Поверхности | glass + blur | матовые `#fffdfa` |
-| Сайдбар панели | тёмный violet-градиент | ink + янтарное ребро |
+| | Dark «Bench» | Light «Studio» |
+|--|--------------|----------------|
+| Роль | ночной шопинг | дневной каталог |
+| Фон | `#12141A` / `#181B22` | алюминий `#E8ECF0` / `#DDE3EA` |
+| Акцент | blue `#3B82F6` | blue `#2563EB` |
+| Радиусы | 8 / 6 / 8 | 8 / 6 / 8 |
+| Display | Manrope 750 | Manrope 750 |
+| Кнопки | solid blue | solid blue |
+| Поверхности | матовые | матовые |
+| Сайдбар панели | `#0E1015` + синее ребро | ink + синее ребро |
 
 Переключатель: `[data-theme='dark'|'light']` на `<html>`.
 Витрина — `localStorage` `magtech-store-theme`; панель — `UserSettings.theme`.
@@ -28,13 +29,13 @@
 
 | Токен | Назначение |
 |-------|------------|
-| `--accent` / `--accent-2` | основной и вторичный акцент темы |
+| `--accent` / `--accent-2` | основной и вторичный синий |
 | `--primary` | алиас `--accent` для панели |
 | `--text` / `--text-2` (`--muted`) | основной / вторичный текст |
 | `--bg` / `--surface` / `--surface-2` | фон страницы и карточек |
 | `--warn` / `--danger` / `--ok` | статусы |
 | `--radius` / `--radius-sm` / `--radius-pill` | скругления |
-| `--shadow-card` / `--shadow-hover` / `--shadow-neon` | тени |
+| `--shadow-card` / `--shadow-hover` / `--shadow-neon` | тени (без glow) |
 | `--btn-bg` / `--btn-text` / `--on-accent` | кнопки |
 | `--sidebar-*` | боковое меню панели |
 | `--font-body` / `--mono` / `--font-display` | шрифты |
@@ -42,8 +43,7 @@
 Служебные алиасы панели (`--primary`, `--muted`, `--shadow`, `--shadow-lg`) объявлены в том же `_tokens.css`.
 
 ## Шрифты
-- **Manrope** 400/600/700/800 — интерфейс; в light — ещё display.
-- **Unbounded** 500/600/700 — display только в dark.
+- **Manrope** 400/600/700/800 — интерфейс и display.
 - **JetBrains Mono** 400/600 — артикулы, суммы, коды, клавиши.
 - Основной кегль 15 px, интерлиньяж 1.5 (панель) / 1.6 (витрина).
 
@@ -53,14 +53,14 @@
 - Панель: боковое меню 260 px + контент до 1440 px; витрина: wrap 1280 px, сетка карточек `minmax(210px, 1fr)`.
 
 ## Радиусы и тени
-Зависят от темы (см. таблицу выше). Не хардкодить `8/12/16` — только `var(--radius*)`.
-Тени — только через `--shadow-card` / `--shadow-hover` / `--shadow-neon`.
+Общие для обеих тем. Не хардкодить — только `var(--radius*)`.
+Тени — через `--shadow-card` / `--shadow-hover` (без цветного свечения).
 
 ## Иконки
 Unicode-символы (☰ ◐ ♡ ★ ✕ ← →) и SVG 24×24 с обводкой 2 px и скруглёнными концами.
 
 ## Компоненты
-- Кнопки: `.btn`, `.btn-primary` (фон `var(--btn-bg)` / `var(--primary)`), `.btn-ghost`, `.btn-danger`, `.btn-sm`.
+- Кнопки: `.btn`, `.btn-primary` (фон `var(--btn-bg)`), `.btn-ghost`, `.btn-danger`, `.btn-sm`.
 - Бейджи статусов: `.badge-<СТАТУС>` — warn / accent / ok / danger.
 - Таблицы: `.data-table` в `.table-wrap`; числа — моноширинным, по правому краю.
 - Формы: `.form-stack`, ошибки — `.errorlist`, подсказки — `.helptext`.

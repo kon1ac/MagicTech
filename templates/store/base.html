@@ -4,12 +4,12 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Аксессуары для ПК{% endblock %} — MagicTech</title>
   <meta name="description" content="{% block meta_description %}MagicTech — интернет-магазин аксессуаров для ПК: клавиатуры, мыши, гарнитуры, веб-камеры, кабели и игровые кресла.{% endblock %}">
-  <meta name="theme-color" content="#070b18">
+  <meta name="theme-color" content="#12141a">
   {% block meta_extra %}{% endblock %}
   <link rel="icon" type="image/svg+xml" href="{% static 'panel/img/favicon.svg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'store/_tokens.css' %}">
   <link rel="stylesheet" href="{% static 'store/store.css' %}">
   <link rel="stylesheet" href="{% static 'store/store-fx.css' %}">
@@ -66,9 +66,12 @@
   </form>
 
   <nav class="header-links" aria-label="Профиль">
-    <button class="theme-switch" type="button" aria-label="Переключить тему" aria-pressed="false" title="Тема (Ctrl+Alt+T)">
-      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
-      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>
+    <button class="theme-switch" type="button" aria-label="Тема Studio" aria-pressed="false" title="Тема (Ctrl+Alt+T)">
+      <span class="theme-switch-icons" aria-hidden="true">
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>
+      </span>
+      <span class="theme-switch-label" data-theme-label>Studio</span>
     </button>
     <button type="button" class="icon-btn hotkeys-btn" data-hotkeys-open title="Горячие клавиши (?)" aria-label="Горячие клавиши">?</button>
     {% if store_user %}

@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.catalog_view, name='catalog'),
     path('catalog/<slug:slug>/', views.catalog_view, name='category'),
     path('search/suggest/', views.search_suggest_view, name='search_suggest'),
+    path('compare/', views.compare_view, name='compare'),
     path('product/<str:sku>/', views.product_view, name='product'),
     path('product/<str:sku>/review/', views.product_review_view, name='product_review'),
     path('product/<str:sku>/wishlist/', views.wishlist_toggle_view, name='wishlist_toggle'),

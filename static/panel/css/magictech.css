@@ -1,7 +1,5 @@
-/* MagicTech Panel — Glassmorphism & Glow Redesign
- * Animated gradients, glass sidebar, glow stat cards, pulsing badges.
- * Токены (темы, шрифты, радиусы, переходы) вынесены в _tokens.css и
- * подключаются первыми. Здесь ТОЛЬКО компоненты панели. */
+/* MagicTech Panel — компоненты админки.
+ * Токены (темы, шрифты, радиусы, переходы) — в _tokens.css (подключается первым). */
 
 /* ===== RESET ===== */
 * { box-sizing: border-box; }
@@ -19,22 +17,13 @@ kbd { font-size: .75rem; border: 1px solid var(--border); border-bottom-width: 2
 .skip-link:focus { left: 1rem; top: 1rem; background: var(--surface); padding: .5rem 1rem; z-index: 99; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ===== ANIMATED BACKGROUND ===== */
+/* ===== BACKGROUND ===== */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
-  background:
-    radial-gradient(ellipse at 20% 50%, var(--accent-glow), transparent 50%),
-    radial-gradient(ellipse at 80% 20%, var(--bg-spot-b), transparent 50%),
-    radial-gradient(ellipse at 50% 80%, var(--bg-spot-a), transparent 50%);
-  animation: bgPulse 15s ease-in-out infinite alternate;
-}
-@keyframes bgPulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  background: var(--bg);
 }
 
 /* ===== LAYOUT ===== */
@@ -210,9 +199,9 @@ dl.props dd { margin: 0; word-break: break-word; }
 
 /* ===== TABLES ===== */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.data-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-.data-table th, .data-table td { padding: .6rem .7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-.data-table th { background: var(--surface-2); font-weight: 600; white-space: nowrap; font-size: .82rem; color: var(--muted); }
+.data-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.data-table th, .data-table td { padding: .38rem .55rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; line-height: 1.35; }
+.data-table th { background: var(--surface-2); font-weight: 600; white-space: nowrap; font-size: .75rem; color: var(--muted); letter-spacing: .02em; }
 .data-table tbody tr { transition: background var(--transition); }
 .data-table tbody tr:hover { background: var(--surface-2); }
 .data-table td.num, .data-table th.num { text-align: right; font-family: var(--mono); }
@@ -283,6 +272,9 @@ input:focus, select:focus, textarea:focus {
 .form-stack p, .form-stack .field { margin: 0 0 .9rem; }
 .form-stack label { display: block; font-size: .85rem; margin-bottom: .25rem; font-weight: 600; }
 .form-stack input:not([type=checkbox]):not([type=radio]), .form-stack select, .form-stack textarea { width: 100%; }
+.form-stack .field-row { display: flex; gap: .5rem; align-items: stretch; }
+.form-stack .field-row input { flex: 1; min-width: 0; }
+.form-stack .field-row .btn { flex-shrink: 0; white-space: nowrap; align-self: stretch; }
 .form-stack .helptext { display: block; font-size: .8rem; color: var(--muted); margin-top: .2rem; }
 .form-stack ul { list-style: none; padding: 0; margin: 0; }
 .form-stack input[type=checkbox] { width: auto; margin-right: .35rem; }
@@ -301,8 +293,7 @@ details.inline summary { cursor: pointer; color: var(--primary); }
 /* ===== LOGIN ===== */
 .login-screen {
   min-height: 100vh; display: grid; place-items: center; padding: 1rem;
-  background: radial-gradient(circle at 20% 20%, var(--bg-spot-a), transparent 40%),
-              radial-gradient(circle at 80% 0%, var(--bg-spot-b), transparent 35%), var(--bg);
+  background: var(--bg);
 }
 .login-card { width: min(420px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow); }
 .brand-lg { margin-bottom: .75rem; color: var(--text); }
@@ -397,4 +388,53 @@ pre.code { background: var(--surface-2); border: 1px solid var(--border); border
 @media print {
   .sidebar, .topbar, .toolbar, .bulk-bar, .btn { display: none !important; }
   .layout { display: block; }
+}
+
+/* ===== Theme crossfade + label ===== */
+.theme-animating, .theme-animating * {
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
+              border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease) !important;
+}
+.theme-toggle { display: inline-flex; align-items: center; gap: .4rem; }
+.theme-toggle [data-theme-label] { font-size: .78rem; font-weight: 700; }
+
+/* ===== Storefront preview (product form) ===== */
+.store-preview-card h2 { margin-top: 0; }
+.store-preview-head .muted { margin: .25rem 0 1rem; }
+.store-preview {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: .85rem;
+  padding: .85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.store-preview-media {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.store-preview-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.store-preview-body { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.store-preview-name {
+  font-weight: 700; font-size: .95rem; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.store-preview-sub { font-size: .8rem; color: var(--muted); }
+.store-preview-price { font-family: var(--mono); font-weight: 700; font-size: 1.15rem; margin-top: .2rem; }
+.store-preview .compat { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem; }
+.store-preview .compat-badge {
+  display: inline-flex; padding: .12rem .45rem; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  font-size: .7rem; font-weight: 650;
+}
+.store-preview .stock { font-size: .85rem; }
+.store-preview .stock-ok { color: var(--ok); }
+.store-preview .stock-low { color: var(--warn); font-weight: 700; }
+.store-preview .stock-out { color: var(--danger); }
+.store-preview .btn { margin-top: .35rem; }
+@media (max-width: 640px) {
+  .store-preview { grid-template-columns: 1fr; }
 }

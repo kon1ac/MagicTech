@@ -3,10 +3,23 @@
   const root = document.documentElement;
   const csrf = () => document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 
-  // ---- тема: хранится на сервере в настройках пользователя
+  // ---- тема: хранится на сервере в настройках пользователя (Bench / Studio)
+  function paintThemeLabel(theme) {
+    const label = theme === 'dark' ? 'Bench' : 'Studio';
+    document.querySelectorAll('[data-theme-label]').forEach((el) => { el.textContent = label; });
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+      btn.setAttribute('aria-label', 'Тема ' + label);
+      btn.title = label;
+    }
+  }
+  paintThemeLabel(root.getAttribute('data-theme') || 'light');
   document.getElementById('themeToggle')?.addEventListener('click', (e) => {
     const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.classList.add('theme-animating');
     root.setAttribute('data-theme', next);
+    paintThemeLabel(next);
+    window.setTimeout(() => root.classList.remove('theme-animating'), 220);
     fetch(e.currentTarget.dataset.url, {
       method: 'POST', headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'theme=' + next,
